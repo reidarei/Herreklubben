@@ -73,7 +73,7 @@ export default async function Arrangoransvar() {
                           {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--aksent)' }}>← deg</span>}
                         </p>
                         <p className="text-sm mt-0.5" style={{ color: 'var(--tekst-dempet)' }}>
-                          {(a.profiles as { navn: string } | null)?.navn ?? <span style={{ color: '#f87171' }}>Ingen ansvarlig</span>}
+                          {(Array.isArray(a.profiles) ? (a.profiles as { navn: string }[])[0]?.navn : (a.profiles as { navn: string } | null)?.navn) ?? <span style={{ color: '#f87171' }}>Ingen ansvarlig</span>}
                         </p>
                         {harArrangement ? (
                           <Link
