@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { format, isThisYear, isPast } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import SladdetFelt from './SladdetFelt'
+import type { Json } from '@/lib/supabase/database.types'
 
 type Paamelding = { profil_id: string; status: string }
 
@@ -17,7 +18,7 @@ type Arrangement = {
   oppmoetested: string | null
   destinasjon: string | null
   pris_per_person: number | null
-  sensurerte_felt: Record<string, boolean>
+  sensurerte_felt: Json
   opprettet_av: string
   paameldinger: Paamelding[]
 }
@@ -54,7 +55,7 @@ export default function ArrangementTidslinje({
     const antallKanskje = arr.paameldinger.filter(p => p.status === 'kanskje').length
     const erTur = arr.type === 'tur'
     const erSensurert = (felt: string) =>
-      arr.sensurerte_felt?.[felt] === true
+      (arr.sensurerte_felt as Record<string, boolean> | null)?.[felt] === true
 
     return (
       <div className="flex gap-4" style={{ opacity: dempet ? 0.5 : 1 }}>

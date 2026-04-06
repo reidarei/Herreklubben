@@ -130,7 +130,7 @@ export default function VedtektVisning({
                   {versjoner.map(v => (
                     <div key={v.id} className="rounded-lg px-3 py-2" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
                       <p className="text-xs font-medium" style={{ color: 'var(--tekst)' }}>
-                        {format(new Date(v.vedtaksdato), 'd. MMMM yyyy', { locale: nb })} — {(v.profiles as { navn: string } | null)?.navn}
+                        {format(new Date(v.vedtaksdato), 'd. MMMM yyyy', { locale: nb })} — {v.profiles?.navn}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--tekst-dempet)' }}>{v.endringsnotat}</p>
                     </div>

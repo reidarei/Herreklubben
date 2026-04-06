@@ -134,20 +134,15 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
                 {ikon} {label} ({liste.length})
               </p>
               <div className="flex flex-wrap gap-2">
-                {liste.map((p) => {
-                  const navn = Array.isArray(p.profiles)
-                    ? (p.profiles[0] as { navn: string } | undefined)?.navn
-                    : (p.profiles as { navn: string } | null)?.navn
-                  return (
-                    <span
-                      key={p.profil_id}
-                      className="text-sm px-2 py-1 rounded-lg"
-                      style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst)' }}
-                    >
-                      {navn ?? '–'}
-                    </span>
-                  )
-                })}
+                {liste.map((p) => (
+                  <span
+                    key={p.profil_id}
+                    className="text-sm px-2 py-1 rounded-lg"
+                    style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst)' }}
+                  >
+                    {p.profiles?.navn ?? '–'}
+                  </span>
+                ))}
               </div>
             </div>
           )

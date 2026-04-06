@@ -1,10 +1,16 @@
 import webpush from 'web-push'
 
-webpush.setVapidDetails(
-  'mailto:admin@mortensrudherreklubb.no',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+let initialisert = false
+
+function init() {
+  if (initialisert) return
+  webpush.setVapidDetails(
+    'mailto:admin@mortensrudherreklubb.no',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  )
+  initialisert = true
+}
 
 type PushSubscription = {
   endpoint: string
@@ -19,6 +25,7 @@ export type PushPayload = {
 }
 
 export async function sendPush(subscription: PushSubscription, payload: PushPayload) {
+  init()
   try {
     await webpush.sendNotification(
       {

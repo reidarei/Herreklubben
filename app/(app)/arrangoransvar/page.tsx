@@ -73,11 +73,11 @@ export default async function Arrangoransvar() {
                           {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--aksent)' }}>← deg</span>}
                         </p>
                         <p className="text-sm mt-0.5" style={{ color: 'var(--tekst-dempet)' }}>
-                          {(Array.isArray(a.profiles) ? (a.profiles as { navn: string }[])[0]?.navn : (a.profiles as { navn: string } | null)?.navn) ?? <span style={{ color: '#f87171' }}>Ingen ansvarlig</span>}
+                          {a.profiles?.navn ?? <span style={{ color: '#f87171' }}>Ingen ansvarlig</span>}
                         </p>
                         {harArrangement ? (
                           <Link
-                            href={`/arrangementer/${(a.arrangementer as { id: string }).id}`}
+                            href={`/arrangementer/${a.arrangementer?.id}`}
                             className="text-xs mt-1 inline-block"
                             style={{ color: 'var(--gronn-lys)' }}
                           >

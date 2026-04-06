@@ -34,7 +34,7 @@ async function sendTilAlle({
   arrangementId,
 }: {
   unntaProfilId?: string
-  pushPayload: { tittel: string; melding: string; url: string }
+  pushPayload: { tittel: string; melding: string }
   epostEmne: string
   epostTekst: string
   arrangementId: string
