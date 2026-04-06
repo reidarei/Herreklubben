@@ -70,6 +70,17 @@ export default async function Klubbinfo() {
           </div>
           <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
         </Link>
+
+        {erAdmin && (
+          <Link href="/innstillinger" style={kortstil as React.CSSProperties}>
+            <span className="text-2xl">⚙️</span>
+            <div>
+              <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Innstillinger</p>
+              <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Varsler og påminnelser</p>
+            </div>
+            <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
+          </Link>
+        )}
       </div>
     </div>
   )
