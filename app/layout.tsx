@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Barlow } from 'next/font/google'
 import './globals.css'
 
@@ -7,6 +7,10 @@ const barlow = Barlow({
   weight: ['400', '600', '700', '800', '900'],
   variable: '--font-barlow',
 })
+
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: 'Mortensrud Herreklubb',

@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
@@ -9,7 +10,7 @@ import SladdetFelt from '@/components/SladdetFelt'
 export default async function ArrangementDetaljer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getInnloggetBruker()
 
   const { data: arr } = await supabase
     .from('arrangementer')
@@ -23,12 +24,7 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
 
   if (!arr) notFound()
 
-  const { data: profil } = await supabase
-    .from('profiles')
-    .select('rolle')
-    .eq('id', user!.id)
-    .single()
-
+  const profil = await getProfil()
   const erAdmin = profil?.rolle === 'admin'
   const kanRedigere = arr.opprettet_av === user!.id || erAdmin
   const erTur = arr.type === 'tur'

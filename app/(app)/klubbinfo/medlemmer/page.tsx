@@ -1,11 +1,11 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 
 export default async function Medlemmer() {
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
+  const profil = await getProfil()
   const erAdmin = profil?.rolle === 'admin'
 
   const { data: medlemmer } = await supabase

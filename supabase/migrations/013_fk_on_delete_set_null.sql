@@ -18,8 +18,3 @@ alter table vedtekter_versjoner drop constraint if exists vedtekter_versjoner_en
 alter table vedtekter_versjoner alter column endret_av drop not null;
 alter table vedtekter_versjoner add constraint vedtekter_versjoner_endret_av_fkey
   foreign key (endret_av) references profiles(id) on delete set null;
-
--- kaaringer_nominasjoner.profil_id (allerede nullable)
-alter table kaaringer_nominasjoner drop constraint if exists kaaringer_nominasjoner_profil_id_fkey;
-alter table kaaringer_nominasjoner add constraint kaaringer_nominasjoner_profil_id_fkey
-  foreign key (profil_id) references profiles(id) on delete set null;

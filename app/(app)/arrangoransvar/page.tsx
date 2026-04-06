@@ -1,12 +1,13 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 import AnsvarAdmin from './AnsvarAdmin'
 
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getInnloggetBruker()
 
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
+  const profil = await getProfil()
   const erAdmin = profil?.rolle === 'admin'
 
   const innevaerendeAar = new Date().getFullYear()

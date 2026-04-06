@@ -38,7 +38,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50" style={{ background: '#161616', borderTop: '1px solid var(--border)' }}>
-      <div className="flex">
+      <div className="flex" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {tabs.map((tab) => {
           const aktiv = tab.href === '/'
             ? pathname === '/'
