@@ -1,5 +1,7 @@
 # Mortensrud Herreklubb — Løsningsdesign
 
+> **Status:** Implementert og live på Vercel (2026-04-06). Dette dokumentet er et design-referansedokument — koden er autoritativ for gjeldende implementasjon.
+
 > Basert på kravspesifikasjonen i `HK-app_kravspesifikasjon.md` (låst).
 > Arkitektur: **Next.js 15 App Router + Supabase + PWA**.
 
