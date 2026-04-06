@@ -165,7 +165,7 @@ export default function ArrangementTidslinje({
         {/* Ikonet markerer bunnen av tidslinjen — like bredt som kortene */}
         <div className="flex gap-4">
           <div style={{ minWidth: '40px' }} />
-          <div className="flex-1" style={{ overflow: 'hidden', height: 300, position: 'relative', marginTop: '0.5rem' }}>
+          <div className="flex-1" style={{ overflow: 'hidden', height: 240, position: 'relative', marginTop: '0.5rem' }}>
             <img
               src="/icon-2000.png"
               alt=""
