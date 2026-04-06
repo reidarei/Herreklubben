@@ -49,6 +49,12 @@ export async function slettMedlem(id: string) {
   if (id === user.id) throw new Error('Kan ikke slette seg selv')
 
   const admin = createAdminClient()
+
+  // Slett avhengige rader før auth-bruker slettes
+  await admin.from('paameldinger').delete().eq('profil_id', id)
+  await admin.from('push_subscriptions').delete().eq('profil_id', id)
+  await admin.from('arrangoransvar').update({ ansvarlig_id: null }).eq('ansvarlig_id', id)
+
   const { error } = await admin.auth.admin.deleteUser(id)
   if (error) throw new Error(error.message)
 

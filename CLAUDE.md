@@ -51,3 +51,4 @@ Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig sc
 - Datoer via `date-fns` med norsk locale (`nb`)
 - Oslo-østkant-tone / oslo-losen i UI-tekst (a-endelser, f.eks. «gutta»)
 
+Supabase: Herreklubbens org, Herreklubbens webapp, Database passord: d2F3j$G!-@j!i94

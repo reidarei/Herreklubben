@@ -161,6 +161,15 @@ export default function ArrangementTidslinje({
             <p className="text-sm py-4" style={{ color: 'var(--tekst-dempet)' }}>Ingen kommende arrangementer</p>
           </div>
         )}
+
+        {/* Ikonet markerer bunnen av tidslinjen */}
+        <div className="flex justify-center pt-8 pb-2">
+          <img
+            src="/icon-192.png"
+            alt=""
+            style={{ width: 64, height: 64, borderRadius: '16px', opacity: 0.25 }}
+          />
+        </div>
       </div>
     </div>
   )
