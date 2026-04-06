@@ -1,0 +1,18 @@
+name: Daglig påminnelse
+
+on:
+  schedule:
+    # Kjører kl. 09:00 Oslo-tid (UTC+2 sommer = 07:00 UTC)
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Kan kjøres manuelt fra GitHub
+
+jobs:
+  paaminne:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send påminnelser
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.APP_URL }}/api/cron/paaminne" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"

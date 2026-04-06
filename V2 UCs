@@ -1,0 +1,33 @@
+---
+Denne filen inneholder use cases for V2 av Herreklubben.
+---
+
+## Gruppe 6 — Kåringer
+
+### UC-6.3: Admin oppretter en kåringsavstemning
+- **Aktør:** **Kun admin**
+- **Flyt:** Åpne "Kåringer" → "Ny kåring" → fyll inn år + kategori (f.eks. "Årets
+  herre 2026") + valgfrie kandidater (eller "alle medlemmer") → publiser
+- **Etterbetingelse:** Avstemningen er åpen. Alle medlemmer får varsel (push +
+  e-post) om at det er en ny avstemning å stemme i.
+- **Merknader:** Admin kan også opprette kåringer uten avstemning (bare
+  registrere vinner), for å dokumentere historiske kåringer fra før appens tid.
+
+### UC-6.4: Medlem stemmer i en åpen kåring
+- **Aktør:** Alle medlemmer (inkludert admins)
+- **Flyt:** Åpne "Kåringer" → se åpne avstemninger → velg kandidat → bekreft
+  stemme
+- **Merknader:**
+  - Én stemme per medlem per kåring
+  - Stemmer kan endres så lenge kåringen er åpen
+  - Stemmer er anonyme for alle (medlemmer og admin) — ingen kan se hvem som stemte på hva
+  - Alle kan se løpende stemmetall (antall stemmer per kandidat) mens kåringen er åpen, men ikke hvem som stemte på hvem
+
+### UC-6.5: Admin lukker kåring og kunngjør vinner
+- **Aktør:** **Kun admin**
+- **Flyt:** Åpne en åpen kåring → "Lukk avstemning" → se stemmeresultat → bekreft
+  vinner (evt. overstyre ved lik stand) → publiser
+- **Etterbetingelse:** Kåringen flyttes til "historiske kåringer". Alle medlemmer
+  får varsel om resultatet.
+- **Merknader:** Admin har siste ord — kan f.eks. bryte likt stemmestand eller
+  velge å ikke kunngjøre vinner.

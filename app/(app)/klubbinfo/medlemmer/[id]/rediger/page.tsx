@@ -1,0 +1,27 @@
+import { createServerClient } from '@/lib/supabase/server'
+import { notFound, redirect } from 'next/navigation'
+import RedigerMedlemSkjema from './RedigerMedlemSkjema'
+
+export default async function RedigerMedlem({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: innlogget } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
+  if (innlogget?.rolle !== 'admin') redirect('/klubbinfo/medlemmer')
+
+  const { data: medlem } = await supabase
+    .from('profiles')
+    .select('id, navn, epost, telefon, rolle, aktiv')
+    .eq('id', id)
+    .single()
+
+  if (!medlem) notFound()
+
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-6">
+      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Rediger medlem</h1>
+      <RedigerMedlemSkjema medlem={medlem} />
+    </div>
+  )
+}

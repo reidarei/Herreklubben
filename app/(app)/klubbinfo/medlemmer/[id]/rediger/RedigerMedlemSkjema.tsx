@@ -1,0 +1,78 @@
+'use client'
+
+import { useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { oppdaterMedlemAdmin } from '@/lib/actions/profil'
+
+const inputStil = {
+  background: 'var(--bakgrunn-kort)',
+  border: '1px solid var(--border)',
+  color: 'var(--tekst)',
+  borderRadius: '0.5rem',
+  padding: '0.75rem 1rem',
+  width: '100%',
+  fontSize: '1rem',
+}
+
+type Medlem = { id: string; navn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean }
+
+export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    startTransition(async () => {
+      await oppdaterMedlemAdmin(medlem.id, {
+        navn: fd.get('navn') as string,
+        telefon: fd.get('telefon') as string,
+        rolle: fd.get('rolle') as string,
+        aktiv: fd.get('aktiv') === 'true',
+      })
+      router.push('/klubbinfo/medlemmer')
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 pb-8">
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Navn</label>
+        <input name="navn" type="text" required defaultValue={medlem.navn} style={inputStil} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>E-post</label>
+        <input type="text" value={medlem.epost} disabled style={{ ...inputStil, opacity: 0.5 }} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Telefon</label>
+        <input name="telefon" type="tel" defaultValue={medlem.telefon ?? ''} style={inputStil} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Rolle</label>
+        <select name="rolle" defaultValue={medlem.rolle} style={inputStil}>
+          <option value="medlem">Medlem</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Status</label>
+        <select name="aktiv" defaultValue={String(medlem.aktiv)} style={inputStil}>
+          <option value="true">Aktiv</option>
+          <option value="false">Deaktivert</option>
+        </select>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button type="button" onClick={() => router.back()} className="flex-1 py-3 rounded-xl font-semibold text-sm"
+          style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+          Avbryt
+        </button>
+        <button type="submit" disabled={isPending} className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
+          style={{ background: 'var(--aksent)' }}>
+          {isPending ? 'Lagrer...' : 'Lagre'}
+        </button>
+      </div>
+    </form>
+  )
+}
