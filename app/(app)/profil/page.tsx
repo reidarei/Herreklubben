@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import LoggUtKnapp from './LoggUtKnapp'
 import RedigerProfilSkjema from './RedigerProfilSkjema'
+import EndrePassord from './EndrePassord'
 import PushAbonnement from '@/components/PushAbonnement'
 import Link from 'next/link'
 
@@ -57,6 +58,8 @@ export default async function Profil() {
           </div>
         </div>
       )}
+
+      <EndrePassord />
 
       <PushAbonnement />
 
