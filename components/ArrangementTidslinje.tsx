@@ -163,11 +163,11 @@ export default function ArrangementTidslinje({
         )}
 
         {/* Ikonet markerer bunnen av tidslinjen — bare toppen synes */}
-        <div style={{ overflow: 'hidden', height: 160, marginTop: '2rem', position: 'relative' }}>
+        <div style={{ overflow: 'hidden', height: 220, marginTop: '2rem', position: 'relative' }}>
           <img
             src="/icon-512.png"
             alt=""
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', display: 'block' }}
+            style={{ position: 'absolute', top: -70, left: 0, width: '100%', height: 'auto', display: 'block' }}
           />
         </div>
       </div>
