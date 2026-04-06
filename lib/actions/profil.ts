@@ -2,7 +2,9 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export async function oppdaterEgenProfil(data: { navn: string; telefon: string }) {
   const supabase = await createServerClient()
@@ -35,4 +37,21 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; tele
 
   if (error) throw new Error(error.message)
   revalidatePath('/klubbinfo/medlemmer')
+}
+
+export async function slettMedlem(id: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
+  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
+  if (id === user.id) throw new Error('Kan ikke slette seg selv')
+
+  const admin = createAdminClient()
+  const { error } = await admin.auth.admin.deleteUser(id)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/klubbinfo/medlemmer')
+  redirect('/klubbinfo/medlemmer')
 }

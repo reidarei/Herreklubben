@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { oppdaterMedlemAdmin } from '@/lib/actions/profil'
+import { oppdaterMedlemAdmin, slettMedlem } from '@/lib/actions/profil'
 
 const inputStil = {
   background: 'var(--bakgrunn-kort)',
@@ -73,6 +73,19 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
           {isPending ? 'Lagrer...' : 'Lagre'}
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          if (confirm(`Slette ${medlem.navn}? Dette kan ikke angres.`)) {
+            startTransition(() => slettMedlem(medlem.id))
+          }
+        }}
+        disabled={isPending}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold mt-2 disabled:opacity-50"
+        style={{ background: 'transparent', border: '1px solid #8b1a1a', color: '#f87171' }}>
+        Slett medlem
+      </button>
     </form>
   )
 }
