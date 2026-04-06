@@ -162,12 +162,12 @@ export default function ArrangementTidslinje({
           </div>
         )}
 
-        {/* Ikonet markerer bunnen av tidslinjen */}
-        <div className="flex justify-center pt-8 pb-2">
+        {/* Ikonet markerer bunnen av tidslinjen — bare toppen synes */}
+        <div style={{ overflow: 'hidden', height: 60, marginTop: '2rem' }}>
           <img
-            src="/icon-192.png"
+            src="/icon-512.png"
             alt=""
-            style={{ width: 64, height: 64, borderRadius: '16px', opacity: 0.25 }}
+            style={{ width: '100%', display: 'block', objectFit: 'cover', objectPosition: 'top' }}
           />
         </div>
       </div>
