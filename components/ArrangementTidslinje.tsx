@@ -162,13 +162,14 @@ export default function ArrangementTidslinje({
           </div>
         )}
 
-        {/* Ikonet markerer bunnen av tidslinjen — bare toppen synes */}
-        <div style={{ overflow: 'hidden', height: 220, marginTop: '2rem', position: 'relative' }}>
+        {/* Ikonet markerer bunnen av tidslinjen — bare toppen synes, tonet ned */}
+        <div style={{ overflow: 'hidden', height: 180, marginTop: '2rem', position: 'relative' }}>
           <img
-            src="/icon-512.png"
+            src="/icon-2000.png"
             alt=""
-            style={{ position: 'absolute', top: -70, left: 0, width: '100%', height: 'auto', display: 'block' }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', display: 'block', opacity: 0.15 }}
           />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to bottom, transparent, var(--bakgrunn))' }} />
         </div>
       </div>
     </div>
