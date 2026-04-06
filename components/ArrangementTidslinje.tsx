@@ -162,14 +162,17 @@ export default function ArrangementTidslinje({
           </div>
         )}
 
-        {/* Ikonet markerer bunnen av tidslinjen — bare toppen synes, tonet ned */}
-        <div style={{ overflow: 'hidden', height: 300, marginTop: '2rem', position: 'relative' }}>
-          <img
-            src="/icon-2000.png"
-            alt=""
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', display: 'block', opacity: 0.15 }}
-          />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to bottom, transparent, var(--bakgrunn))' }} />
+        {/* Ikonet markerer bunnen av tidslinjen — like bredt som kortene */}
+        <div className="flex gap-4">
+          <div style={{ minWidth: '40px' }} />
+          <div className="flex-1" style={{ overflow: 'hidden', height: 300, position: 'relative', marginTop: '0.5rem' }}>
+            <img
+              src="/icon-2000.png"
+              alt=""
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto', display: 'block', opacity: 0.15 }}
+            />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', background: 'linear-gradient(to bottom, transparent, var(--bakgrunn))' }} />
+          </div>
         </div>
       </div>
     </div>
