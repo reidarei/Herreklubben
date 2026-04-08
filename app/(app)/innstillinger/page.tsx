@@ -45,7 +45,7 @@ export default async function Innstillinger() {
   ])
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10 pb-8">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
         <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Innstillinger</h1>

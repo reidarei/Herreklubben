@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bakgrunn)' }}>
       <ServiceWorkerRegistrering />
       <SkyBakgrunn />
-      <main className="flex-1 pb-20 relative z-10">
+      <main className="flex-1 pb-20 relative z-10" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         {children}
       </main>
       <Suspense fallback={<BottomNav erAdmin={false} />}>

@@ -42,7 +42,7 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10 pb-8">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
       {/* Tilbake + rediger */}
       <div className="flex items-center justify-between mb-5">
         <Link href="/" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>

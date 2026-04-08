@@ -24,7 +24,7 @@ export default async function Forside() {
     .order('start_tidspunkt', { ascending: true })
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10 pb-4">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Arrangementer</h1>
         <Link

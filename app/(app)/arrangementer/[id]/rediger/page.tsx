@@ -25,7 +25,7 @@ export default async function RedigerArrangement({ params }: { params: Promise<{
   if (!kanRedigere) redirect(`/arrangementer/${id}`)
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10">
+    <div className="max-w-lg mx-auto px-4 pt-6">
       <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Rediger arrangement</h1>
       <RedigerSkjema arrangement={arr} />
     </div>

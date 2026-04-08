@@ -17,7 +17,7 @@ export default async function RedigerMedlem({ params }: { params: Promise<{ id: 
   if (!medlem) notFound()
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10">
+    <div className="max-w-lg mx-auto px-4 pt-6">
       <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Rediger medlem</h1>
       <RedigerMedlemSkjema medlem={medlem} />
     </div>
