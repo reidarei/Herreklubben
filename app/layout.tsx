@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Barlow } from 'next/font/google'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
 const barlow = Barlow({
@@ -34,7 +35,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#111111" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body style={{ fontFamily: 'var(--font-barlow), system-ui, sans-serif' }}>{children}</body>
+      <body style={{ fontFamily: 'var(--font-barlow), system-ui, sans-serif' }}>{children}<SpeedInsights /></body>
     </html>
   )
 }
