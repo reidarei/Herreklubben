@@ -6,6 +6,17 @@ import { nb } from 'date-fns/locale'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
+// Sjekk om en varseltype er aktivert i admin-innstillinger
+async function erVarselAktiv(noekkel: string): Promise<boolean> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('varsel_innstillinger')
+    .select('aktiv')
+    .eq('noekkel', noekkel)
+    .maybeSingle()
+  return data?.aktiv ?? true
+}
+
 // Hent alle aktive profiler
 async function hentProfiler(unnta?: string) {
   const supabase = createAdminClient()
@@ -74,6 +85,8 @@ export async function sendNyttArrangementVarsler({
   startTidspunkt: string
   opprettetAv: string
 }) {
+  if (!(await erVarselAktiv('nytt_arrangement'))) return
+
   const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
   await sendTilAlle({
     unntaProfilId: opprettetAv,
@@ -82,6 +95,9 @@ export async function sendNyttArrangementVarsler({
     epostTekst: `Det er satt opp et nytt arrangement: <strong>${tittel}</strong><br>${dato}`,
     arrangementId,
   })
+
+  const supabase = createAdminClient()
+  await supabase.from('varsler_logg').insert({ arrangement_id: arrangementId, type: 'nytt' })
 }
 
 // Påminnelse (7 dager eller 1 dag før)
@@ -96,6 +112,9 @@ export async function sendPaaminneVarsler({
   startTidspunkt: string
   type: 'paaminne_7' | 'paaminne_1'
 }) {
+  const noekkel = type === 'paaminne_7' ? 'paaminnelse_7d' : 'paaminnelse_1d'
+  if (!(await erVarselAktiv(noekkel))) return
+
   const supabase = createAdminClient()
   const dager = type === 'paaminne_7' ? 7 : 1
 
@@ -133,6 +152,8 @@ export async function sendPurringVarsler({
   tittel: string
   startTidspunkt: string
 }) {
+  if (!(await erVarselAktiv('purring_aktiv'))) return
+
   const supabase = createAdminClient()
 
   // Sjekk om allerede sendt

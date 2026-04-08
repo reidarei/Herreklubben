@@ -3,6 +3,25 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
 import { addDays, subHours, addHours } from 'date-fns'
+import { revalidatePath } from 'next/cache'
+
+export async function oppdaterVarselInnstilling(noekkel: string, aktiv: boolean) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
+  if (profil?.rolle !== 'admin') return
+
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const admin = createAdminClient()
+  await admin
+    .from('varsel_innstillinger')
+    .update({ aktiv, oppdatert: new Date().toISOString() })
+    .eq('noekkel', noekkel)
+
+  revalidatePath('/innstillinger')
+}
 
 export async function kjorPaaminnerManuelt(): Promise<boolean> {
   const supabase = await createServerClient()

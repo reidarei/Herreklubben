@@ -64,6 +64,11 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
           ansvar_id: valgtAnsvar || undefined,
         })
       } catch (err) {
+        if (typeof err === 'object' && err !== null && 'digest' in err &&
+            typeof (err as Record<string, unknown>).digest === 'string' &&
+            ((err as Record<string, unknown>).digest as string).startsWith('NEXT_REDIRECT')) {
+          throw err
+        }
         setFeil('Noe gikk galt. Prøv igjen.')
       }
     })

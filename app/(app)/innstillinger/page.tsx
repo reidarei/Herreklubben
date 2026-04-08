@@ -4,12 +4,20 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import SendTestKnapp from './SendTestKnapp'
+import VarselToggle from '@/components/VarselToggle'
 
 const typeLabels: Record<string, string> = {
   nytt: 'Nytt arrangement',
   paaminne_7: 'Påminnelse 7 dager',
   paaminne_1: 'Påminnelse 1 dag',
   purring: 'Purring',
+}
+
+const innstillingLabels: Record<string, string> = {
+  nytt_arrangement: 'Varsel ved nytt arrangement',
+  paaminnelse_7d: 'Påminnelse 7 dager før',
+  paaminnelse_1d: 'Påminnelse 1 dag før',
+  purring_aktiv: 'Purring til de som ikke har svart (3 dager før)',
 }
 
 export default async function Innstillinger() {
@@ -29,6 +37,11 @@ export default async function Innstillinger() {
     .from('push_subscriptions')
     .select('*', { count: 'exact', head: true })
 
+  const { data: innstillinger } = await supabase
+    .from('varsel_innstillinger')
+    .select('noekkel, aktiv, beskrivelse')
+    .order('noekkel')
+
   return (
     <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
@@ -44,14 +57,18 @@ export default async function Innstillinger() {
         </p>
       </div>
 
-      {/* Påminnelseskonfig */}
+      {/* Varsler av/på */}
       <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--tekst)' }}>Automatiske påminnelser</p>
-        <div className="space-y-2 text-xs" style={{ color: 'var(--tekst-dempet)' }}>
-          <p>✓ Nytt arrangement — sendes til alle andre ved opprettelse</p>
-          <p>✓ Påminnelse 7 dager før — daglig kl. 09:00</p>
-          <p>✓ Påminnelse 1 dag før — daglig kl. 09:00</p>
-          <p>✓ Purring 3 dager før — til de som ikke har svart</p>
+        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--tekst)' }}>Varsler</p>
+        <div className="space-y-1">
+          {(innstillinger ?? []).map(inn => (
+            <VarselToggle
+              key={inn.noekkel}
+              noekkel={inn.noekkel}
+              aktiv={inn.aktiv}
+              beskrivelse={innstillingLabels[inn.noekkel] ?? inn.beskrivelse ?? inn.noekkel}
+            />
+          ))}
         </div>
         <div className="mt-4">
           <SendTestKnapp />

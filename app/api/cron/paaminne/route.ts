@@ -3,7 +3,7 @@ import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
 import { NextRequest, NextResponse } from 'next/server'
 import { addDays, subHours, addHours } from 'date-fns'
 
-export async function POST(req: NextRequest) {
+async function kjorPaaminnelser(req: NextRequest) {
   // Autentiser med CRON_SECRET
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -61,4 +61,14 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, behandlet: resultater })
+}
+
+// Vercel Cron sender GET-requests
+export async function GET(req: NextRequest) {
+  return kjorPaaminnelser(req)
+}
+
+// Behold POST for manuell triggering
+export async function POST(req: NextRequest) {
+  return kjorPaaminnelser(req)
 }
