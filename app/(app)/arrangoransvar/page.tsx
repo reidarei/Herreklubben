@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import AnsvarAdmin from './AnsvarAdmin'
 
 export default async function Arrangoransvar() {
@@ -39,20 +40,22 @@ export default async function Arrangoransvar() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Arrangøransvar</h1>
+          <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+            <ChevronLeftIcon className="w-4 h-4" /> Tilbake
+          </Link>
+          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Arrangøransvar</h1>
         </div>
       </div>
 
       {visAar.map(aar => (
         <div key={aar} className="mb-8">
-          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--aksent-lys)' }}>{aar}</h2>
+          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--accent)' }}>{aar}</h2>
 
           {!perAar[aar] || perAar[aar]!.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Ingen ansvar registrert for {aar}.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ingen ansvar registrert for {aar}.</p>
           ) : (
             <div className="space-y-2">
               {perAar[aar]!.map(a => {
@@ -61,31 +64,31 @@ export default async function Arrangoransvar() {
                 return (
                   <div
                     key={a.id}
-                    className="rounded-xl px-4 py-3"
+                    className="rounded-2xl px-4 py-3"
                     style={{
-                      background: erMitt ? 'rgba(193,127,36,0.08)' : 'var(--bakgrunn-kort)',
+                      background: erMitt ? 'var(--accent-subtle)' : 'var(--bg-elevated)',
                       border: `1px solid ${erMitt ? 'rgba(193,127,36,0.3)' : 'var(--border)'}`,
                     }}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <p className="font-semibold text-sm" style={{ color: erMitt ? 'var(--aksent-lys)' : 'var(--tekst)' }}>
+                        <p className="font-semibold text-sm" style={{ color: erMitt ? 'var(--accent)' : 'var(--text-primary)' }}>
                           {a.arrangement_navn}
-                          {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--aksent)' }}>← deg</span>}
+                          {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--accent)' }}>← deg</span>}
                         </p>
-                        <p className="text-sm mt-0.5" style={{ color: 'var(--tekst-dempet)' }}>
-                          {a.profiles?.navn ?? <span style={{ color: '#f87171' }}>Ingen ansvarlig</span>}
+                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          {a.profiles?.navn ?? <span style={{ color: 'var(--destructive)' }}>Ingen ansvarlig</span>}
                         </p>
                         {harArrangement ? (
                           <Link
                             href={`/arrangementer/${a.arrangementer?.id}`}
                             className="text-xs mt-1 inline-block"
-                            style={{ color: 'var(--gronn-lys)' }}
+                            style={{ color: 'var(--success)' }}
                           >
                             ✓ Lagt inn
                           </Link>
                         ) : (
-                          <p className="text-xs mt-1" style={{ color: 'var(--tekst-dempet)' }}>Ikke lagt inn ennå</p>
+                          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Ikke lagt inn ennå</p>
                         )}
                       </div>
                       {erAdmin && (

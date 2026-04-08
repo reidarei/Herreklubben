@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from 'react'
 import { opprettKaaring } from '@/lib/actions/kaaringer'
+import Button from '@/components/ui/Button'
 
-const inputStil = {
-  background: 'var(--bakgrunn)',
+const inputStil: React.CSSProperties = {
+  background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
-  color: 'var(--tekst)',
-  borderRadius: '0.5rem',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
   padding: '0.5rem 0.75rem',
   width: '100%',
   fontSize: '0.875rem',
+  fontFamily: 'inherit',
 }
 
 type Vinner = { type: 'profil' | 'arrangement'; id: string; begrunnelse: string }
@@ -68,53 +70,45 @@ export default function NyKaaringKnapp({
 
   if (!aapen) {
     return (
-      <button
-        onClick={() => setAapen(true)}
-        className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-        style={{ background: 'var(--aksent)', color: '#fff' }}
-      >
-        + Ny
-      </button>
+      <Button onClick={() => setAapen(true)}>+ Ny</Button>
     )
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto" style={{ background: 'rgba(0,0,0,0.7)' }}>
-      <div className="w-full max-w-lg rounded-b-2xl p-6 pb-8 mt-16"
-        style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-        <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--tekst)' }}>Ny kåring</h2>
+      <div
+        className="w-full max-w-lg rounded-b-2xl p-6 pb-8 mt-16"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+      >
+        <h2 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Ny kåring</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>År</label>
+              <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>År</label>
               <input type="number" value={aar} onChange={e => setAar(Number(e.target.value))} style={inputStil} />
             </div>
             <div className="flex-[3]">
-              <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Kategori</label>
-              <input
-                type="text"
-                value={kategori}
-                onChange={e => setKategori(e.target.value)}
-                required
-                placeholder="f.eks. Årets herre"
-                style={inputStil}
-              />
+              <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Kategori</label>
+              <input type="text" value={kategori} onChange={e => setKategori(e.target.value)} required placeholder="f.eks. Årets herre" style={inputStil} />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs mb-2" style={{ color: 'var(--tekst-dempet)' }}>Vinner(e)</label>
+            <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Vinner(e)</label>
             <div className="space-y-3">
               {vinnere.map((v, i) => (
-                <div key={i} className="rounded-lg p-3 space-y-2" style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)' }}>
+                <div key={i} className="rounded-2xl p-3 space-y-2" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
                   <div className="flex gap-2">
                     <select value={v.type} onChange={e => oppdaterVinner(i, 'type', e.target.value)} style={{ ...inputStil, flex: 1 }}>
                       <option value="profil">Herr</option>
                       <option value="arrangement">Arrangement</option>
                     </select>
                     {vinnere.length > 1 && (
-                      <button type="button" onClick={() => fjernVinner(i)} className="px-2 rounded-lg text-xs" style={{ color: '#f87171', border: '1px solid var(--border)' }}>✕</button>
+                      <button type="button" onClick={() => fjernVinner(i)} className="px-2 rounded-xl text-xs"
+                        style={{ color: 'var(--destructive)', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        ✕
+                      </button>
                     )}
                   </div>
                   <select value={v.id} onChange={e => oppdaterVinner(i, 'id', e.target.value)} style={inputStil}>
@@ -124,33 +118,21 @@ export default function NyKaaringKnapp({
                       : arrangementer.map(a => <option key={a.id} value={a.id}>{a.tittel}</option>)
                     }
                   </select>
-                  <input
-                    type="text"
-                    value={v.begrunnelse}
-                    onChange={e => oppdaterVinner(i, 'begrunnelse', e.target.value)}
-                    placeholder="Begrunnelse (valgfritt)"
-                    style={inputStil}
-                  />
+                  <input type="text" value={v.begrunnelse} onChange={e => oppdaterVinner(i, 'begrunnelse', e.target.value)} placeholder="Begrunnelse (valgfritt)" style={inputStil} />
                 </div>
               ))}
             </div>
-            <button type="button" onClick={leggTilVinner} className="mt-2 text-xs w-full py-2 rounded-lg"
-              style={{ border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+            <button type="button" onClick={leggTilVinner} className="mt-2 text-xs w-full py-2 rounded-xl"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
               + Legg til vinner
             </button>
           </div>
 
-          {feil && <p className="text-sm" style={{ color: '#f87171' }}>{feil}</p>}
+          {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setAapen(false)} className="flex-1 py-3 rounded-xl font-semibold text-sm"
-              style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
-              Avbryt
-            </button>
-            <button type="submit" disabled={isPending} className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-              style={{ background: 'var(--aksent)' }}>
-              {isPending ? 'Lagrer...' : 'Lagre'}
-            </button>
+            <Button type="button" variant="secondary" fullWidth onClick={() => setAapen(false)}>Avbryt</Button>
+            <Button type="submit" fullWidth disabled={isPending}>{isPending ? 'Lagrer...' : 'Lagre'}</Button>
           </div>
         </form>
       </div>

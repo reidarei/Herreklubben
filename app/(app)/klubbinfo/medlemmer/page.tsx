@@ -1,6 +1,8 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
+import { ChevronLeftIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
+import Badge from '@/components/ui/Badge'
 
 export default async function Medlemmer() {
   const supabase = await createServerClient()
@@ -19,17 +21,19 @@ export default async function Medlemmer() {
   const alleEposter = aktive.map(m => m.epost).join(',')
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Medlemmer</h1>
+          <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+            <ChevronLeftIcon className="w-4 h-4" /> Tilbake
+          </Link>
+          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Medlemmer</h1>
         </div>
         {erAdmin && (
           <Link
             href="/klubbinfo/medlemmer/ny"
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--aksent)', color: '#fff' }}
+            className="px-3.5 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: 'var(--accent)', color: '#fff', textDecoration: 'none' }}
           >
             + Legg til
           </Link>
@@ -39,35 +43,33 @@ export default async function Medlemmer() {
       {/* Send e-post til alle */}
       <a
         href={`mailto:?bcc=${alleEposter}`}
-        className="flex items-center gap-2 w-full rounded-xl px-4 py-3 mb-6 text-sm font-medium transition-colors"
-        style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--aksent-lys)' }}
+        className="flex items-center gap-2.5 w-full rounded-2xl px-5 py-3.5 mb-6 text-sm font-medium transition-colors"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--accent)', textDecoration: 'none' }}
       >
-        ✉️ Send e-post til alle gutta
+        <EnvelopeIcon className="w-4 h-4" />
+        Send e-post til alle gutta
       </a>
 
       {/* Aktive medlemmer */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {aktive.map(m => (
           <div
             key={m.id}
-            className="rounded-xl px-4 py-3"
-            style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}
+            className="rounded-2xl px-5 py-3.5"
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="font-semibold" style={{ color: 'var(--tekst)' }}>
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {m.navn}
                 {m.rolle === 'admin' && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(193,127,36,0.15)', color: 'var(--aksent-lys)' }}>
-                    admin
-                  </span>
+                  <span className="ml-2"><Badge variant="accent">admin</Badge></span>
                 )}
               </p>
               {erAdmin && (
                 <Link
                   href={`/klubbinfo/medlemmer/${m.id}/rediger`}
                   className="text-xs"
-                  style={{ color: 'var(--tekst-dempet)' }}
+                  style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
                 >
                   Rediger
                 </Link>
@@ -75,12 +77,14 @@ export default async function Medlemmer() {
             </div>
             <div className="flex gap-4">
               {m.telefon && (
-                <a href={`tel:${m.telefon}`} className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-                  📞 {m.telefon}
+                <a href={`tel:${m.telefon}`} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+                  <PhoneIcon className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                  {m.telefon}
                 </a>
               )}
-              <a href={`mailto:${m.epost}`} className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-                ✉️ {m.epost}
+              <a href={`mailto:${m.epost}`} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+                <EnvelopeIcon className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                {m.epost}
               </a>
             </div>
           </div>
@@ -90,19 +94,19 @@ export default async function Medlemmer() {
       {/* Inaktive */}
       {erAdmin && inaktive.length > 0 && (
         <div className="mt-8">
-          <p className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--tekst-dempet)' }}>
+          <p className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
             Tidligere medlemmer
           </p>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {inaktive.map(m => (
               <div
                 key={m.id}
-                className="rounded-xl px-4 py-3 opacity-50"
-                style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}
+                className="rounded-2xl px-5 py-3.5 opacity-50"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold" style={{ color: 'var(--tekst)' }}>{m.navn}</p>
-                  <Link href={`/klubbinfo/medlemmer/${m.id}/rediger`} className="text-xs" style={{ color: 'var(--tekst-dempet)' }}>
+                  <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{m.navn}</p>
+                  <Link href={`/klubbinfo/medlemmer/${m.id}/rediger`} className="text-xs" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
                     Rediger
                   </Link>
                 </div>

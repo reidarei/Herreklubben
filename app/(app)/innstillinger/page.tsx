@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import SendTestKnapp from './SendTestKnapp'
 import VarselToggle from '@/components/VarselToggle'
 
@@ -45,23 +46,25 @@ export default async function Innstillinger() {
   ])
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Innstillinger</h1>
+        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
+        </Link>
+        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Innstillinger</h1>
       </div>
 
       {/* Push-status */}
-      <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tekst)' }}>Push-varsler</p>
-        <p className="text-xs" style={{ color: 'var(--tekst-dempet)' }}>
+      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Push-varsler</p>
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
           {pushCount ?? 0} enhet{(pushCount ?? 0) !== 1 ? 'er' : ''} registrert
         </p>
       </div>
 
       {/* Varsler av/på */}
-      <div className="rounded-xl p-4 mb-6" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--tekst)' }}>Varsler</p>
+      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Varsler</p>
         <div className="space-y-1">
           {(innstillinger ?? []).map(inn => (
             <VarselToggle
@@ -78,24 +81,24 @@ export default async function Innstillinger() {
       </div>
 
       {/* Varselhistorikk */}
-      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--aksent-lys)' }}>Siste varsler</h2>
+      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Siste varsler</h2>
       {!logg || logg.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Ingen varsler sendt ennå.</p>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ingen varsler sendt ennå.</p>
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {logg.map((v, i) => (
             <div key={v.id} className="flex items-center justify-between px-4 py-2.5 text-xs"
               style={{
-                background: i % 2 === 0 ? 'var(--bakgrunn-kort)' : 'var(--bakgrunn)',
+                background: i % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg)',
                 borderTop: i > 0 ? '1px solid var(--border)' : undefined,
               }}>
               <div>
-                <p style={{ color: 'var(--tekst)' }}>{typeLabels[v.type] ?? v.type}</p>
-                <p style={{ color: 'var(--tekst-dempet)' }}>
+                <p style={{ color: 'var(--text-primary)' }}>{typeLabels[v.type] ?? v.type}</p>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   {v.arrangementer?.tittel}
                 </p>
               </div>
-              <p style={{ color: 'var(--tekst-dempet)' }}>
+              <p style={{ color: 'var(--text-secondary)' }}>
                 {v.sendt_at ? format(new Date(v.sendt_at), 'd. MMM HH:mm', { locale: nb }) : ''}
               </p>
             </div>

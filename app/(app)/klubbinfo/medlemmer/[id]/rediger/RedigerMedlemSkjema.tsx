@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import { oppdaterMedlemAdmin, slettMedlem } from '@/lib/actions/profil'
 
 const inputStil = {
-  background: 'var(--bakgrunn-kort)',
+  background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
-  color: 'var(--tekst)',
-  borderRadius: '0.5rem',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
   padding: '0.75rem 1rem',
   width: '100%',
   fontSize: '1rem',
@@ -37,26 +37,26 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pb-8">
       <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Navn</label>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Navn</label>
         <input name="navn" type="text" required defaultValue={medlem.navn} style={inputStil} />
       </div>
       <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>E-post</label>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>
         <input type="text" value={medlem.epost} disabled style={{ ...inputStil, opacity: 0.5 }} />
       </div>
       <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Telefon</label>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Telefon</label>
         <input name="telefon" type="tel" defaultValue={medlem.telefon ?? ''} style={inputStil} />
       </div>
       <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Rolle</label>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Rolle</label>
         <select name="rolle" defaultValue={medlem.rolle} style={inputStil}>
           <option value="medlem">Medlem</option>
           <option value="admin">Admin</option>
         </select>
       </div>
       <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Status</label>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Status</label>
         <select name="aktiv" defaultValue={String(medlem.aktiv)} style={inputStil}>
           <option value="true">Aktiv</option>
           <option value="false">Deaktivert</option>
@@ -65,11 +65,11 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
 
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={() => router.back()} className="flex-1 py-3 rounded-xl font-semibold text-sm"
-          style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
           Avbryt
         </button>
         <button type="submit" disabled={isPending} className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-          style={{ background: 'var(--aksent)' }}>
+          style={{ background: 'var(--accent)' }}>
           {isPending ? 'Lagrer...' : 'Lagre'}
         </button>
       </div>
@@ -83,7 +83,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
         }}
         disabled={isPending}
         className="w-full py-2.5 rounded-xl text-sm font-semibold mt-2 disabled:opacity-50"
-        style={{ background: 'transparent', border: '1px solid #8b1a1a', color: '#f87171' }}>
+        style={{ background: 'transparent', border: '1px solid var(--destructive-subtle)', color: 'var(--destructive)' }}>
         Slett medlem
       </button>
     </form>

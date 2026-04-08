@@ -4,7 +4,19 @@ import { notFound } from 'next/navigation'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import Link from 'next/link'
+import {
+  CalendarIcon,
+  MapPinIcon,
+  PaperAirplaneIcon,
+  BanknotesIcon,
+  ChevronLeftIcon,
+  CheckIcon,
+  QuestionMarkCircleIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import PaameldingKnapper from './PaameldingKnapper'
+import Badge from '@/components/ui/Badge'
+import Card from '@/components/ui/Card'
 import SladdetFelt from '@/components/SladdetFelt'
 
 export default async function ArrangementDetaljer({ params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +32,7 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
     .select(`
       id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
       oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
+      bilde_url,
       paameldinger (profil_id, status, profiles (navn))
     `)
     .eq('id', id)
@@ -41,109 +54,142 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
     nei: arr.paameldinger.filter((p: { status: string }) => p.status === 'nei'),
   }
 
+  const grupper = [
+    { key: 'ja' as const, label: 'Kommer', variant: 'success' as const, Ikon: CheckIcon },
+    { key: 'kanskje' as const, label: 'Kanskje', variant: 'accent' as const, Ikon: QuestionMarkCircleIcon },
+    { key: 'nei' as const, label: 'Kommer ikke', variant: 'destructive' as const, Ikon: XMarkIcon },
+  ]
+
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto pb-8">
       {/* Tilbake + rediger */}
-      <div className="flex items-center justify-between mb-5">
-        <Link href="/" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-          ← Tilbake
+      <div className="flex items-center justify-between px-5 pt-6 mb-4">
+        <Link
+          href="/"
+          className="flex items-center gap-1 text-sm"
+          style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
+        >
+          <ChevronLeftIcon className="w-4 h-4" />
+          Tilbake
         </Link>
         {kanRedigere && (
           <Link
             href={`/arrangementer/${id}/rediger`}
-            className="text-sm px-3 py-1.5 rounded-lg"
-            style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}
+            className="text-sm px-3 py-1.5 rounded-xl"
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-secondary)',
+              textDecoration: 'none',
+            }}
           >
             Rediger
           </Link>
         )}
       </div>
 
-      {/* Type-etikett */}
-      <span
-        className="text-xs font-medium px-2 py-0.5 rounded-full"
-        style={{
-          background: erTur ? 'rgba(193,127,36,0.15)' : 'rgba(45,106,79,0.15)',
-          color: erTur ? 'var(--aksent-lys)' : 'var(--gronn-lys)',
-        }}
-      >
-        {erTur ? 'Tur' : 'Møte'}
-      </span>
-
-      <h1 className="text-2xl font-bold mt-2 mb-4" style={{ color: 'var(--tekst)' }}>
-        {arr.tittel}
-      </h1>
-
-      {/* Info-rad */}
-      <div className="space-y-2 mb-5">
-        <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-          📅 {format(new Date(arr.start_tidspunkt), "EEEE d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}
-          {erTur && arr.slutt_tidspunkt && (
-            <> – {format(new Date(arr.slutt_tidspunkt), "d. MMMM", { locale: nb })}</>
-          )}
-        </p>
-        {arr.oppmoetested && (
-          <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-            📍 {arr.oppmoetested}
-          </p>
-        )}
-        {erTur && (
-          <>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-              ✈️ {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon ?? '–'}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>
-              💰 {erSensurert('pris_per_person')
-                ? <SladdetFelt />
-                : arr.pris_per_person
-                  ? `${arr.pris_per_person.toLocaleString('nb')} kr`
-                  : '–'}
-            </p>
-          </>
-        )}
-      </div>
-
-      {/* Beskrivelse */}
-      {arr.beskrivelse && (
-        <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--tekst)' }}>
-          {arr.beskrivelse}
-        </p>
+      {/* Hero-bilde */}
+      {arr.bilde_url && (
+        <img
+          src={arr.bilde_url}
+          alt=""
+          className="w-full object-cover"
+          style={{ aspectRatio: '16/9' }}
+        />
       )}
 
-      {/* Påmeldingsknapper */}
-      <PaameldingKnapper
-        arrangementId={id}
-        minStatus={minPaamelding?.status as 'ja' | 'nei' | 'kanskje' | undefined}
-      />
+      <div className="px-5">
+        {/* Type-etikett */}
+        <div className="mt-4 mb-2">
+          <Badge variant="accent">{erTur ? 'Tur' : 'Møte'}</Badge>
+        </div>
 
-      {/* Deltakerliste */}
-      <div className="mt-6 space-y-4">
-        {[
-          { key: 'ja', label: 'Kommer', farge: 'var(--gronn-lys)', ikon: '✓' },
-          { key: 'kanskje', label: 'Kanskje', farge: 'var(--aksent-lys)', ikon: '?' },
-          { key: 'nei', label: 'Kommer ikke', farge: '#f87171', ikon: '✗' },
-        ].map(({ key, label, farge, ikon }) => {
-          const liste = gruppert[key as keyof typeof gruppert]
-          if (liste.length === 0) return null
-          return (
-            <div key={key}>
-              <p className="text-xs font-semibold mb-1.5" style={{ color: farge }}>
-                {ikon} {label} ({liste.length})
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {liste.map((p) => (
-                  <span
-                    key={p.profil_id}
-                    className="text-sm px-2 py-1 rounded-lg"
-                    style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst)' }}
-                  >
-                    {p.profiles?.navn ?? '–'}
-                  </span>
-                ))}
-              </div>
+        <h1
+          className="font-bold mb-5"
+          style={{ fontSize: '24px', letterSpacing: '-0.4px', color: 'var(--text-primary)' }}
+        >
+          {arr.tittel}
+        </h1>
+
+        {/* Info-rader */}
+        <div className="space-y-2.5 mb-5">
+          <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <CalendarIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+            {format(new Date(arr.start_tidspunkt), "EEEE d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}
+            {erTur && arr.slutt_tidspunkt && (
+              <> – {format(new Date(arr.slutt_tidspunkt), 'd. MMMM', { locale: nb })}</>
+            )}
+          </div>
+          {arr.oppmoetested && (
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <MapPinIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+              {arr.oppmoetested}
             </div>
-          )
-        })}
+          )}
+          {erTur && (
+            <>
+              <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <PaperAirplaneIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon ?? '–'}
+              </div>
+              <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <BanknotesIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                {erSensurert('pris_per_person')
+                  ? <SladdetFelt />
+                  : arr.pris_per_person
+                    ? `${arr.pris_per_person.toLocaleString('nb')} kr`
+                    : '–'}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Beskrivelse */}
+        {arr.beskrivelse && (
+          <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+            {arr.beskrivelse}
+          </p>
+        )}
+
+        {/* Påmeldingsknapper */}
+        <PaameldingKnapper
+          arrangementId={id}
+          minStatus={minPaamelding?.status as 'ja' | 'nei' | 'kanskje' | undefined}
+        />
+
+        {/* Deltakerliste */}
+        <div className="mt-6 space-y-5">
+          {grupper.map(({ key, label, variant, Ikon }) => {
+            const liste = gruppert[key]
+            if (liste.length === 0) return null
+            return (
+              <div key={key}>
+                <p
+                  className="text-xs font-semibold mb-2 flex items-center gap-1"
+                  style={{ color: `var(--${variant === 'accent' ? 'accent' : variant})` }}
+                >
+                  <Ikon className="w-3.5 h-3.5" />
+                  {label} ({liste.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {liste.map((p) => (
+                    <span
+                      key={p.profil_id}
+                      className="text-[13px] px-3 py-1.5 rounded-[10px]"
+                      style={{
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {p.profiles?.navn ?? '–'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

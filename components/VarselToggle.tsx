@@ -20,7 +20,7 @@ export default function VarselToggle({
 
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-xs" style={{ color: 'var(--tekst-dempet)' }}>{beskrivelse}</span>
+      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{beskrivelse}</span>
       <button
         onClick={toggle}
         disabled={isPending}
@@ -28,7 +28,7 @@ export default function VarselToggle({
         style={{
           width: 40,
           height: 22,
-          background: aktiv ? 'var(--aksent)' : 'var(--border)',
+          background: aktiv ? 'var(--accent)' : 'var(--border)',
         }}
       >
         <span

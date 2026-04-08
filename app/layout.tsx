@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from 'next'
-import { Barlow } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
-const barlow = Barlow({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
-  variable: '--font-barlow',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
 })
 
 export const viewport: Viewport = {
@@ -30,12 +30,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="nb" className={barlow.variable}>
+    <html lang="nb" className={inter.variable}>
       <head>
-        <meta name="theme-color" content="#111111" />
+        <meta name="theme-color" content="#0a0a0a" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body style={{ fontFamily: 'var(--font-barlow), system-ui, sans-serif' }}>{children}<SpeedInsights /></body>
+      <body style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>{children}<SpeedInsights /></body>
     </html>
   )
 }

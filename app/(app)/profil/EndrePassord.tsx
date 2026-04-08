@@ -2,6 +2,20 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { KeyIcon } from '@heroicons/react/24/outline'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+
+const inputStil: React.CSSProperties = {
+  background: 'var(--bg-elevated-2)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
+  padding: '0.75rem 1rem',
+  width: '100%',
+  fontSize: '0.875rem',
+  fontFamily: 'inherit',
+}
 
 export default function EndrePassord() {
   const [aapen, setAapen] = useState(false)
@@ -14,14 +28,8 @@ export default function EndrePassord() {
     e.preventDefault()
     setFeilmelding('')
 
-    if (passord.length < 6) {
-      setFeilmelding('Passordet må være minst 6 tegn')
-      return
-    }
-    if (passord !== bekreft) {
-      setFeilmelding('Passordene er ikke like')
-      return
-    }
+    if (passord.length < 6) { setFeilmelding('Passordet må være minst 6 tegn'); return }
+    if (passord !== bekreft) { setFeilmelding('Passordene er ikke like'); return }
 
     setStatus('lagrer')
     const supabase = createClient()
@@ -34,10 +42,7 @@ export default function EndrePassord() {
       setStatus('ok')
       setPassord('')
       setBekreft('')
-      setTimeout(() => {
-        setAapen(false)
-        setStatus('idle')
-      }, 2000)
+      setTimeout(() => { setAapen(false); setStatus('idle') }, 2000)
     }
   }
 
@@ -45,61 +50,28 @@ export default function EndrePassord() {
     return (
       <button
         onClick={() => setAapen(true)}
-        className="w-full text-left text-sm px-4 py-3 rounded-xl mt-4"
-        style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}
+        className="w-full text-left text-sm px-5 py-3.5 rounded-2xl mt-4 flex items-center gap-2.5"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontFamily: 'inherit', cursor: 'pointer' }}
       >
-        🔑 Endre passord
+        <KeyIcon className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+        Endre passord
       </button>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl p-4 mt-4 space-y-3" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-      <p className="text-sm font-semibold" style={{ color: 'var(--tekst)' }}>Endre passord</p>
-
-      <input
-        type="password"
-        placeholder="Nytt passord"
-        value={passord}
-        onChange={e => setPassord(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg text-sm"
-        style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst)' }}
-      />
-      <input
-        type="password"
-        placeholder="Bekreft nytt passord"
-        value={bekreft}
-        onChange={e => setBekreft(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg text-sm"
-        style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst)' }}
-      />
-
-      {feilmelding && (
-        <p className="text-xs" style={{ color: '#f87171' }}>{feilmelding}</p>
-      )}
-
-      {status === 'ok' && (
-        <p className="text-xs" style={{ color: 'var(--gronn-lys)' }}>Passord oppdatert!</p>
-      )}
-
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={status === 'lagrer'}
-          className="px-4 py-2 rounded-lg text-sm font-semibold"
-          style={{ background: 'var(--aksent)', color: '#fff', opacity: status === 'lagrer' ? 0.5 : 1 }}
-        >
-          {status === 'lagrer' ? 'Lagrer…' : 'Lagre'}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setAapen(false); setPassord(''); setBekreft(''); setFeilmelding(''); setStatus('idle') }}
-          className="px-4 py-2 rounded-lg text-sm"
-          style={{ color: 'var(--tekst-dempet)' }}
-        >
-          Avbryt
-        </button>
-      </div>
-    </form>
+    <Card className="mt-4">
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Endre passord</p>
+        <input type="password" placeholder="Nytt passord" value={passord} onChange={e => setPassord(e.target.value)} style={inputStil} />
+        <input type="password" placeholder="Bekreft nytt passord" value={bekreft} onChange={e => setBekreft(e.target.value)} style={inputStil} />
+        {feilmelding && <p className="text-xs" style={{ color: 'var(--destructive)' }}>{feilmelding}</p>}
+        {status === 'ok' && <p className="text-xs" style={{ color: 'var(--success)' }}>Passord oppdatert!</p>}
+        <div className="flex gap-2">
+          <Button type="submit" disabled={status === 'lagrer'}>{status === 'lagrer' ? 'Lagrer…' : 'Lagre'}</Button>
+          <Button type="button" variant="ghost" onClick={() => { setAapen(false); setPassord(''); setBekreft(''); setFeilmelding(''); setStatus('idle') }}>Avbryt</Button>
+        </div>
+      </form>
+    </Card>
   )
 }

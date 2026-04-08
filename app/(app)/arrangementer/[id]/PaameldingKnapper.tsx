@@ -2,11 +2,12 @@
 
 import { useTransition } from 'react'
 import { oppdaterPaamelding } from '@/lib/actions/paameldinger'
+import Card from '@/components/ui/Card'
 
 const valg = [
-  { status: 'ja', label: 'Ja', ikon: '✓', aktiv: 'var(--gronn)' },
-  { status: 'kanskje', label: 'Kanskje', ikon: '?', aktiv: 'rgba(193,127,36,0.7)' },
-  { status: 'nei', label: 'Nei', ikon: '✗', aktiv: '#7f1d1d' },
+  { status: 'ja', label: 'Ja', aktiv: 'var(--success)', aktivBg: 'var(--success-subtle)' },
+  { status: 'kanskje', label: 'Kanskje', aktiv: 'var(--accent)', aktivBg: 'var(--accent-subtle)' },
+  { status: 'nei', label: 'Nei', aktiv: 'var(--destructive)', aktivBg: 'var(--destructive-subtle)' },
 ] as const
 
 export default function PaameldingKnapper({
@@ -25,33 +26,32 @@ export default function PaameldingKnapper({
   }
 
   return (
-    <div
-      className="rounded-xl p-4"
-      style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}
-    >
-      <p className="text-xs font-medium mb-3" style={{ color: 'var(--tekst-dempet)' }}>
+    <Card>
+      <p className="text-[13px] font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
         Kommer du?
       </p>
       <div className="flex gap-2">
-        {valg.map(({ status, label, ikon, aktiv }) => {
+        {valg.map(({ status, label, aktiv, aktivBg }) => {
           const erAktiv = minStatus === status
           return (
             <button
               key={status}
               onClick={() => velg(status)}
               disabled={isPending}
-              className="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
               style={{
-                background: erAktiv ? aktiv : 'var(--bakgrunn)',
+                background: erAktiv ? aktivBg : 'var(--bg)',
                 border: `1px solid ${erAktiv ? aktiv : 'var(--border)'}`,
-                color: erAktiv ? '#fff' : 'var(--tekst-dempet)',
+                color: erAktiv ? aktiv : 'var(--text-secondary)',
+                fontFamily: 'inherit',
+                cursor: 'pointer',
               }}
             >
-              {ikon} {label}
+              {label}
             </button>
           )
         })}
       </div>
-    </div>
+    </Card>
   )
 }

@@ -5,6 +5,7 @@ import RedigerProfilSkjema from './RedigerProfilSkjema'
 import EndrePassord from './EndrePassord'
 import PushAbonnement from '@/components/PushAbonnement'
 import Link from 'next/link'
+import Badge from '@/components/ui/Badge'
 
 export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
@@ -19,8 +20,8 @@ export default async function Profil() {
   ])
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Profil</h1>
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
+      <h1 className="text-[22px] font-bold mb-6" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Profil</h1>
 
       <RedigerProfilSkjema
         navn={profil?.navn ?? ''}
@@ -31,25 +32,23 @@ export default async function Profil() {
 
       {ansvar && ansvar.length > 0 && (
         <div className="mt-6">
-          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--aksent-lys)' }}>Dine arrangøransvar</p>
+          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--accent)' }}>Dine arrangøransvar</p>
           <div className="space-y-2">
             {ansvar.map(a => (
-              <div key={a.id} className="flex items-center justify-between rounded-xl px-4 py-2.5"
-                style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
+              <div key={a.id} className="flex items-center justify-between rounded-2xl px-5 py-3"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: 'var(--tekst)' }}>{a.arrangement_navn}</p>
-                  <p className="text-xs" style={{ color: 'var(--tekst-dempet)' }}>{a.aar}</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{a.arrangement_navn}</p>
+                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{a.aar}</p>
                 </div>
                 {a.arrangementer ? (
-                  <Link href={`/arrangementer/${a.arrangementer.id}`}
-                    className="text-xs px-3 py-1 rounded-lg"
-                    style={{ background: 'rgba(82,183,136,0.15)', color: 'var(--gronn-lys)' }}>
-                    Lagt inn ✓
+                  <Link href={`/arrangementer/${a.arrangementer.id}`}>
+                    <Badge variant="success">Lagt inn</Badge>
                   </Link>
                 ) : (
                   <Link href="/arrangementer/ny"
-                    className="text-xs px-3 py-1 rounded-lg font-semibold"
-                    style={{ background: 'var(--aksent)', color: '#fff' }}>
+                    className="text-xs px-3 py-1.5 rounded-xl font-semibold"
+                    style={{ background: 'var(--accent)', color: '#fff', textDecoration: 'none' }}>
                     Legg inn
                   </Link>
                 )}

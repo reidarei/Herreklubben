@@ -1,17 +1,14 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
-import Link from 'next/link'
-
-const kortstil = {
-  background: 'var(--bakgrunn-kort)',
-  border: '1px solid var(--border)',
-  borderRadius: '0.75rem',
-  padding: '1rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  textDecoration: 'none',
-}
+import ListRow from '@/components/ui/ListRow'
+import {
+  UserGroupIcon,
+  ClipboardDocumentListIcon,
+  DocumentTextIcon,
+  BuildingLibraryIcon,
+  ChartBarIcon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/outline'
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -20,65 +17,58 @@ export default async function Klubbinfo() {
   const { data: medlemmer } = await supabase.from('profiles').select('id').eq('aktiv', true)
   const antallMedlemmer = medlemmer?.length ?? 0
 
+  const ikonStil = { color: 'var(--text-secondary)', strokeWidth: 1.5 }
+
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
-      <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Klubbinfo</h1>
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
+      <h1
+        className="text-[22px] font-bold mb-6"
+        style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}
+      >
+        Klubbinfo
+      </h1>
 
-      <div className="space-y-3">
-        <Link href="/klubbinfo/medlemmer" style={kortstil as React.CSSProperties}>
-          <span className="text-2xl">👥</span>
-          <div>
-            <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Medlemmer</p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>{antallMedlemmer} aktive</p>
-          </div>
-          <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-        </Link>
-
-        <Link href="/arrangoransvar" style={kortstil as React.CSSProperties}>
-          <span className="text-2xl">📋</span>
-          <div>
-            <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Arrangøransvar</p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Hvem arrangerer hva i år</p>
-          </div>
-          <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-        </Link>
-
-        <Link href="/klubbinfo/vedtekter/vedtekter" style={kortstil as React.CSSProperties}>
-          <span className="text-2xl">📜</span>
-          <div>
-            <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Vedtekter</p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Regler og vedtekter</p>
-          </div>
-          <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-        </Link>
-
-        <Link href="/klubbinfo/vedtekter/historikk" style={kortstil as React.CSSProperties}>
-          <span className="text-2xl">🏛️</span>
-          <div>
-            <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Historikk</p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Klubbens historie</p>
-          </div>
-          <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-        </Link>
-
-        <Link href="/klubbinfo/statistikk" style={kortstil as React.CSSProperties}>
-          <span className="text-2xl">📊</span>
-          <div>
-            <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Statistikk</p>
-            <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Deltagelse og rekorder</p>
-          </div>
-          <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-        </Link>
-
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+      >
+        <ListRow
+          href="/klubbinfo/medlemmer"
+          icon={<UserGroupIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+          title="Medlemmer"
+          subtitle={`${antallMedlemmer} aktive`}
+        />
+        <ListRow
+          href="/arrangoransvar"
+          icon={<ClipboardDocumentListIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+          title="Arrangøransvar"
+          subtitle="Hvem arrangerer hva i år"
+        />
+        <ListRow
+          href="/klubbinfo/vedtekter/vedtekter"
+          icon={<DocumentTextIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+          title="Vedtekter"
+          subtitle="Regler og vedtekter"
+        />
+        <ListRow
+          href="/klubbinfo/vedtekter/historikk"
+          icon={<BuildingLibraryIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+          title="Historikk"
+          subtitle="Klubbens historie"
+        />
+        <ListRow
+          href="/klubbinfo/statistikk"
+          icon={<ChartBarIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+          title="Statistikk"
+          subtitle="Deltagelse og rekorder"
+        />
         {erAdmin && (
-          <Link href="/innstillinger" style={kortstil as React.CSSProperties}>
-            <span className="text-2xl">⚙️</span>
-            <div>
-              <p className="font-semibold" style={{ color: 'var(--tekst)' }}>Innstillinger</p>
-              <p className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>Varsler og påminnelser</p>
-            </div>
-            <span className="ml-auto" style={{ color: 'var(--tekst-dempet)' }}>→</span>
-          </Link>
+          <ListRow
+            href="/innstillinger"
+            icon={<Cog6ToothIcon className="w-[18px] h-[18px]" style={ikonStil} />}
+            title="Innstillinger"
+            subtitle="Varsler og påminnelser"
+          />
         )}
       </div>
     </div>

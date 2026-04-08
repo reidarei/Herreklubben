@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import VedtektVisning from './VedtektVisning'
 
 export default async function VedtektSide({ params }: { params: Promise<{ slug: string }> }) {
@@ -25,10 +26,12 @@ export default async function VedtektSide({ params }: { params: Promise<{ slug: 
     .limit(10)
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>{vedtekt.tittel}</h1>
+        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
+        </Link>
+        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>{vedtekt.tittel}</h1>
       </div>
 
       <VedtektVisning

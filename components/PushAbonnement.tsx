@@ -57,27 +57,27 @@ export default function PushAbonnement() {
   if (status === 'laster' || status === 'ikke-stottet') return null
 
   return (
-    <div className="rounded-xl p-4 mt-6" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--tekst)' }}>Varsler</p>
+    <div className="rounded-2xl p-4 mt-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Varsler</p>
       {status === 'avslatt' ? (
-        <p className="text-xs" style={{ color: 'var(--rod)' }}>
+        <p className="text-xs" style={{ color: 'var(--destructive)' }}>
           Varsler er blokkert i nettleseren. Endre dette i nettleserinnstillingene.
         </p>
       ) : status === 'aktiv' ? (
         <>
-          <p className="text-xs mb-3" style={{ color: 'var(--tekst-dempet)' }}>Du får push-varsler om nye arrangementer og påminnelser.</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Du får push-varsler om nye arrangementer og påminnelser.</p>
           <button onClick={deaktiverVarsler}
-            className="text-xs py-2 px-4 rounded-lg"
-            style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+            className="text-xs py-2 px-4 rounded-xl"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
             Slå av varsler
           </button>
         </>
       ) : (
         <>
-          <p className="text-xs mb-3" style={{ color: 'var(--tekst-dempet)' }}>Slå på for å få varsler om nye arrangementer og påminnelser.</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Slå på for å få varsler om nye arrangementer og påminnelser.</p>
           <button onClick={aktiverVarsler}
-            className="text-xs py-2 px-4 rounded-lg font-semibold text-white"
-            style={{ background: 'var(--aksent)' }}>
+            className="text-xs py-2 px-4 rounded-xl font-semibold text-white"
+            style={{ background: 'var(--accent)' }}>
             Slå på varsler
           </button>
         </>

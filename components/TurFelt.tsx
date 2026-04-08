@@ -9,7 +9,6 @@ export default function TurFelt({
   hemmelig,
   onToggle,
   defaultValue,
-  inputStil,
 }: {
   felt: string
   label: string
@@ -17,24 +16,36 @@ export default function TurFelt({
   hemmelig: boolean
   onToggle: () => void
   defaultValue?: string | number
-  inputStil: React.CSSProperties
+  inputStil?: React.CSSProperties
 }) {
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--bg-elevated-2)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-primary)',
+    borderRadius: '0.75rem',
+    padding: '0.75rem 1rem',
+    width: '100%',
+    fontSize: '1rem',
+    fontFamily: 'inherit',
+  }
+
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--tekst-dempet)', marginBottom: '0.375rem' }}>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
         {label}
       </label>
 
-      {/* Valg: skriv inn eller hemmelig */}
       <div className="flex gap-2 mb-2">
         <button
           type="button"
           onClick={() => hemmelig && onToggle()}
-          className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+          className="flex-1 py-1.5 rounded-xl text-xs font-semibold transition-colors"
           style={{
-            background: !hemmelig ? 'var(--aksent)' : 'var(--bakgrunn-kort)',
-            border: `1px solid ${!hemmelig ? 'var(--aksent)' : 'var(--border)'}`,
-            color: !hemmelig ? '#fff' : 'var(--tekst-dempet)',
+            background: !hemmelig ? 'var(--accent)' : 'var(--bg-elevated)',
+            border: `1px solid ${!hemmelig ? 'var(--accent)' : 'var(--border)'}`,
+            color: !hemmelig ? '#fff' : 'var(--text-secondary)',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
           }}
         >
           Oppgi
@@ -42,20 +53,22 @@ export default function TurFelt({
         <button
           type="button"
           onClick={() => !hemmelig && onToggle()}
-          className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
           style={{
-            background: hemmelig ? '#1a0a0a' : 'var(--bakgrunn-kort)',
+            background: hemmelig ? 'var(--bg-tertiary)' : 'var(--bg-elevated)',
             border: `1px solid ${hemmelig ? 'rgba(255,255,255,0.15)' : 'var(--border)'}`,
-            color: hemmelig ? '#ccc' : 'var(--tekst-dempet)',
+            color: hemmelig ? 'var(--text-secondary)' : 'var(--text-tertiary)',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
           }}
         >
           <span
             style={{
               display: 'inline-block',
-              background: '#000',
+              background: 'var(--bg)',
               width: '3.5rem',
               height: '0.75em',
-              borderRadius: '1px',
+              borderRadius: '2px',
               border: '1px solid rgba(255,255,255,0.15)',
             }}
           />
@@ -63,14 +76,13 @@ export default function TurFelt({
         </button>
       </div>
 
-      {/* Input vises kun når ikke hemmelig */}
       {!hemmelig && (
         <input
           name={felt}
           type={type}
           min={type === 'number' ? 0 : undefined}
           defaultValue={defaultValue}
-          style={inputStil}
+          style={inputStyle}
         />
       )}
     </div>

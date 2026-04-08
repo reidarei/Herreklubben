@@ -6,10 +6,10 @@ import { lagreAnsvar, slettAnsvar } from '@/lib/actions/arrangoransvar'
 type Medlem = { id: string; navn: string }
 
 const inputStil = {
-  background: 'var(--bakgrunn)',
+  background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
-  color: 'var(--tekst)',
-  borderRadius: '0.5rem',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
   padding: '0.5rem 0.75rem',
   width: '100%',
   fontSize: '0.875rem',
@@ -64,9 +64,9 @@ export default function AnsvarAdmin({
         onClick={() => setAapen(true)}
         className="text-xs px-2 py-1 rounded-lg shrink-0"
         style={{
-          background: erNytt ? 'var(--aksent)' : 'var(--bakgrunn)',
+          background: erNytt ? 'var(--accent)' : 'var(--bg)',
           border: '1px solid var(--border)',
-          color: erNytt ? '#fff' : 'var(--tekst-dempet)',
+          color: erNytt ? '#fff' : 'var(--text-secondary)',
           marginTop: erNytt ? '0.75rem' : 0,
           width: erNytt ? '100%' : 'auto',
         }}
@@ -78,12 +78,12 @@ export default function AnsvarAdmin({
 
   return (
     <div
-      className="rounded-xl p-3 mt-2"
-      style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', width: erNytt ? '100%' : 'auto' }}
+      className="rounded-2xl p-3 mt-2"
+      style={{ background: 'var(--bg)', border: '1px solid var(--border)', width: erNytt ? '100%' : 'auto' }}
     >
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Arrangement</label>
+          <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Arrangement</label>
           <input
             name="arrangement_navn"
             list="navneforslag"
@@ -98,7 +98,7 @@ export default function AnsvarAdmin({
         </div>
 
         <div>
-          <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Ansvarlig</label>
+          <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Ansvarlig</label>
           <select name="ansvarlig_id" defaultValue={(ansvar?.ansvarlig_id as string) ?? ''} style={inputStil}>
             <option value="">— Ikke valgt —</option>
             {medlemmer.map(m => <option key={m.id} value={m.id}>{m.navn}</option>)}
@@ -106,7 +106,7 @@ export default function AnsvarAdmin({
         </div>
 
         <div>
-          <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Purredato (valgfritt)</label>
+          <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Purredato (valgfritt)</label>
           <input
             name="purredato"
             type="date"
@@ -118,12 +118,12 @@ export default function AnsvarAdmin({
         <div className="flex gap-2">
           <button type="button" onClick={() => { setAapen(false); setVisSlett(false) }}
             className="flex-1 py-1.5 rounded-lg text-xs font-medium"
-            style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
             Avbryt
           </button>
           <button type="submit" disabled={isPending}
             className="flex-1 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
-            style={{ background: 'var(--aksent)' }}>
+            style={{ background: 'var(--accent)' }}>
             {isPending ? 'Lagrer...' : 'Lagre'}
           </button>
         </div>
@@ -133,19 +133,19 @@ export default function AnsvarAdmin({
             <div className="flex gap-2">
               <button type="button" onClick={() => setVisSlett(false)}
                 className="flex-1 py-1.5 rounded-lg text-xs"
-                style={{ border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+                style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                 Avbryt
               </button>
               <button type="button" onClick={handleSlett} disabled={isPending}
                 className="flex-1 py-1.5 rounded-lg text-xs text-white disabled:opacity-50"
-                style={{ background: '#7f1d1d' }}>
+                style={{ background: 'var(--destructive-subtle)' }}>
                 Slett
               </button>
             </div>
           ) : (
             <button type="button" onClick={() => setVisSlett(true)}
               className="w-full py-1.5 rounded-lg text-xs"
-              style={{ color: '#f87171' }}>
+              style={{ color: 'var(--destructive)' }}>
               Slett ansvar
             </button>
           )

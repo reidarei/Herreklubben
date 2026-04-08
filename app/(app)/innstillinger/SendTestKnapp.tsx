@@ -15,8 +15,8 @@ export default function SendTestKnapp() {
 
   return (
     <button onClick={sendTest} disabled={status === 'sender'}
-      className="text-xs py-2 px-4 rounded-lg disabled:opacity-50"
-      style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
+      className="text-xs py-2 px-4 rounded-xl disabled:opacity-50"
+      style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
       {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Kjørt' : status === 'feil' ? '✗ Feil' : 'Kjør påminnelser manuelt'}
     </button>
   )

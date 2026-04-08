@@ -2,15 +2,18 @@
 
 import { useState, useTransition } from 'react'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
 
-const inputStil = {
-  background: 'var(--bakgrunn-kort)',
+const inputStil: React.CSSProperties = {
+  background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
-  color: 'var(--tekst)',
-  borderRadius: '0.5rem',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
   padding: '0.75rem 1rem',
   width: '100%',
   fontSize: '1rem',
+  fontFamily: 'inherit',
 }
 
 export default function RedigerProfilSkjema({
@@ -37,57 +40,47 @@ export default function RedigerProfilSkjema({
   }
 
   return (
-    <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
+    <Card className="mb-4">
       {!redigerer ? (
         <>
           <div className="space-y-3 mb-4">
             <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--tekst-dempet)' }}>Navn</p>
+              <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Navn</p>
               <p className="font-medium">{navn}</p>
             </div>
             <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--tekst-dempet)' }}>E-post</p>
+              <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>E-post</p>
               <p className="font-medium">{epost}</p>
             </div>
             <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--tekst-dempet)' }}>Telefon</p>
+              <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Telefon</p>
               <p className="font-medium">{telefon || '–'}</p>
             </div>
             <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--tekst-dempet)' }}>Rolle</p>
+              <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Rolle</p>
               <p className="font-medium capitalize">{rolle}</p>
             </div>
           </div>
-          <button
-            onClick={() => setRedigerer(true)}
-            className="w-full py-2.5 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}
-          >
+          <Button variant="secondary" fullWidth onClick={() => setRedigerer(true)}>
             {lagret ? '✓ Lagret' : 'Rediger'}
-          </button>
+          </Button>
         </>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Navn</label>
+            <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Navn</label>
             <input name="navn" type="text" required defaultValue={navn} style={inputStil} />
           </div>
           <div>
-            <label className="block text-sm mb-1.5" style={{ color: 'var(--tekst-dempet)' }}>Telefon</label>
+            <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Telefon</label>
             <input name="telefon" type="tel" defaultValue={telefon} style={inputStil} />
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={() => setRedigerer(false)} className="flex-1 py-2.5 rounded-lg text-sm font-semibold"
-              style={{ background: 'var(--bakgrunn)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
-              Avbryt
-            </button>
-            <button type="submit" disabled={isPending} className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
-              style={{ background: 'var(--aksent)' }}>
-              {isPending ? 'Lagrer...' : 'Lagre'}
-            </button>
+            <Button type="button" variant="secondary" fullWidth onClick={() => setRedigerer(false)}>Avbryt</Button>
+            <Button type="submit" fullWidth disabled={isPending}>{isPending ? 'Lagrer...' : 'Lagre'}</Button>
           </div>
         </form>
       )}
-    </div>
+    </Card>
   )
 }

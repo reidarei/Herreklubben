@@ -5,15 +5,17 @@ import MarkdownVisning from '@/components/MarkdownVisning'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { oppdaterVedtekt } from '@/lib/actions/vedtekter'
+import Button from '@/components/ui/Button'
 
-const inputStil = {
-  background: 'var(--bakgrunn)',
+const inputStil: React.CSSProperties = {
+  background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
-  color: 'var(--tekst)',
-  borderRadius: '0.5rem',
+  color: 'var(--text-primary)',
+  borderRadius: '0.75rem',
   padding: '0.75rem 1rem',
   width: '100%',
   fontSize: '0.875rem',
+  fontFamily: 'inherit',
 }
 
 type Versjon = {
@@ -61,78 +63,64 @@ export default function VedtektVisning({
             value={innhold}
             onChange={e => setInnhold(e.target.value)}
             rows={16}
-            style={{ ...inputStil, resize: 'vertical', fontFamily: 'monospace' }}
+            style={{ ...inputStil, resize: 'vertical' as const, fontFamily: 'monospace' }}
           />
-          <div style={{ background: 'rgba(193,127,36,0.08)', border: '1px solid rgba(193,127,36,0.2)', borderRadius: '0.5rem', padding: '1rem' }}>
-            <p className="text-xs font-semibold mb-3" style={{ color: 'var(--aksent-lys)' }}>
+          <div className="rounded-2xl p-4" style={{ background: 'var(--accent-subtle)', border: '1px solid rgba(212,168,83,0.2)' }}>
+            <p className="text-xs font-semibold mb-3" style={{ color: 'var(--accent)' }}>
               Endringen må hjemles i et gyldig vedtak
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Vedtaksdato</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Vedtaksdato</label>
                 <input type="date" value={vedtaksdato} onChange={e => setVedtaksdato(e.target.value)} style={inputStil} required />
               </div>
               <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--tekst-dempet)' }}>Hva ble endret og hvorfor</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Hva ble endret og hvorfor</label>
                 <textarea
                   value={endringsnotat}
                   onChange={e => setEndringsnotat(e.target.value)}
                   rows={3}
-                  style={{ ...inputStil, resize: 'vertical' }}
+                  style={{ ...inputStil, resize: 'vertical' as const }}
                   required
                   placeholder="Beskriv endringen og hjemmelsgrunnlaget..."
                 />
               </div>
             </div>
           </div>
-          {feil && <p className="text-sm" style={{ color: '#f87171' }}>{feil}</p>}
+          {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
           <div className="flex gap-3">
-            <button type="button" onClick={() => { setRedigerer(false); setInnhold(vedtekt.innhold) }}
-              className="flex-1 py-3 rounded-xl font-semibold text-sm"
-              style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
-              Avbryt
-            </button>
-            <button type="submit" disabled={isPending}
-              className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-              style={{ background: 'var(--aksent)' }}>
-              {isPending ? 'Lagrer...' : 'Lagre'}
-            </button>
+            <Button type="button" variant="secondary" fullWidth onClick={() => { setRedigerer(false); setInnhold(vedtekt.innhold) }}>Avbryt</Button>
+            <Button type="submit" fullWidth disabled={isPending}>{isPending ? 'Lagrer...' : 'Lagre'}</Button>
           </div>
         </form>
       ) : (
         <>
-          {/* Markdown-innhold */}
           <div className="mb-6">
             <MarkdownVisning innhold={innhold} />
           </div>
 
-          <p className="text-xs mb-4" style={{ color: 'var(--tekst-dempet)' }}>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
             Sist oppdatert: {format(new Date(vedtekt.oppdatert), 'd. MMMM yyyy', { locale: nb })}
           </p>
 
           {erAdmin && (
-            <button onClick={() => setRedigerer(true)}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold mb-4"
-              style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)', color: 'var(--tekst-dempet)' }}>
-              Rediger
-            </button>
+            <Button variant="secondary" fullWidth onClick={() => setRedigerer(true)} className="mb-4">Rediger</Button>
           )}
 
-          {/* Endringshistorikk */}
           {versjoner.length > 0 && (
             <div>
               <button onClick={() => setVisHistorikk(!visHistorikk)}
-                className="text-xs w-full text-left py-2" style={{ color: 'var(--tekst-dempet)' }}>
+                className="text-xs w-full text-left py-2" style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 {visHistorikk ? '▲' : '▼'} Endringshistorikk ({versjoner.length})
               </button>
               {visHistorikk && (
                 <div className="space-y-2 mt-2">
                   {versjoner.map(v => (
-                    <div key={v.id} className="rounded-lg px-3 py-2" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-                      <p className="text-xs font-medium" style={{ color: 'var(--tekst)' }}>
+                    <div key={v.id} className="rounded-2xl px-4 py-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                      <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
                         {format(new Date(v.vedtaksdato), 'd. MMMM yyyy', { locale: nb })} — {v.profiles?.navn}
                       </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--tekst-dempet)' }}>{v.endringsnotat}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{v.endringsnotat}</p>
                     </div>
                   ))}
                 </div>

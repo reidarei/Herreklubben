@@ -17,6 +17,7 @@ export type ArrangementInput = {
   destinasjon?: string
   pris_per_person?: number
   sensurerte_felt?: Record<string, boolean>
+  bilde_url?: string
   // Kobling til arrangøransvar
   ansvar_id?: string
 }
@@ -38,6 +39,7 @@ export async function opprettArrangement(data: ArrangementInput) {
       destinasjon: data.destinasjon || null,
       pris_per_person: data.pris_per_person || null,
       sensurerte_felt: data.sensurerte_felt || {},
+      bilde_url: data.bilde_url || null,
       opprettet_av: user.id,
     })
     .select()
