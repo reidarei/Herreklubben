@@ -19,7 +19,7 @@ export default async function Profil() {
   ])
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-4 pt-10 pb-8">
       <h1 className="text-xl font-bold mb-6" style={{ color: 'var(--tekst)' }}>Profil</h1>
 
       <RedigerProfilSkjema

@@ -44,7 +44,7 @@ export default function NyttMedlem() {
 
   if (opprettet) {
     return (
-      <div className="max-w-lg mx-auto px-4 pt-6">
+      <div className="max-w-lg mx-auto px-4 pt-10">
         <div className="rounded-xl p-5" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
           <p className="font-semibold text-lg mb-2" style={{ color: 'var(--gronn-lys)' }}>✓ Medlem opprettet</p>
           <p className="text-sm mb-4" style={{ color: 'var(--tekst-dempet)' }}>
@@ -67,7 +67,7 @@ export default function NyttMedlem() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6">
+    <div className="max-w-lg mx-auto px-4 pt-10">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()} className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</button>
         <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Nytt medlem</h1>

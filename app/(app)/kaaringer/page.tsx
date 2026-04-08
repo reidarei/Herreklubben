@@ -42,7 +42,7 @@ export default async function Kaaringer() {
   const aar = Object.keys(perAar).map(Number).sort((a, b) => b - a)
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <div className="max-w-lg mx-auto px-4 pt-10 pb-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Kåringer</h1>
         {erAdmin && (

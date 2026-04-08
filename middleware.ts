@@ -24,15 +24,15 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
 
   const erPaaLogin = request.nextUrl.pathname === '/login'
 
-  if (!user && !erPaaLogin) {
+  if (!session && !erPaaLogin) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && erPaaLogin) {
+  if (session && erPaaLogin) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
