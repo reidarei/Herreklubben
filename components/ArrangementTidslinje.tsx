@@ -65,15 +65,13 @@ export default function ArrangementTidslinje({
         }}
       >
         {/* Hero-bilde */}
-        {arr.bilde_url && (
-          <img
-            src={arr.bilde_url}
-            alt=""
-            className="w-full object-cover"
-            style={{ aspectRatio: '16/9' }}
-            loading="lazy"
-          />
-        )}
+        <img
+          src={arr.bilde_url || '/bakgrunn.jpg'}
+          alt=""
+          className="w-full object-cover"
+          style={{ aspectRatio: '16/9' }}
+          loading="lazy"
+        />
 
         {/* Innhold */}
         <div className="p-5">

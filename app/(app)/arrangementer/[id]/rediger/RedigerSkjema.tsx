@@ -54,6 +54,7 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
           destinasjon: fd.get('destinasjon') as string,
           pris_per_person: fd.get('pris_per_person') ? parseInt(fd.get('pris_per_person') as string) : undefined,
           sensurerte_felt: sensurert,
+          bilde_url: (fd.get('bilde_url') as string) || undefined,
         })
         router.push(`/arrangementer/${arr.id}`)
       } catch {
@@ -79,6 +80,15 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
         <div>
           <label htmlFor="beskrivelse" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Beskrivelse</label>
           <textarea id="beskrivelse" name="beskrivelse" rows={3} defaultValue={(arr.beskrivelse as string) ?? ''} style={{ ...inputStil, resize: 'vertical' as const }} />
+        </div>
+
+        {/* Bilde-URL */}
+        <div>
+          <label htmlFor="bilde_url" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            Bilde (URL)
+          </label>
+          <input id="bilde_url" name="bilde_url" type="url" defaultValue={(arr.bilde_url as string) ?? ''} placeholder="Lim inn lenke til bilde (valgfritt)" style={inputStil} />
+          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Uten bilde brukes standard klubb-bilde</p>
         </div>
 
         <div>

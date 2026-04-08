@@ -89,14 +89,12 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
       </div>
 
       {/* Hero-bilde */}
-      {arr.bilde_url && (
-        <img
-          src={arr.bilde_url}
-          alt=""
-          className="w-full object-cover"
-          style={{ aspectRatio: '16/9' }}
-        />
-      )}
+      <img
+        src={arr.bilde_url || '/bakgrunn.jpg'}
+        alt=""
+        className="w-full object-cover"
+        style={{ aspectRatio: '16/9' }}
+      />
 
       <div className="px-5">
         {/* Type-etikett */}
