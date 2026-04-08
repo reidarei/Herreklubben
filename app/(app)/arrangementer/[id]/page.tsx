@@ -1,8 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
-import { format } from 'date-fns'
-import { nb } from 'date-fns/locale'
 import Link from 'next/link'
 import {
   CalendarIcon,
@@ -18,6 +16,7 @@ import PaameldingKnapper from './PaameldingKnapper'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import SladdetFelt from '@/components/SladdetFelt'
+import LocalTid from '@/components/LocalTid'
 
 export default async function ArrangementDetaljer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -113,9 +112,9 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
         <div className="space-y-2.5 mb-5">
           <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
             <CalendarIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-            {format(new Date(arr.start_tidspunkt), "EEEE d. MMMM yyyy 'kl.' HH:mm", { locale: nb })}
+            <LocalTid iso={arr.start_tidspunkt} formatStr="EEEE d. MMMM yyyy 'kl.' HH:mm" />
             {erTur && arr.slutt_tidspunkt && (
-              <> – {format(new Date(arr.slutt_tidspunkt), 'd. MMMM', { locale: nb })}</>
+              <> – <LocalTid iso={arr.slutt_tidspunkt} formatStr="d. MMMM" /></>
             )}
           </div>
           {arr.oppmoetested && (
