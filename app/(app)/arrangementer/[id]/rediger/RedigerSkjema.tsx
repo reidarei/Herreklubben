@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterArrangement, slettArrangement } from '@/lib/actions/arrangementer'
 import TurFelt from '@/components/TurFelt'
+import BildeVelger from '@/components/BildeVelger'
 import Button from '@/components/ui/Button'
 
 const inputStil: React.CSSProperties = {
@@ -27,6 +28,7 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
   const [sensurert, setSensurert] = useState<Record<string, boolean>>(
     (arr.sensurerte_felt as Record<string, boolean>) ?? {}
   )
+  const [bildeUrl, setBildeUrl] = useState<string | null>((arr.bilde_url as string) || null)
   const [visSlett, setVisSlett] = useState(false)
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -54,7 +56,7 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
           destinasjon: fd.get('destinasjon') as string,
           pris_per_person: fd.get('pris_per_person') ? parseInt(fd.get('pris_per_person') as string) : undefined,
           sensurerte_felt: sensurert,
-          bilde_url: (fd.get('bilde_url') as string) || undefined,
+          bilde_url: bildeUrl || undefined,
         })
         router.push(`/arrangementer/${arr.id}`)
       } catch {
@@ -82,14 +84,8 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
           <textarea id="beskrivelse" name="beskrivelse" rows={3} defaultValue={(arr.beskrivelse as string) ?? ''} style={{ ...inputStil, resize: 'vertical' as const }} />
         </div>
 
-        {/* Bilde-URL */}
-        <div>
-          <label htmlFor="bilde_url" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            Bilde (URL)
-          </label>
-          <input id="bilde_url" name="bilde_url" type="url" defaultValue={(arr.bilde_url as string) ?? ''} placeholder="Lim inn lenke til bilde (valgfritt)" style={inputStil} />
-          <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Uten bilde brukes standard klubb-bilde</p>
-        </div>
+        {/* Bildeopplasting */}
+        <BildeVelger bildeUrl={bildeUrl} onBildeUrl={setBildeUrl} />
 
         <div>
           <label htmlFor="start_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>

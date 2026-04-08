@@ -6,14 +6,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-export async function oppdaterEgenProfil(data: { navn: string; telefon: string }) {
+export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string }) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
 
   const { error } = await supabase
     .from('profiles')
-    .update({ navn: data.navn, telefon: data.telefon || null, oppdatert: new Date().toISOString() })
+    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: data.telefon || null, oppdatert: new Date().toISOString() })
     .eq('id', user.id)
 
   if (error) throw new Error(error.message)
@@ -21,7 +21,7 @@ export async function oppdaterEgenProfil(data: { navn: string; telefon: string }
   revalidatePath('/klubbinfo/medlemmer')
 }
 
-export async function oppdaterMedlemAdmin(id: string, data: { navn: string; telefon: string; rolle: string; aktiv: boolean }) {
+export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visningsnavn: string; telefon: string; rolle: string; aktiv: boolean }) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
@@ -32,7 +32,7 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; tele
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
     .from('profiles')
-    .update({ navn: data.navn, telefon: data.telefon || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: new Date().toISOString() })
+    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: data.telefon || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: new Date().toISOString() })
     .eq('id', id)
 
   if (error) throw new Error(error.message)

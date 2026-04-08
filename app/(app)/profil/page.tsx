@@ -2,7 +2,6 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import LoggUtKnapp from './LoggUtKnapp'
 import RedigerProfilSkjema from './RedigerProfilSkjema'
-import EndrePassord from './EndrePassord'
 import PushAbonnement from '@/components/PushAbonnement'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
@@ -11,7 +10,7 @@ export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
   const [{ data: profil }, { data: ansvar }] = await Promise.all([
-    supabase.from('profiles').select('navn, epost, telefon, rolle').eq('id', user!.id).single(),
+    supabase.from('profiles').select('navn, visningsnavn, epost, telefon, rolle').eq('id', user!.id).single(),
     supabase.from('arrangoransvar')
       .select('id, aar, arrangement_navn, arrangementer (id)')
       .eq('ansvarlig_id', user!.id)
@@ -25,6 +24,7 @@ export default async function Profil() {
 
       <RedigerProfilSkjema
         navn={profil?.navn ?? ''}
+        visningsnavn={profil?.visningsnavn ?? ''}
         epost={profil?.epost ?? ''}
         telefon={profil?.telefon ?? ''}
         rolle={profil?.rolle ?? 'medlem'}
@@ -57,8 +57,6 @@ export default async function Profil() {
           </div>
         </div>
       )}
-
-      <EndrePassord />
 
       <PushAbonnement />
 

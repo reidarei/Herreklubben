@@ -10,7 +10,7 @@ export default async function RedigerMedlem({ params }: { params: Promise<{ id: 
 
   const { data: medlem } = await supabase
     .from('profiles')
-    .select('id, navn, epost, telefon, rolle, aktiv')
+    .select('id, navn, visningsnavn, epost, telefon, rolle, aktiv')
     .eq('id', id)
     .single()
 

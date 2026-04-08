@@ -8,7 +8,7 @@ import SladdetFelt from './SladdetFelt'
 import Badge from './ui/Badge'
 import type { Json } from '@/lib/supabase/database.types'
 
-type Paamelding = { profil_id: string; status: string }
+type Paamelding = { profil_id: string; status: string; profiles?: { visningsnavn: string | null } | null }
 
 type Arrangement = {
   id: string
@@ -46,7 +46,10 @@ export default function ArrangementTidslinje({
   function ArrangementKort({ arr, dempet }: { arr: Arrangement; dempet?: boolean }) {
     const dato = new Date(arr.start_tidspunkt)
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
-    const antallJa = arr.paameldinger.filter(p => p.status === 'ja').length
+    const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
+    const antallJa = jaListe.length
+    const jaNavnListe = jaListe.map(p => p.profiles?.visningsnavn).filter(Boolean).slice(0, 3) as string[]
+    const resten = antallJa - jaNavnListe.length
     const erTur = arr.type === 'tur'
     const erSensurert = (felt: string) =>
       (arr.sensurerte_felt as Record<string, boolean> | null)?.[felt] === true
@@ -117,10 +120,17 @@ export default function ArrangementTidslinje({
           >
             <div className="flex items-center gap-1.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               <span
-                className="w-1.5 h-1.5 rounded-full"
+                className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ background: 'var(--success)' }}
               />
-              {antallJa} kommer
+              {antallJa === 0 ? (
+                <span>Ingen påmeldt ennå</span>
+              ) : (
+                <span>
+                  {jaNavnListe.join(', ')}
+                  {resten > 0 && ` + ${resten} andre herrer`}
+                </span>
+              )}
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>

@@ -14,7 +14,7 @@ const inputStil = {
   fontSize: '1rem',
 }
 
-type Medlem = { id: string; navn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean }
+type Medlem = { id: string; navn: string; visningsnavn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean }
 
 export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   const [isPending, startTransition] = useTransition()
@@ -26,6 +26,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
     startTransition(async () => {
       await oppdaterMedlemAdmin(medlem.id, {
         navn: fd.get('navn') as string,
+        visningsnavn: fd.get('visningsnavn') as string,
         telefon: fd.get('telefon') as string,
         rolle: fd.get('rolle') as string,
         aktiv: fd.get('aktiv') === 'true',
@@ -39,6 +40,10 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
       <div>
         <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Navn</label>
         <input name="navn" type="text" required defaultValue={medlem.navn} style={inputStil} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Visningsnavn (kallenavn)</label>
+        <input name="visningsnavn" type="text" required defaultValue={medlem.visningsnavn} style={inputStil} />
       </div>
       <div>
         <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>

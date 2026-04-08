@@ -19,7 +19,7 @@ export default async function Forside() {
       id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
       oppmoetested, destinasjon, pris_per_person, sensurerte_felt,
       opprettet_av, bilde_url,
-      paameldinger (profil_id, status)
+      paameldinger (profil_id, status, profiles (visningsnavn))
     `)
     .gte('start_tidspunkt', toMndSiden)
     .order('start_tidspunkt', { ascending: true })

@@ -35,10 +35,11 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ feil: error.message }, { status: 400 })
 
-  // Oppdater profiles med navn
+  // Oppdater profiles med navn og visningsnavn (fornavn)
+  const visningsnavn = navn.split(' ')[0]
   await adminClient
     .from('profiles')
-    .update({ navn })
+    .update({ navn, visningsnavn })
     .eq('id', data.user.id)
 
   return NextResponse.json({ ok: true, passord })

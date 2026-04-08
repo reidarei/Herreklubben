@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { opprettArrangement } from '@/lib/actions/arrangementer'
 import TurFelt from '@/components/TurFelt'
+import BildeVelger from '@/components/BildeVelger'
 import Button from '@/components/ui/Button'
 
 type Ansvar = { id: string; arrangement_navn: string; aar: number }
@@ -22,6 +23,7 @@ const inputStil: React.CSSProperties = {
 export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsvar: Ansvar[] }) {
   const [type, setType] = useState<'moete' | 'tur'>('moete')
   const [sensurert, setSensurert] = useState<Record<string, boolean>>({})
+  const [bildeUrl, setBildeUrl] = useState<string | null>(null)
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -53,7 +55,7 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
           destinasjon: fd.get('destinasjon') as string,
           pris_per_person: prisRaw ? parseInt(prisRaw) : undefined,
           sensurerte_felt: sensurert,
-          bilde_url: (fd.get('bilde_url') as string) || undefined,
+          bilde_url: bildeUrl || undefined,
           ansvar_id: valgtAnsvar || undefined,
         })
       } catch (err) {
@@ -137,14 +139,8 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
         <textarea id="beskrivelse" name="beskrivelse" rows={3} style={{ ...inputStil, resize: 'vertical' as const }} />
       </div>
 
-      {/* Bilde-URL */}
-      <div>
-        <label htmlFor="bilde_url" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-          Bilde (URL)
-        </label>
-        <input id="bilde_url" name="bilde_url" type="url" placeholder="Lim inn lenke til bilde (valgfritt)" style={inputStil} />
-        <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Uten bilde brukes standard klubb-bilde</p>
-      </div>
+      {/* Bildeopplasting */}
+      <BildeVelger bildeUrl={bildeUrl} onBildeUrl={setBildeUrl} />
 
       {/* Start-tidspunkt */}
       <div>

@@ -249,6 +249,7 @@ export type Database = {
           opprettet: string
           rolle: string
           telefon: string | null
+          visningsnavn: string
         }
         Insert: {
           aktiv?: boolean
@@ -260,6 +261,7 @@ export type Database = {
           opprettet?: string
           rolle?: string
           telefon?: string | null
+          visningsnavn?: string
         }
         Update: {
           aktiv?: boolean
@@ -271,6 +273,7 @@ export type Database = {
           opprettet?: string
           rolle?: string
           telefon?: string | null
+          visningsnavn?: string
         }
         Relationships: []
       }
