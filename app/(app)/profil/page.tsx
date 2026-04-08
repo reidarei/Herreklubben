@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getInnloggetBruker } from '@/lib/auth-cache'
 import LoggUtKnapp from './LoggUtKnapp'
 import RedigerProfilSkjema from './RedigerProfilSkjema'
 import EndrePassord from './EndrePassord'
@@ -6,8 +7,7 @@ import PushAbonnement from '@/components/PushAbonnement'
 import Link from 'next/link'
 
 export default async function Profil() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
   const [{ data: profil }, { data: ansvar }] = await Promise.all([
     supabase.from('profiles').select('navn, epost, telefon, rolle').eq('id', user!.id).single(),

@@ -1,14 +1,12 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import { notFound, redirect } from 'next/navigation'
 import RedigerMedlemSkjema from './RedigerMedlemSkjema'
 
 export default async function RedigerMedlem({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: innlogget } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
-  if (innlogget?.rolle !== 'admin') redirect('/klubbinfo/medlemmer')
+  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
+  if (profil?.rolle !== 'admin') redirect('/klubbinfo/medlemmer')
 
   const { data: medlem } = await supabase
     .from('profiles')

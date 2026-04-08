@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 
 const kortstil = {
@@ -13,9 +14,7 @@ const kortstil = {
 }
 
 export default async function Klubbinfo() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
+  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
   const erAdmin = profil?.rolle === 'admin'
 
   const { data: medlemmer } = await supabase.from('profiles').select('id').eq('aktiv', true)

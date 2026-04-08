@@ -1,11 +1,15 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
 
 export default async function RedigerArrangement({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, user, profil] = await Promise.all([
+    createServerClient(),
+    getInnloggetBruker(),
+    getProfil(),
+  ])
 
   const { data: arr } = await supabase
     .from('arrangementer')
@@ -14,12 +18,6 @@ export default async function RedigerArrangement({ params }: { params: Promise<{
     .single()
 
   if (!arr) notFound()
-
-  const { data: profil } = await supabase
-    .from('profiles')
-    .select('rolle')
-    .eq('id', user!.id)
-    .single()
 
   const erAdmin = profil?.rolle === 'admin'
   const kanRedigere = arr.opprettet_av === user!.id || erAdmin

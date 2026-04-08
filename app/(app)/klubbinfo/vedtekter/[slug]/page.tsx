@@ -1,12 +1,13 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import VedtektVisning from './VedtektVisning'
 
 export default async function VedtektSide({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
+  const erAdmin = profil?.rolle === 'admin'
 
   const { data: vedtekt } = await supabase
     .from('vedtekter')
@@ -15,9 +16,6 @@ export default async function VedtektSide({ params }: { params: Promise<{ slug: 
     .single()
 
   if (!vedtekt) notFound()
-
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
-  const erAdmin = profil?.rolle === 'admin'
 
   const { data: versjoner } = await supabase
     .from('vedtekter_versjoner')
