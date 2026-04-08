@@ -16,13 +16,6 @@ export default function SkyBakgrunn() {
             <feGaussianBlur stdDeviation="6" />
           </filter>
 
-          {/* Gradient for himmelen */}
-          <linearGradient id="himmelGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#7ab3c4" stopOpacity="0.18" />
-            <stop offset="60%" stopColor="#4a8a9e" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="#111111" stopOpacity="0" />
-          </linearGradient>
-
           {/* Fade ned mot mørk bakgrunn */}
           <linearGradient id="nedFade" x1="0" y1="0" x2="0" y2="1">
             <stop offset="40%" stopColor="#111111" stopOpacity="0" />
@@ -40,8 +33,6 @@ export default function SkyBakgrunn() {
           </radialGradient>
         </defs>
 
-        {/* Himmelblå bakgrunn */}
-        <rect width="390" height="220" fill="url(#himmelGradient)" />
 
         {/* === SKY 1 — stor, venstre-midten === */}
         <g opacity="0.22" filter="url(#blurMyk)">

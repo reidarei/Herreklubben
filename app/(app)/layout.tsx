@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login')
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ background: 'var(--bakgrunn)' }}>
+    <div className="flex flex-col min-h-screen">
       <ServiceWorkerRegistrering />
       <SkyBakgrunn />
       <main className="flex-1 pb-20 relative z-10">

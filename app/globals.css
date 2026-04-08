@@ -14,8 +14,18 @@
   --gronn-lys: #52b788;
 }
 
-body {
+html {
   background-color: var(--bakgrunn);
+  background-image: linear-gradient(
+    to bottom,
+    rgba(122, 179, 196, 0.22) 0%,
+    rgba(74, 138, 158, 0.08) 12%,
+    transparent 28%
+  );
+  background-attachment: fixed;
+}
+
+body {
   color: var(--tekst);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
