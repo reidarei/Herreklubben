@@ -27,7 +27,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(min(100%, 32rem) - 32px)',
-        background: 'rgba(30,30,30,0.65)',
+        background: 'rgba(30,30,30,0.88)',
         backdropFilter: 'saturate(180%) blur(24px)',
         WebkitBackdropFilter: 'saturate(180%) blur(24px)',
         border: '0.5px solid rgba(255,255,255,0.1)',
