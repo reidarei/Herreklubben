@@ -14,6 +14,7 @@ export default async function TidligereArrangementer() {
     `)
     .lt('start_tidspunkt', new Date().toISOString())
     .order('start_tidspunkt', { ascending: false })
+    .limit(30)
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-10 pb-8">

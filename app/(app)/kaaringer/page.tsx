@@ -1,37 +1,39 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import NyKaaringKnapp from './NyKaaringKnapp'
 import KaaringKort from './KaaringKort'
 
 export default async function Kaaringer() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, profil] = await Promise.all([
+    createServerClient(),
+    getProfil(),
+  ])
 
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
   const erAdmin = profil?.rolle === 'admin'
 
-  const { data: kaaringer } = await supabase
-    .from('kaaringer')
-    .select(`
-      id, aar, kategori,
-      kaaring_vinnere (
-        id, begrunnelse,
-        profil_id, profiles (navn),
-        arrangement_id, arrangementer (tittel)
-      )
-    `)
-    .order('aar', { ascending: false })
-    .order('opprettet', { ascending: true })
-
-  const { data: medlemmer } = await supabase
-    .from('profiles')
-    .select('id, navn')
-    .eq('aktiv', true)
-    .order('navn')
-
-  const { data: arrangementer } = await supabase
-    .from('arrangementer')
-    .select('id, tittel, start_tidspunkt')
-    .order('start_tidspunkt', { ascending: false })
+  const [{ data: kaaringer }, { data: medlemmer }, { data: arrangementer }] = await Promise.all([
+    supabase
+      .from('kaaringer')
+      .select(`
+        id, aar, kategori,
+        kaaring_vinnere (
+          id, begrunnelse,
+          profil_id, profiles (navn),
+          arrangement_id, arrangementer (tittel)
+        )
+      `)
+      .order('aar', { ascending: false })
+      .order('opprettet', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('id, navn')
+      .eq('aktiv', true)
+      .order('navn'),
+    supabase
+      .from('arrangementer')
+      .select('id, tittel, start_tidspunkt')
+      .order('start_tidspunkt', { ascending: false }),
+  ])
 
   // Grupper per år
   const perAar: Record<number, typeof kaaringer> = {}

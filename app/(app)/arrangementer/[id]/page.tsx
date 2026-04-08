@@ -9,8 +9,11 @@ import SladdetFelt from '@/components/SladdetFelt'
 
 export default async function ArrangementDetaljer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createServerClient()
-  const user = await getInnloggetBruker()
+  const [supabase, user, profil] = await Promise.all([
+    createServerClient(),
+    getInnloggetBruker(),
+    getProfil(),
+  ])
 
   const { data: arr } = await supabase
     .from('arrangementer')
@@ -23,8 +26,6 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
     .single()
 
   if (!arr) notFound()
-
-  const profil = await getProfil()
   const erAdmin = profil?.rolle === 'admin'
   const kanRedigere = arr.opprettet_av === user!.id || erAdmin
   const erTur = arr.type === 'tur'

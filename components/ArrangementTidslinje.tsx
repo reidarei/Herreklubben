@@ -19,7 +19,7 @@ type Arrangement = {
   destinasjon: string | null
   pris_per_person: number | null
   sensurerte_felt: Json
-  opprettet_av: string
+  opprettet_av: string | null
   paameldinger: Paamelding[]
 }
 

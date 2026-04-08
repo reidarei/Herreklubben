@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -21,26 +22,27 @@ const innstillingLabels: Record<string, string> = {
 }
 
 export default async function Innstillinger() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, profil] = await Promise.all([
+    createServerClient(),
+    getProfil(),
+  ])
 
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user!.id).single()
   if (profil?.rolle !== 'admin') notFound()
 
-  const { data: logg } = await supabase
-    .from('varsler_logg')
-    .select('id, type, sendt_at, arrangementer (tittel)')
-    .order('sendt_at', { ascending: false })
-    .limit(30)
-
-  const { count: pushCount } = await supabase
-    .from('push_subscriptions')
-    .select('*', { count: 'exact', head: true })
-
-  const { data: innstillinger } = await supabase
-    .from('varsel_innstillinger')
-    .select('noekkel, aktiv, beskrivelse')
-    .order('noekkel')
+  const [{ data: logg }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
+    supabase
+      .from('varsler_logg')
+      .select('id, type, sendt_at, arrangementer (tittel)')
+      .order('sendt_at', { ascending: false })
+      .limit(30),
+    supabase
+      .from('push_subscriptions')
+      .select('*', { count: 'exact', head: true }),
+    supabase
+      .from('varsel_innstillinger')
+      .select('noekkel, aktiv, beskrivelse')
+      .order('noekkel'),
+  ])
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-10 pb-8">

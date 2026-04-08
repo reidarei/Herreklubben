@@ -1,61 +1,27 @@
 import { createServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { subMonths } from 'date-fns'
+
+type StatRad = { id: string; navn: string; totalt: number; siste12: number; arrangert: number }
+type StatistikkData = {
+  totalt: number
+  siste12: number
+  deltagelse: StatRad[]
+  per_aar: { aar: number; antall: number }[]
+}
 
 export default async function Statistikk() {
   const supabase = await createServerClient()
 
-  const tolv_mnd_siden = subMonths(new Date(), 12).toISOString()
+  const { data } = await supabase.rpc('get_statistikk')
+  const stats = data as StatistikkData | null
 
-  // Alle arrangementer med påmeldinger
-  const { data: arrangementer } = await supabase
-    .from('arrangementer')
-    .select('id, tittel, start_tidspunkt, opprettet_av, paameldinger (profil_id, status)')
-    .lt('start_tidspunkt', new Date().toISOString())
-    .order('start_tidspunkt', { ascending: false })
+  if (!stats) return null
 
-  // Alle aktive profiler
-  const { data: profiler } = await supabase
-    .from('profiles')
-    .select('id, navn')
-    .eq('aktiv', true)
-    .order('navn')
-
-  if (!arrangementer || !profiler) return null
-
-  const totalt = arrangementer.length
-  const siste12 = arrangementer.filter(a => a.start_tidspunkt >= tolv_mnd_siden)
-
-  // Deltagelse per medlem
-  type StatRad = { id: string; navn: string; totalt: number; siste12: number; arrangert: number }
-  const stats: Record<string, StatRad> = {}
-  for (const p of profiler) {
-    stats[p.id] = { id: p.id, navn: p.navn, totalt: 0, siste12: 0, arrangert: 0 }
-  }
-
-  for (const arr of arrangementer) {
-    const erSiste12 = arr.start_tidspunkt >= tolv_mnd_siden
-    if (stats[arr.opprettet_av]) stats[arr.opprettet_av].arrangert++
-    for (const p of arr.paameldinger) {
-      if (p.status === 'ja' && stats[p.profil_id]) {
-        stats[p.profil_id].totalt++
-        if (erSiste12) stats[p.profil_id].siste12++
-      }
-    }
-  }
-
-  const sortert = Object.values(stats).sort((a, b) => b.totalt - a.totalt)
-
-  // Antall per år
-  const perAar: Record<number, number> = {}
-  for (const arr of arrangementer) {
-    const aar = new Date(arr.start_tidspunkt).getFullYear()
-    perAar[aar] = (perAar[aar] ?? 0) + 1
-  }
-  const aarSortert = Object.entries(perAar).sort((a, b) => Number(b[0]) - Number(a[0]))
+  const sortert = stats.deltagelse ?? []
+  const aarSortert = stats.per_aar ?? []
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10 pb-8">
+    <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/klubbinfo" className="text-sm" style={{ color: 'var(--tekst-dempet)' }}>← Tilbake</Link>
         <h1 className="text-xl font-bold" style={{ color: 'var(--tekst)' }}>Statistikk</h1>
@@ -64,11 +30,11 @@ export default async function Statistikk() {
       {/* Nøkkeltall */}
       <div className="grid grid-cols-2 gap-3 mb-8">
         <div className="rounded-xl p-4 text-center" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-          <p className="text-3xl font-bold" style={{ color: 'var(--aksent-lys)' }}>{totalt}</p>
+          <p className="text-3xl font-bold" style={{ color: 'var(--aksent-lys)' }}>{stats.totalt}</p>
           <p className="text-xs mt-1" style={{ color: 'var(--tekst-dempet)' }}>Arrangementer totalt</p>
         </div>
         <div className="rounded-xl p-4 text-center" style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
-          <p className="text-3xl font-bold" style={{ color: 'var(--aksent-lys)' }}>{siste12.length}</p>
+          <p className="text-3xl font-bold" style={{ color: 'var(--aksent-lys)' }}>{stats.siste12}</p>
           <p className="text-xs mt-1" style={{ color: 'var(--tekst-dempet)' }}>Siste 12 måneder</p>
         </div>
       </div>
@@ -106,7 +72,7 @@ export default async function Statistikk() {
       {/* Per år */}
       <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--aksent-lys)' }}>Arrangementer per år</h2>
       <div className="space-y-2">
-        {aarSortert.map(([aar, antall]) => (
+        {aarSortert.map(({ aar, antall }) => (
           <div key={aar} className="flex items-center gap-3 rounded-xl px-4 py-2.5"
             style={{ background: 'var(--bakgrunn-kort)', border: '1px solid var(--border)' }}>
             <span className="text-sm font-semibold w-12" style={{ color: 'var(--aksent)' }}>{aar}</span>

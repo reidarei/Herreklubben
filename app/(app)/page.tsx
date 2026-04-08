@@ -1,10 +1,16 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { getInnloggetBruker } from '@/lib/auth-cache'
 import ArrangementTidslinje from '@/components/ArrangementTidslinje'
 import Link from 'next/link'
+import { subMonths } from 'date-fns'
 
 export default async function Forside() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [user, supabase] = await Promise.all([
+    getInnloggetBruker(),
+    createServerClient(),
+  ])
+
+  const toMndSiden = subMonths(new Date(), 2).toISOString()
 
   const { data: arrangementer } = await supabase
     .from('arrangementer')
@@ -14,6 +20,7 @@ export default async function Forside() {
       opprettet_av,
       paameldinger (profil_id, status)
     `)
+    .gte('start_tidspunkt', toMndSiden)
     .order('start_tidspunkt', { ascending: true })
 
   return (

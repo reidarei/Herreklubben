@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       arrangementer: {
@@ -48,7 +23,7 @@ export type Database = {
           oppdatert: string
           oppmoetested: string | null
           opprettet: string
-          opprettet_av: string
+          opprettet_av: string | null
           pris_per_person: number | null
           sensurerte_felt: Json
           slutt_tidspunkt: string | null
@@ -64,7 +39,7 @@ export type Database = {
           oppdatert?: string
           oppmoetested?: string | null
           opprettet?: string
-          opprettet_av: string
+          opprettet_av?: string | null
           pris_per_person?: number | null
           sensurerte_felt?: Json
           slutt_tidspunkt?: string | null
@@ -80,7 +55,7 @@ export type Database = {
           oppdatert?: string
           oppmoetested?: string | null
           opprettet?: string
-          opprettet_av?: string
+          opprettet_av?: string | null
           pris_per_person?: number | null
           sensurerte_felt?: Json
           slutt_tidspunkt?: string | null
@@ -199,7 +174,7 @@ export type Database = {
           kategori: string
           oppdatert: string
           opprettet: string
-          opprettet_av: string
+          opprettet_av: string | null
         }
         Insert: {
           aar: number
@@ -207,7 +182,7 @@ export type Database = {
           kategori: string
           oppdatert?: string
           opprettet?: string
-          opprettet_av: string
+          opprettet_av?: string | null
         }
         Update: {
           aar?: number
@@ -215,7 +190,7 @@ export type Database = {
           kategori?: string
           oppdatert?: string
           opprettet?: string
-          opprettet_av?: string
+          opprettet_av?: string | null
         }
         Relationships: [
           {
@@ -416,7 +391,7 @@ export type Database = {
       }
       vedtekter_versjoner: {
         Row: {
-          endret_av: string
+          endret_av: string | null
           endringsnotat: string
           id: string
           innhold: string
@@ -425,7 +400,7 @@ export type Database = {
           vedtekt_id: string
         }
         Insert: {
-          endret_av: string
+          endret_av?: string | null
           endringsnotat: string
           id?: string
           innhold: string
@@ -434,7 +409,7 @@ export type Database = {
           vedtekt_id: string
         }
         Update: {
-          endret_av?: string
+          endret_av?: string | null
           endringsnotat?: string
           id?: string
           innhold?: string
@@ -465,6 +440,7 @@ export type Database = {
     }
     Functions: {
       er_admin: { Args: never; Returns: boolean }
+      get_statistikk: { Args: never; Returns: Json }
     }
     Enums: {
       arrangementstype: "moete" | "tur"
@@ -594,9 +570,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       arrangementstype: ["moete", "tur"],
