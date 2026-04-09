@@ -23,7 +23,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
     <nav
       className="fixed z-50"
       style={{
-        bottom: '12px',
+        bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(min(100%, 32rem) - 32px)',
@@ -48,7 +48,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
               className="flex-1 flex flex-col items-center gap-1 active:scale-90 transition-transform duration-75"
               style={{
                 paddingTop: '8px',
-                paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
+                paddingBottom: '8px',
                 color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
                 textDecoration: 'none',
                 fontSize: '10px',
