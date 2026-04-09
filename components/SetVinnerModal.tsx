@@ -47,7 +47,8 @@ export default function SetVinnerModal({
   }
 
   const defaultType = getDefaultType()
-  const [type] = useState<'profil' | 'arrangement'>(defaultType)
+  const isFixedType = malNavn === 'Årets herre' || malNavn === 'Årets møte'
+  const [type, setType] = useState<'profil' | 'arrangement'>(defaultType)
   const [id, setId] = useState('')
   const [begrunnelse, setBegrunnelse] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -122,14 +123,19 @@ export default function SetVinnerModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {malNavn !== 'Årets herre' && malNavn !== 'Årets møte' && (
-            <div>
-              <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Vinner-type</label>
+          <div>
+            <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Vinner-type</label>
+            {isFixedType ? (
               <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
                 {type === 'profil' ? 'Herr' : 'Arrangement'}
               </p>
-            </div>
-          )}
+            ) : (
+              <select value={type} onChange={e => { setType(e.target.value as 'profil' | 'arrangement'); setId('') }} style={inputStil}>
+                <option value="profil">Herr</option>
+                <option value="arrangement">Arrangement</option>
+              </select>
+            )}
+          </div>
 
           <div>
             <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Velg vinner</label>
