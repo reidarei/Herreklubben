@@ -19,6 +19,7 @@ interface SetVinnerModalProps {
   aapen: boolean
   setAapen: (aapen: boolean) => void
   malId: string
+  malNavn: string
   aar: number
   medlemmer: { id: string; navn: string }[]
   arrangementer: { id: string; tittel: string; start_tidspunkt: string }[]
@@ -33,12 +34,20 @@ export default function SetVinnerModal({
   aapen,
   setAapen,
   malId,
+  malNavn,
   aar,
   medlemmer,
   arrangementer,
   eksisterendeVinner,
 }: SetVinnerModalProps) {
-  const [type, setType] = useState<'profil' | 'arrangement'>('profil')
+  // Determine fixed type based on mal navn
+  const getDefaultType = (): 'profil' | 'arrangement' => {
+    if (malNavn === 'Årets møte') return 'arrangement'
+    return 'profil'
+  }
+
+  const defaultType = getDefaultType()
+  const [type] = useState<'profil' | 'arrangement'>(defaultType)
   const [id, setId] = useState('')
   const [begrunnelse, setBegrunnelse] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -47,15 +56,12 @@ export default function SetVinnerModal({
   useEffect(() => {
     if (eksisterendeVinner) {
       if (eksisterendeVinner.profil_id) {
-        setType('profil')
         setId(eksisterendeVinner.profil_id)
       } else if (eksisterendeVinner.arrangement_id) {
-        setType('arrangement')
         setId(eksisterendeVinner.arrangement_id)
       }
       setBegrunnelse(eksisterendeVinner.begrunnelse || '')
     } else {
-      setType('profil')
       setId('')
       setBegrunnelse('')
     }
@@ -116,13 +122,14 @@ export default function SetVinnerModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Vinner-type</label>
-            <select value={type} onChange={e => { setType(e.target.value as 'profil' | 'arrangement'); setId('') }} style={inputStil}>
-              <option value="profil">Herr</option>
-              <option value="arrangement">Arrangement</option>
-            </select>
-          </div>
+          {malNavn !== 'Årets herre' && malNavn !== 'Årets møte' && (
+            <div>
+              <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Vinner-type</label>
+              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                {type === 'profil' ? 'Herr' : 'Arrangement'}
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>Velg vinner</label>

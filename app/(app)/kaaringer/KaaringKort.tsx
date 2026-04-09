@@ -78,6 +78,7 @@ export default function KaaringKort({
         aapen={modalApen}
         setAapen={setModalApen}
         malId={mal.id}
+        malNavn={mal.navn}
         aar={aar}
         medlemmer={medlemmer}
         arrangementer={arrangementer}
