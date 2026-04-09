@@ -28,6 +28,7 @@
 }
 
 html {
+  overflow-x: clip;
   background-color: var(--bg);
   background-image: radial-gradient(
     ellipse 80% 50% at 50% 0%,

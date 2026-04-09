@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { opprettKaaring } from '@/lib/actions/kaaringer'
 import Button from '@/components/ui/Button'
 
@@ -30,6 +30,11 @@ export default function NyKaaringKnapp({
   const [vinnere, setVinnere] = useState<Vinner[]>([{ type: 'profil', id: '', begrunnelse: '' }])
   const [isPending, startTransition] = useTransition()
   const [feil, setFeil] = useState('')
+
+  useEffect(() => {
+    document.body.style.overflow = aapen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [aapen])
 
   function leggTilVinner() {
     setVinnere(v => [...v, { type: 'profil', id: '', begrunnelse: '' }])
