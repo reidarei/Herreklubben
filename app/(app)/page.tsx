@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import ArrangementTidslinje from '@/components/ArrangementTidslinje'
 import Link from 'next/link'
-import { subMonths } from 'date-fns'
+import { subMonths, addMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
 
 export default async function Forside() {
@@ -11,9 +11,11 @@ export default async function Forside() {
     createServerClient(),
   ])
 
-  const toMndSiden = subMonths(new Date(), 2).toISOString()
+  const now = new Date()
+  const toMndSiden = subMonths(now, 2)
+  const ettArFrem = addMonths(now, 12)
 
-  const { data: arrangementer } = await supabase
+  const [{ data: arrangementer }, { data: profilMedBursdag }] = await Promise.all([supabase
     .from('arrangementer')
     .select(`
       id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
@@ -21,8 +23,32 @@ export default async function Forside() {
       opprettet_av, bilde_url,
       paameldinger (profil_id, status, profiles (visningsnavn))
     `)
-    .gte('start_tidspunkt', toMndSiden)
-    .order('start_tidspunkt', { ascending: true })
+    .gte('start_tidspunkt', toMndSiden.toISOString())
+    .order('start_tidspunkt', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('id, visningsnavn, fodselsdato')
+      .eq('aktiv', true)
+      .not('fodselsdato', 'is', null),
+  ])
+
+  const bursdager = (profilMedBursdag ?? []).flatMap(p => {
+    if (!p.fodselsdato) return []
+    const [fodselsaar, mnd, dag] = p.fodselsdato.split('-').map(Number)
+    const items: { id: string; visningsnavn: string; dato: string; alder: number }[] = []
+    for (const yr of [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]) {
+      const bdag = new Date(yr, mnd - 1, dag)
+      if (bdag >= toMndSiden && bdag <= ettArFrem) {
+        items.push({
+          id: `bursdag-${p.id}-${yr}`,
+          visningsnavn: p.visningsnavn,
+          dato: `${yr}-${String(mnd).padStart(2, '0')}-${String(dag).padStart(2, '0')}`,
+          alder: yr - fodselsaar,
+        })
+      }
+    }
+    return items
+  })
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
@@ -51,6 +77,7 @@ export default async function Forside() {
         <ArrangementTidslinje
           arrangementer={arrangementer}
           innloggetBrukerId={user!.id}
+          bursdager={bursdager}
         />
       )}
     </div>

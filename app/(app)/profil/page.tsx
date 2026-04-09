@@ -10,7 +10,7 @@ export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
   const [{ data: profil }, { data: ansvar }] = await Promise.all([
-    supabase.from('profiles').select('navn, visningsnavn, epost, telefon, rolle').eq('id', user!.id).single(),
+    supabase.from('profiles').select('navn, visningsnavn, epost, telefon, rolle, fodselsdato').eq('id', user!.id).single(),
     supabase.from('arrangoransvar')
       .select('id, aar, arrangement_navn, arrangementer (id)')
       .eq('ansvarlig_id', user!.id)
@@ -28,6 +28,7 @@ export default async function Profil() {
         epost={profil?.epost ?? ''}
         telefon={profil?.telefon ?? ''}
         rolle={profil?.rolle ?? 'medlem'}
+        fodselsdato={profil?.fodselsdato ?? ''}
       />
 
       {ansvar && ansvar.length > 0 && (

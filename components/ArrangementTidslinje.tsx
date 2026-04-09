@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { format, isThisYear, isPast } from 'date-fns'
+import { format, isThisYear, isPast, isBefore, startOfDay } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
@@ -26,6 +26,17 @@ type Arrangement = {
   paameldinger: Paamelding[]
 }
 
+type Bursdag = {
+  id: string
+  visningsnavn: string
+  dato: string   // YYYY-MM-DD for the occurrence year
+  alder: number
+}
+
+type TidslinjeItem =
+  | { type: 'arrangement'; data: Arrangement }
+  | { type: 'bursdag'; data: Bursdag }
+
 function statusBadge(status: string | undefined) {
   if (status === 'ja') return { label: 'Påmeldt', variant: 'success' as const }
   if (status === 'kanskje') return { label: 'Kanskje', variant: 'accent' as const }
@@ -33,15 +44,39 @@ function statusBadge(status: string | undefined) {
   return { label: 'Ikke svart', variant: 'neutral' as const }
 }
 
+function itemDato(item: TidslinjeItem): Date {
+  if (item.type === 'arrangement') return new Date(item.data.start_tidspunkt)
+  const [yr, mnd, dag] = item.data.dato.split('-').map(Number)
+  return new Date(yr, mnd - 1, dag)
+}
+
+function erItemPast(item: TidslinjeItem): boolean {
+  if (item.type === 'arrangement') return isPast(new Date(item.data.start_tidspunkt))
+  // Bursdager: "past" bare hvis dagen er strengt før i dag
+  return isBefore(startOfDay(itemDato(item)), startOfDay(new Date()))
+}
+
 export default function ArrangementTidslinje({
   arrangementer,
   innloggetBrukerId,
+  bursdager = [],
 }: {
   arrangementer: Arrangement[]
   innloggetBrukerId: string
+  bursdager?: Bursdag[]
 }) {
-  const tidligere = arrangementer.filter(a => isPast(new Date(a.start_tidspunkt)))
-  const kommende = arrangementer.filter(a => !isPast(new Date(a.start_tidspunkt)))
+  const alleItems: TidslinjeItem[] = [
+    ...arrangementer.map(a => ({ type: 'arrangement' as const, data: a })),
+    ...bursdager.map(b => ({ type: 'bursdag' as const, data: b })),
+  ]
+
+  const tidligereItems = alleItems
+    .filter(item => erItemPast(item))
+    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
+
+  const kommendeItems = alleItems
+    .filter(item => !erItemPast(item))
+    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
   function ArrangementKort({ arr, dempet }: { arr: Arrangement; dempet?: boolean }) {
     const dato = new Date(arr.start_tidspunkt)
@@ -139,10 +174,40 @@ export default function ArrangementTidslinje({
     )
   }
 
+  function BursdagNotis({ bursdag, dempet }: { bursdag: Bursdag; dempet?: boolean }) {
+    const dato = itemDato({ type: 'bursdag', data: bursdag })
+    return (
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+        style={{
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)',
+          opacity: dempet ? 0.5 : 1,
+        }}
+      >
+        <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>🎂🎂🎂</span>
+        <div>
+          <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+            {bursdag.visningsnavn} fyller {bursdag.alder} år
+          </p>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {format(dato, 'd. MMMM', { locale: nb })}
+            {!isThisYear(dato) && ` ${format(dato, 'yyyy')}`}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  function RenderItem({ item, dempet }: { item: TidslinjeItem; dempet?: boolean }) {
+    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} />
+    return <BursdagNotis bursdag={item.data} dempet={dempet} />
+  }
+
   return (
     <div>
       {/* Kommende */}
-      {kommende.length > 0 && (
+      {kommendeItems.length > 0 && (
         <>
           <p
             className="text-xs font-semibold uppercase mb-3"
@@ -151,20 +216,20 @@ export default function ArrangementTidslinje({
             Kommende
           </p>
           <div className="space-y-4">
-            {kommende.map(arr => (
-              <ArrangementKort key={arr.id} arr={arr} />
+            {kommendeItems.map(item => (
+              <RenderItem key={item.type === 'arrangement' ? item.data.id : item.data.id} item={item} />
             ))}
           </div>
         </>
       )}
 
       {/* Separator */}
-      {tidligere.length > 0 && kommende.length > 0 && (
+      {tidligereItems.length > 0 && kommendeItems.length > 0 && (
         <div className="my-8" style={{ height: '1px', background: 'var(--border-subtle)' }} />
       )}
 
       {/* Tidligere */}
-      {tidligere.length > 0 && (
+      {tidligereItems.length > 0 && (
         <>
           <p
             className="text-xs font-semibold uppercase mb-3"
@@ -173,14 +238,14 @@ export default function ArrangementTidslinje({
             Tidligere
           </p>
           <div className="space-y-4">
-            {tidligere.map(arr => (
-              <ArrangementKort key={arr.id} arr={arr} dempet />
+            {tidligereItems.map(item => (
+              <RenderItem key={item.type === 'arrangement' ? item.data.id : item.data.id} item={item} dempet />
             ))}
           </div>
         </>
       )}
 
-      {kommende.length === 0 && tidligere.length === 0 && (
+      {kommendeItems.length === 0 && tidligereItems.length === 0 && (
         <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>
           Ingen arrangementer
         </p>

@@ -243,6 +243,7 @@ export type Database = {
           aktiv: boolean
           bilde_url: string | null
           epost: string
+          fodselsdato: string | null
           id: string
           navn: string
           oppdatert: string
@@ -255,18 +256,20 @@ export type Database = {
           aktiv?: boolean
           bilde_url?: string | null
           epost: string
+          fodselsdato?: string | null
           id: string
           navn: string
           oppdatert?: string
           opprettet?: string
           rolle?: string
           telefon?: string | null
-          visningsnavn?: string
+          visningsnavn: string
         }
         Update: {
           aktiv?: boolean
           bilde_url?: string | null
           epost?: string
+          fodselsdato?: string | null
           id?: string
           navn?: string
           oppdatert?: string

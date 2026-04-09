@@ -19,9 +19,9 @@ const inputStil: React.CSSProperties = {
 }
 
 export default function RedigerProfilSkjema({
-  navn, visningsnavn, epost, telefon, rolle,
+  navn, visningsnavn, epost, telefon, rolle, fodselsdato,
 }: {
-  navn: string; visningsnavn: string; epost: string; telefon: string; rolle: string
+  navn: string; visningsnavn: string; epost: string; telefon: string; rolle: string; fodselsdato: string
 }) {
   const [redigerer, setRedigerer] = useState(false)
   const [lagret, setLagret] = useState(false)
@@ -42,6 +42,7 @@ export default function RedigerProfilSkjema({
         navn: fd.get('navn') as string,
         visningsnavn: fd.get('visningsnavn') as string,
         telefon: fd.get('telefon') as string,
+        fodselsdato: fd.get('fodselsdato') as string,
       })
 
       // Endre passord hvis fylt inn
@@ -113,6 +114,14 @@ export default function RedigerProfilSkjema({
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Telefon</p>
               <p className="font-medium">{telefon || '–'}</p>
             </div>
+            <div>
+              <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Fødselsdato</p>
+              <p className="font-medium">
+                {fodselsdato
+                  ? new Date(fodselsdato).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '–'}
+              </p>
+            </div>
           </div>
           <Button variant="secondary" fullWidth onClick={() => setRedigerer(true)}>
             {lagret ? '✓ Lagret' : 'Rediger'}
@@ -131,6 +140,10 @@ export default function RedigerProfilSkjema({
           <div>
             <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Telefon</label>
             <input name="telefon" type="tel" defaultValue={telefon} style={inputStil} />
+          </div>
+          <div>
+            <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Fødselsdato</label>
+            <input name="fodselsdato" type="date" defaultValue={fodselsdato} style={inputStil} />
           </div>
 
           {/* Passordbytte — sammenleggbar */}

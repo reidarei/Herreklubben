@@ -14,7 +14,7 @@ const inputStil = {
   fontSize: '1rem',
 }
 
-type Medlem = { id: string; navn: string; visningsnavn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean }
+type Medlem = { id: string; navn: string; visningsnavn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean; fodselsdato: string | null }
 
 export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   const [isPending, startTransition] = useTransition()
@@ -30,6 +30,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
         telefon: fd.get('telefon') as string,
         rolle: fd.get('rolle') as string,
         aktiv: fd.get('aktiv') === 'true',
+        fodselsdato: fd.get('fodselsdato') as string,
       })
       router.push('/klubbinfo/medlemmer')
     })
@@ -52,6 +53,10 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
       <div>
         <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Telefon</label>
         <input name="telefon" type="tel" defaultValue={medlem.telefon ?? ''} style={inputStil} />
+      </div>
+      <div>
+        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Fødselsdato</label>
+        <input name="fodselsdato" type="date" defaultValue={medlem.fodselsdato ?? ''} style={inputStil} />
       </div>
       <div>
         <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Rolle</label>
