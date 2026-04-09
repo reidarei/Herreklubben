@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import ArrangementTidslinje from '@/components/ArrangementTidslinje'
+import LastMerKnapp from './LastMerKnapp'
 import Link from 'next/link'
 import { subMonths, addMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
@@ -89,17 +90,7 @@ export default async function Forside({
             innloggetBrukerId={user!.id}
             bursdager={bursdager}
           />
-          {frem < MAKS_FREM && (
-            <div className="text-center mt-8">
-              <Link
-                href={`/?frem=${frem + 12}`}
-                className="text-sm font-semibold px-5 py-2.5 rounded-xl"
-                style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
-              >
-                Last mer
-              </Link>
-            </div>
-          )}
+          {frem < MAKS_FREM && <LastMerKnapp frem={frem} />}
         </>
       )}
     </div>
