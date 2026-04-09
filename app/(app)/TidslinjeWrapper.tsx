@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import ArrangementTidslinje from '@/components/ArrangementTidslinje'
 import type { Json } from '@/lib/supabase/database.types'
 
@@ -66,6 +66,7 @@ export default function TidslinjeWrapper({
   innloggetBrukerId: string
 }) {
   const [frem, setFrem] = useState(12)
+  const [pending, startTransition] = useTransition()
   const bursdager = beregnBursdager(profilerMedBursdag, frem)
 
   return (
@@ -78,7 +79,8 @@ export default function TidslinjeWrapper({
       {frem < MAKS_FREM && (
         <div className="text-center mt-8">
           <button
-            onClick={() => setFrem(f => f + 12)}
+            onClick={() => startTransition(() => setFrem(f => f + 12))}
+          disabled={pending}
             className="text-sm font-semibold px-5 py-2.5 rounded-xl"
             style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
           >

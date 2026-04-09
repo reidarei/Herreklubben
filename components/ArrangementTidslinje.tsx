@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { format, isThisYear, isPast, isBefore, isToday, startOfDay } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
@@ -86,7 +87,7 @@ export default function ArrangementTidslinje({
     .filter(item => !erItemPast(item) && !erItemIdag(item))
     .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
-  function ArrangementKort({ arr, dempet }: { arr: Arrangement; dempet?: boolean }) {
+  function ArrangementKort({ arr, dempet, prioritert }: { arr: Arrangement; dempet?: boolean; prioritert?: boolean }) {
     const dato = new Date(arr.start_tidspunkt)
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
@@ -111,13 +112,16 @@ export default function ArrangementTidslinje({
         }}
       >
         {/* Hero-bilde */}
-        <img
-          src={arr.bilde_url || '/bakgrunn.jpg'}
-          alt=""
-          className="w-full object-cover"
-          style={{ aspectRatio: '16/9' }}
-          loading="lazy"
-        />
+        <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+          <Image
+            src={arr.bilde_url || '/bakgrunn.jpg'}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 512px) 100vw, 512px"
+            priority={prioritert}
+          />
+        </div>
 
         {/* Innhold */}
         <div className="p-5">
@@ -207,8 +211,8 @@ export default function ArrangementTidslinje({
     )
   }
 
-  function RenderItem({ item, dempet }: { item: TidslinjeItem; dempet?: boolean }) {
-    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} />
+  function RenderItem({ item, dempet, prioritert }: { item: TidslinjeItem; dempet?: boolean; prioritert?: boolean }) {
+    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} prioritert={prioritert} />
     return <BursdagNotis bursdag={item.data} dempet={dempet} />
   }
 
@@ -224,8 +228,8 @@ export default function ArrangementTidslinje({
             I dag
           </p>
           <div className="space-y-4">
-            {idagItems.map(item => (
-              <RenderItem key={item.data.id} item={item} />
+            {idagItems.map((item, i) => (
+              <RenderItem key={item.data.id} item={item} prioritert={i === 0} />
             ))}
           </div>
         </>
@@ -246,8 +250,8 @@ export default function ArrangementTidslinje({
             Kommende
           </p>
           <div className="space-y-4">
-            {kommendeItems.map(item => (
-              <RenderItem key={item.data.id} item={item} />
+            {kommendeItems.map((item, i) => (
+              <RenderItem key={item.data.id} item={item} prioritert={idagItems.length === 0 && i === 0} />
             ))}
           </div>
         </>
