@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -30,8 +31,9 @@ export default async function Innstillinger() {
 
   if (profil?.rolle !== 'admin') notFound()
 
+  const admin = createAdminClient()
   const [{ data: logg }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
-    supabase
+    admin
       .from('varsler_logg')
       .select('id, type, sendt_at, arrangementer (tittel)')
       .order('sendt_at', { ascending: false })
