@@ -46,3 +46,12 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+
+/* Sidetransisjon */
+@keyframes page-fadein {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-fadein 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}

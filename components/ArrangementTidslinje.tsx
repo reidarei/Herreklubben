@@ -101,7 +101,7 @@ export default function ArrangementTidslinje({
     return (
       <Link
         href={`/arrangementer/${arr.id}`}
-        className="block rounded-2xl overflow-hidden transition-colors"
+        className="block rounded-2xl overflow-hidden transition-transform duration-100 active:scale-[0.98]"
         style={{
           background: 'var(--bg-elevated)',
           border: '1px solid var(--border)',

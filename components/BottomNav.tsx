@@ -48,7 +48,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center py-2.5 gap-1 transition-colors"
+              className="flex-1 flex flex-col items-center py-2.5 gap-1 transition-colors active:scale-90 transition-transform duration-75"
               style={{
                 color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
                 textDecoration: 'none',
