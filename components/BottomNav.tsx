@@ -35,10 +35,7 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
         boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 0.5px 0 rgba(255,255,255,0.05)',
       }}
     >
-      <div
-        className="flex"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
+      <div className="flex">
         {tabs.map((tab) => {
           const aktiv = tab.href === '/'
             ? pathname === '/'
@@ -48,8 +45,10 @@ export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center py-2.5 gap-1 transition-colors active:scale-90 transition-transform duration-75"
+              className="flex-1 flex flex-col items-center gap-1 active:scale-90 transition-transform duration-75"
               style={{
+                paddingTop: '8px',
+                paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
                 color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
                 textDecoration: 'none',
                 fontSize: '10px',
