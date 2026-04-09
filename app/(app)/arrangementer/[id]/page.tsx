@@ -18,8 +18,8 @@ import Card from '@/components/ui/Card'
 import SladdetFelt from '@/components/SladdetFelt'
 import LocalTid from '@/components/LocalTid'
 
-export default async function ArrangementDetaljer({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ArrangementDetaljer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ varslet?: string }> }) {
+  const [{ id }, { varslet }] = await Promise.all([params, searchParams])
   const [supabase, user, profil] = await Promise.all([
     createServerClient(),
     getInnloggetBruker(),
@@ -61,6 +61,13 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
 
   return (
     <div className="max-w-lg mx-auto pb-8">
+      {/* Varslet-banner */}
+      {varslet === 'true' && (
+        <div className="mx-5 mt-5 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)' }}>
+          Alle gutta er varslet om arrangementet 👍
+        </div>
+      )}
+
       {/* Tilbake + rediger */}
       <div className="flex items-center justify-between px-5 pt-6 mb-4">
         <Link
@@ -187,6 +194,8 @@ export default async function ArrangementDetaljer({ params }: { params: Promise<
             )
           })}
         </div>
+
+
       </div>
     </div>
   )

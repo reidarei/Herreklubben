@@ -65,7 +65,7 @@ export async function opprettArrangement(data: ArrangementInput) {
     opprettetAv: user.id,
   }).catch(console.error)
 
-  redirect(`/arrangementer/${arrangement.id}`)
+  redirect(`/arrangementer/${arrangement.id}?varslet=true`)
 }
 
 export async function slettArrangement(id: string) {
