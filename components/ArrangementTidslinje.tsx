@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { format, isThisYear, isPast, isBefore, startOfDay } from 'date-fns'
+import { format, isThisYear, isPast, isBefore, isToday, startOfDay } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
@@ -56,6 +56,10 @@ function erItemPast(item: TidslinjeItem): boolean {
   return isBefore(startOfDay(itemDato(item)), startOfDay(new Date()))
 }
 
+function erItemIdag(item: TidslinjeItem): boolean {
+  return isToday(itemDato(item))
+}
+
 export default function ArrangementTidslinje({
   arrangementer,
   innloggetBrukerId,
@@ -74,8 +78,12 @@ export default function ArrangementTidslinje({
     .filter(item => erItemPast(item))
     .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
+  const idagItems = alleItems
+    .filter(item => !erItemPast(item) && erItemIdag(item))
+    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
+
   const kommendeItems = alleItems
-    .filter(item => !erItemPast(item))
+    .filter(item => !erItemPast(item) && !erItemIdag(item))
     .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
   function ArrangementKort({ arr, dempet }: { arr: Arrangement; dempet?: boolean }) {
@@ -206,6 +214,28 @@ export default function ArrangementTidslinje({
 
   return (
     <div>
+      {/* I dag */}
+      {idagItems.length > 0 && (
+        <>
+          <p
+            className="text-xs font-semibold uppercase mb-3"
+            style={{ color: 'var(--text-secondary)', letterSpacing: '0.5px' }}
+          >
+            I dag
+          </p>
+          <div className="space-y-4">
+            {idagItems.map(item => (
+              <RenderItem key={item.data.id} item={item} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Separator */}
+      {idagItems.length > 0 && kommendeItems.length > 0 && (
+        <div className="my-8" style={{ height: '1px', background: 'var(--border-subtle)' }} />
+      )}
+
       {/* Kommende */}
       {kommendeItems.length > 0 && (
         <>
@@ -217,14 +247,14 @@ export default function ArrangementTidslinje({
           </p>
           <div className="space-y-4">
             {kommendeItems.map(item => (
-              <RenderItem key={item.type === 'arrangement' ? item.data.id : item.data.id} item={item} />
+              <RenderItem key={item.data.id} item={item} />
             ))}
           </div>
         </>
       )}
 
       {/* Separator */}
-      {tidligereItems.length > 0 && kommendeItems.length > 0 && (
+      {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0) && (
         <div className="my-8" style={{ height: '1px', background: 'var(--border-subtle)' }} />
       )}
 
@@ -239,13 +269,13 @@ export default function ArrangementTidslinje({
           </p>
           <div className="space-y-4">
             {tidligereItems.map(item => (
-              <RenderItem key={item.type === 'arrangement' ? item.data.id : item.data.id} item={item} dempet />
+              <RenderItem key={item.data.id} item={item} dempet />
             ))}
           </div>
         </>
       )}
 
-      {kommendeItems.length === 0 && tidligereItems.length === 0 && (
+      {idagItems.length === 0 && kommendeItems.length === 0 && tidligereItems.length === 0 && (
         <p className="text-sm py-4" style={{ color: 'var(--text-secondary)' }}>
           Ingen arrangementer
         </p>
