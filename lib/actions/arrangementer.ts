@@ -92,17 +92,23 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
 }
 
 export async function varslOmArrangement(arrangementId: string) {
-  const profil = await getProfil()
-  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
-
   const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
   const { data: arrangement } = await supabase
     .from('arrangementer')
-    .select('id, tittel, start_tidspunkt')
+    .select('id, tittel, start_tidspunkt, opprettet_av')
     .eq('id', arrangementId)
     .single()
 
   if (!arrangement) throw new Error('Arrangement ikke funnet')
+
+  // Sjekk at bruker er admin eller opprettet arrangementet
+  const profil = await getProfil()
+  const erAdmin = profil?.rolle === 'admin'
+  const erOpprettet = arrangement.opprettet_av === user.id
+  if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
 
   // Send varsler for alle tre typer
   await Promise.all([

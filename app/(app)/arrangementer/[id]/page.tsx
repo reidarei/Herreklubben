@@ -80,7 +80,7 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
           Tilbake
         </Link>
         <div className="flex gap-2">
-          {erAdmin && <VarsleNuKnapp arrangementId={id} />}
+          {kanRedigere && <VarsleNuKnapp arrangementId={id} />}
           {kanRedigere && (
             <Link
               href={`/arrangementer/${id}/rediger`}
