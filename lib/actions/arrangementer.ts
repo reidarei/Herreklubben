@@ -3,7 +3,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { after } from 'next/server'
 import { sendNyttArrangementVarsler } from '@/lib/varsler'
 
 export type ArrangementInput = {
@@ -56,17 +55,16 @@ export async function opprettArrangement(data: ArrangementInput) {
       .eq('ansvarlig_id', user.id)
   }
 
-  // Send varsler etter at redirect er håndtert
-  after(() => {
-    sendNyttArrangementVarsler({
-      arrangementId: arrangement.id,
-      tittel: arrangement.tittel,
-      startTidspunkt: arrangement.start_tidspunkt,
-      opprettetAv: user.id,
-    }).catch(console.error)
-  })
-
   revalidatePath('/')
+
+  // Send varsler før redirect — after() er ikke pålitelig på Vercel Hobby
+  await sendNyttArrangementVarsler({
+    arrangementId: arrangement.id,
+    tittel: arrangement.tittel,
+    startTidspunkt: arrangement.start_tidspunkt,
+    opprettetAv: user.id,
+  }).catch(console.error)
+
   redirect(`/arrangementer/${arrangement.id}`)
 }
 
