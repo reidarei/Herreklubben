@@ -1,7 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { TrophyIcon } from '@heroicons/react/24/outline'
-import NyKaaringKnapp from './NyKaaringKnapp'
 import KaaringKort from './KaaringKort'
 
 export default async function Kaaringer() {
@@ -11,20 +10,21 @@ export default async function Kaaringer() {
   ])
 
   const erAdmin = profil?.rolle === 'admin'
+  const gjeldende_aar = new Date().getFullYear()
 
-  const [{ data: kaaringer }, { data: medlemmer }, { data: arrangementer }] = await Promise.all([
+  const [{ data: maler }, { data: vinnere }, { data: medlemmer }, { data: arrangementer }] = await Promise.all([
     supabase
-      .from('kaaringer')
+      .from('kaaringmaler')
+      .select('id, navn, rekkefolge')
+      .order('rekkefolge'),
+    supabase
+      .from('kaaring_vinnere')
       .select(`
-        id, aar, kategori,
-        kaaring_vinnere (
-          id, begrunnelse,
-          profil_id, profiles (navn),
-          arrangement_id, arrangementer (tittel)
-        )
+        id, mal_id, aar, begrunnelse,
+        profil_id, profiles (navn),
+        arrangement_id, arrangementer (tittel)
       `)
-      .order('aar', { ascending: false })
-      .order('opprettet', { ascending: true }),
+      .order('aar', { ascending: false }),
     supabase
       .from('profiles')
       .select('id, navn')
@@ -36,30 +36,31 @@ export default async function Kaaringer() {
       .order('start_tidspunkt', { ascending: false }),
   ])
 
-  const perAar: Record<number, typeof kaaringer> = {}
-  for (const k of kaaringer ?? []) {
-    if (!perAar[k.aar]) perAar[k.aar] = []
-    perAar[k.aar]!.push(k)
+  // Group vinnere by (mal_id, aar)
+  const vinnerePrMal: Record<string, Record<number, any>> = {}
+  for (const v of vinnere ?? []) {
+    const key = `${v.mal_id}`
+    if (!vinnerePrMal[key]) vinnerePrMal[key] = {}
+    vinnerePrMal[key][v.aar] = v
   }
-  const aar = Object.keys(perAar).map(Number).sort((a, b) => b - a)
+
+  // Get all years that have vinnere or are current year
+  const aar_set = new Set<number>()
+  for (const v of vinnere ?? []) {
+    aar_set.add(v.aar)
+  }
+  aar_set.add(gjeldende_aar)
+  const aar = Array.from(aar_set).sort((a, b) => b - a)
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Kåringer</h1>
-        {erAdmin && (
-          <NyKaaringKnapp
-            medlemmer={medlemmer ?? []}
-            arrangementer={arrangementer ?? []}
-          />
-        )}
-      </div>
+      <h1 className="text-[22px] font-bold mb-8" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Kåringer</h1>
 
-      {aar.length === 0 ? (
+      {!maler || maler.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
           <TrophyIcon className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-tertiary)' }} />
-          <p className="font-medium">Ingen kåringer ennå</p>
-          {erAdmin && <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Trykk «+ Ny» for å legge inn</p>}
+          <p className="font-medium">Ingen kåringer definert</p>
+          {erAdmin && <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Gå til Innstillinger for å legge inn</p>}
         </div>
       ) : (
         <div className="space-y-8">
@@ -73,10 +74,12 @@ export default async function Kaaringer() {
                 {a}
               </h2>
               <div className="space-y-3">
-                {perAar[a]!.map(k => (
+                {maler.map(mal => (
                   <KaaringKort
-                    key={k.id}
-                    kaaring={k}
+                    key={`${mal.id}-${a}`}
+                    mal={mal}
+                    aar={a}
+                    vinner={vinnerePrMal[mal.id]?.[a]}
                     erAdmin={erAdmin}
                     medlemmer={medlemmer ?? []}
                     arrangementer={arrangementer ?? []}

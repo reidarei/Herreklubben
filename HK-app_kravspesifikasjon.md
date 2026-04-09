@@ -293,6 +293,7 @@ gruppe om gangen.
 - **Lav drift** — klubben skal selv kunne vedlikeholde dette med minimal innsats
 - **Liten belastning** — 17 brukere, ved enkelte anledninger vil alle være aktive samtidig (avstemminger) ellers lite bruk, ingen skaleringskrav
   utover gratis-tier Supabase
+- **Reaksjonstid** — appen skal oppleves rask. Endringer skal ikke øke responstiden for brukeren.
 - **E-post-leveranse** — må være pålitelig siden e-post er primærvarsel-fallback
 
 ## Avklarte beslutninger

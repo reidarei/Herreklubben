@@ -9,6 +9,7 @@ import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import SendTestKnapp from './SendTestKnapp'
 import VarselToggle from '@/components/VarselToggle'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
+import KaaringMalAdmin from '@/components/KaaringMalAdmin'
 
 const typeLabels: Record<string, string> = {
   nytt: 'Nytt arrangement',
@@ -33,7 +34,7 @@ export default async function Innstillinger() {
   if (profil?.rolle !== 'admin') notFound()
 
   const admin = createAdminClient()
-  const [{ data: logg }, { count: pushCount }, { data: innstillinger }, { data: maler }] = await Promise.all([
+  const [{ data: logg }, { count: pushCount }, { data: innstillinger }, { data: maler }, { data: kaaringmaler }] = await Promise.all([
     admin
       .from('varsler_logg')
       .select('id, type, sendt_at, arrangementer (tittel)')
@@ -50,6 +51,10 @@ export default async function Innstillinger() {
       .from('arrangementmaler')
       .select('id, navn, rekkefølge')
       .order('rekkefølge'),
+    (admin as any)
+      .from('kaaringmaler')
+      .select('id, navn, rekkefolge')
+      .order('rekkefolge'),
   ])
 
   return (
@@ -91,6 +96,12 @@ export default async function Innstillinger() {
       <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
         <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Faste arrangementer</p>
         <ArrangementmalerAdmin maler={maler ?? []} />
+      </div>
+
+      {/* Kåringmaler */}
+      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Kåringer</p>
+        <KaaringMalAdmin maler={kaaringmaler ?? []} />
       </div>
 
       {/* Varselhistorikk */}

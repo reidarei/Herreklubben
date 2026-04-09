@@ -45,6 +45,10 @@ Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig sc
 - **v2:** Bildedeling, kåringsavstemning.
 - **Aldri:** Kommentarer, chat.
 
+## Ytelseskrav
+
+- Appen skal være så rask som mulig for brukeren. Endringer som innføres skal ikke øke responstiden — mål alltid å forbedre eller beholde eksisterende ytelse.
+
 ## Konvensjoner
 
 - UI-tekst og databasekolonner på norsk (f.eks. `opprettet_av`, `start_tidspunkt`)

@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       arrangementer: {
@@ -73,6 +98,27 @@ export type Database = {
           },
         ]
       }
+      arrangementmaler: {
+        Row: {
+          id: string
+          navn: string
+          opprettet: string | null
+          rekkefølge: number
+        }
+        Insert: {
+          id?: string
+          navn: string
+          opprettet?: string | null
+          rekkefølge?: number
+        }
+        Update: {
+          id?: string
+          navn?: string
+          opprettet?: string | null
+          rekkefølge?: number
+        }
+        Relationships: []
+      }
       arrangoransvar: {
         Row: {
           aar: number
@@ -123,24 +169,36 @@ export type Database = {
       }
       kaaring_vinnere: {
         Row: {
+          aar: number
           arrangement_id: string | null
           begrunnelse: string | null
           id: string
-          kaaring_id: string
+          mal_id: string | null
+          oppdatert: string
+          opprettet: string
+          opprettet_av: string
           profil_id: string | null
         }
         Insert: {
+          aar: number
           arrangement_id?: string | null
           begrunnelse?: string | null
           id?: string
-          kaaring_id: string
+          mal_id?: string | null
+          oppdatert?: string
+          opprettet?: string
+          opprettet_av: string
           profil_id?: string | null
         }
         Update: {
+          aar?: number
           arrangement_id?: string | null
           begrunnelse?: string | null
           id?: string
-          kaaring_id?: string
+          mal_id?: string | null
+          oppdatert?: string
+          opprettet?: string
+          opprettet_av?: string
           profil_id?: string | null
         }
         Relationships: [
@@ -152,10 +210,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "kaaring_vinnere_kaaring_id_fkey"
-            columns: ["kaaring_id"]
+            foreignKeyName: "kaaring_vinnere_mal_id_fkey"
+            columns: ["mal_id"]
             isOneToOne: false
-            referencedRelation: "kaaringer"
+            referencedRelation: "kaaringmaler"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kaaring_vinnere_opprettet_av_fkey"
+            columns: ["opprettet_av"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -167,40 +232,26 @@ export type Database = {
           },
         ]
       }
-      kaaringer: {
+      kaaringmaler: {
         Row: {
-          aar: number
           id: string
-          kategori: string
-          oppdatert: string
+          navn: string
           opprettet: string
-          opprettet_av: string | null
+          rekkefolge: number
         }
         Insert: {
-          aar: number
           id?: string
-          kategori: string
-          oppdatert?: string
+          navn: string
           opprettet?: string
-          opprettet_av?: string | null
+          rekkefolge?: number
         }
         Update: {
-          aar?: number
           id?: string
-          kategori?: string
-          oppdatert?: string
+          navn?: string
           opprettet?: string
-          opprettet_av?: string | null
+          rekkefolge?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "kaaringer_opprettet_av_fkey"
-            columns: ["opprettet_av"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       paameldinger: {
         Row: {
@@ -576,6 +627,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       arrangementstype: ["moete", "tur"],
