@@ -1,64 +1,35 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
-import ArrangementTidslinje from '@/components/ArrangementTidslinje'
-import LastMerKnapp from './LastMerKnapp'
+import TidslinjeWrapper from './TidslinjeWrapper'
 import Link from 'next/link'
-import { subMonths, addMonths } from 'date-fns'
+import { subMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
 
-const MAKS_FREM = 48
-
-export default async function Forside({
-  searchParams,
-}: {
-  searchParams: Promise<{ frem?: string }>
-}) {
-  const { frem: fremStr } = await searchParams
-  const frem = Math.min(Math.max(parseInt(fremStr ?? '12', 10) || 12, 12), MAKS_FREM)
-
+export default async function Forside() {
   const [user, supabase] = await Promise.all([
     getInnloggetBruker(),
     createServerClient(),
   ])
 
-  const now = new Date()
-  const toMndSiden = subMonths(now, 2)
-  const ettArFrem = addMonths(now, frem)
+  const toMndSiden = subMonths(new Date(), 2)
 
-  const [{ data: arrangementer }, { data: profilMedBursdag }] = await Promise.all([supabase
-    .from('arrangementer')
-    .select(`
-      id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
-      oppmoetested, destinasjon, pris_per_person, sensurerte_felt,
-      opprettet_av, bilde_url,
-      paameldinger (profil_id, status, profiles (visningsnavn))
-    `)
-    .gte('start_tidspunkt', toMndSiden.toISOString())
-    .order('start_tidspunkt', { ascending: true }),
+  const [{ data: arrangementer }, { data: profilerMedBursdag }] = await Promise.all([
+    supabase
+      .from('arrangementer')
+      .select(`
+        id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
+        oppmoetested, destinasjon, pris_per_person, sensurerte_felt,
+        opprettet_av, bilde_url,
+        paameldinger (profil_id, status, profiles (visningsnavn))
+      `)
+      .gte('start_tidspunkt', toMndSiden.toISOString())
+      .order('start_tidspunkt', { ascending: true }),
     supabase
       .from('profiles')
       .select('id, visningsnavn, fodselsdato')
       .eq('aktiv', true)
       .not('fodselsdato', 'is', null),
   ])
-
-  const bursdager = (profilMedBursdag ?? []).flatMap(p => {
-    if (!p.fodselsdato) return []
-    const [fodselsaar, mnd, dag] = p.fodselsdato.split('-').map(Number)
-    const items: { id: string; visningsnavn: string; dato: string; alder: number }[] = []
-    for (const yr of [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1]) {
-      const bdag = new Date(yr, mnd - 1, dag)
-      if (bdag >= toMndSiden && bdag <= ettArFrem) {
-        items.push({
-          id: `bursdag-${p.id}-${yr}`,
-          visningsnavn: p.visningsnavn,
-          dato: `${yr}-${String(mnd).padStart(2, '0')}-${String(dag).padStart(2, '0')}`,
-          alder: yr - fodselsaar,
-        })
-      }
-    }
-    return items
-  })
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
@@ -84,14 +55,11 @@ export default async function Forside({
           </p>
         </div>
       ) : (
-        <>
-          <ArrangementTidslinje
-            arrangementer={arrangementer}
-            innloggetBrukerId={user!.id}
-            bursdager={bursdager}
-          />
-          {frem < MAKS_FREM && <LastMerKnapp frem={frem} />}
-        </>
+        <TidslinjeWrapper
+          arrangementer={arrangementer}
+          profilerMedBursdag={profilerMedBursdag ?? []}
+          innloggetBrukerId={user!.id}
+        />
       )}
     </div>
   )
