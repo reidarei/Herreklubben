@@ -5,7 +5,16 @@ import Link from 'next/link'
 import { subMonths, addMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
 
-export default async function Forside() {
+const MAKS_FREM = 48
+
+export default async function Forside({
+  searchParams,
+}: {
+  searchParams: Promise<{ frem?: string }>
+}) {
+  const { frem: fremStr } = await searchParams
+  const frem = Math.min(Math.max(parseInt(fremStr ?? '12', 10) || 12, 12), MAKS_FREM)
+
   const [user, supabase] = await Promise.all([
     getInnloggetBruker(),
     createServerClient(),
@@ -13,7 +22,7 @@ export default async function Forside() {
 
   const now = new Date()
   const toMndSiden = subMonths(now, 2)
-  const ettArFrem = addMonths(now, 12)
+  const ettArFrem = addMonths(now, frem)
 
   const [{ data: arrangementer }, { data: profilMedBursdag }] = await Promise.all([supabase
     .from('arrangementer')
@@ -74,11 +83,24 @@ export default async function Forside() {
           </p>
         </div>
       ) : (
-        <ArrangementTidslinje
-          arrangementer={arrangementer}
-          innloggetBrukerId={user!.id}
-          bursdager={bursdager}
-        />
+        <>
+          <ArrangementTidslinje
+            arrangementer={arrangementer}
+            innloggetBrukerId={user!.id}
+            bursdager={bursdager}
+          />
+          {frem < MAKS_FREM && (
+            <div className="text-center mt-8">
+              <Link
+                href={`/?frem=${frem + 12}`}
+                className="text-sm font-semibold px-5 py-2.5 rounded-xl"
+                style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
+              >
+                Last mer
+              </Link>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
