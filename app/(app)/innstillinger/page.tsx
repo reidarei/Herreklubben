@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
-import SendTestKnapp from './SendTestKnapp'
 import VarselToggle from '@/components/VarselToggle'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
@@ -86,9 +85,6 @@ export default async function Innstillinger() {
               beskrivelse={innstillingLabels[inn.noekkel] ?? inn.beskrivelse ?? inn.noekkel}
             />
           ))}
-        </div>
-        <div className="mt-4">
-          <SendTestKnapp />
         </div>
       </div>
 

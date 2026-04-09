@@ -3,7 +3,8 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { sendNyttArrangementVarsler } from '@/lib/varsler'
+import { sendNyttArrangementVarsler, sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
+import { getProfil } from '@/lib/auth-cache'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -88,4 +89,41 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
   if (error) throw new Error(error.message)
   revalidatePath(`/arrangementer/${id}`)
   revalidatePath('/')
+}
+
+export async function varslOmArrangement(arrangementId: string) {
+  const profil = await getProfil()
+  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
+
+  const supabase = await createServerClient()
+  const { data: arrangement } = await supabase
+    .from('arrangementer')
+    .select('id, tittel, start_tidspunkt')
+    .eq('id', arrangementId)
+    .single()
+
+  if (!arrangement) throw new Error('Arrangement ikke funnet')
+
+  // Send varsler for alle tre typer
+  await Promise.all([
+    sendPaaminneVarsler({
+      arrangementId: arrangement.id,
+      tittel: arrangement.tittel,
+      startTidspunkt: arrangement.start_tidspunkt,
+      type: 'paaminne_7',
+    }).catch(console.error),
+    sendPaaminneVarsler({
+      arrangementId: arrangement.id,
+      tittel: arrangement.tittel,
+      startTidspunkt: arrangement.start_tidspunkt,
+      type: 'paaminne_1',
+    }).catch(console.error),
+    sendPurringVarsler({
+      arrangementId: arrangement.id,
+      tittel: arrangement.tittel,
+      startTidspunkt: arrangement.start_tidspunkt,
+    }).catch(console.error),
+  ])
+
+  revalidatePath(`/arrangementer/${arrangementId}`)
 }

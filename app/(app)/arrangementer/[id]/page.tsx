@@ -13,6 +13,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import PaameldingKnapper from './PaameldingKnapper'
+import VarsleNuKnapp from './VarsleNuKnapp'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import SladdetFelt from '@/components/SladdetFelt'
@@ -68,8 +69,8 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
         </div>
       )}
 
-      {/* Tilbake + rediger */}
-      <div className="flex items-center justify-between px-5 pt-6 mb-4">
+      {/* Tilbake + knapper */}
+      <div className="flex items-center justify-between px-5 pt-6 mb-4 gap-2">
         <Link
           href="/"
           className="flex items-center gap-1 text-sm"
@@ -78,20 +79,23 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
           <ChevronLeftIcon className="w-4 h-4" />
           Tilbake
         </Link>
-        {kanRedigere && (
-          <Link
-            href={`/arrangementer/${id}/rediger`}
-            className="text-sm px-3 py-1.5 rounded-xl"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
-              textDecoration: 'none',
-            }}
-          >
-            Rediger
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {erAdmin && <VarsleNuKnapp arrangementId={id} />}
+          {kanRedigere && (
+            <Link
+              href={`/arrangementer/${id}/rediger`}
+              className="text-sm px-3 py-1.5 rounded-xl"
+              style={{
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+              }}
+            >
+              Rediger
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Hero-bilde */}
