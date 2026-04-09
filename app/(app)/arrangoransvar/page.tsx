@@ -4,16 +4,6 @@ import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import AnsvarAdmin from './AnsvarAdmin'
 
-const FASTE_ARRANGEMENTER = [
-  'Januar-februar møte',
-  'Mars-april møte',
-  'Mai-juni møte',
-  'August-september møte',
-  'Oktober-november møte',
-  'Julebord',
-  'Reisekomiteen',
-]
-
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
   const [user, profil] = await Promise.all([getInnloggetBruker(), getProfil()])
@@ -22,14 +12,17 @@ export default async function Arrangoransvar() {
   const innevaerendeAar = new Date().getFullYear()
   const visAar = [innevaerendeAar, innevaerendeAar + 1]
 
-  const [{ data: ansvar }, { data: medlemmer }] = await Promise.all([
+  const [{ data: ansvar }, { data: medlemmer }, { data: maler }] = await Promise.all([
     supabase
       .from('arrangoransvar')
       .select(`id, aar, arrangement_navn, ansvarlig_id, profiles (id, navn), arrangementer (id, tittel)`)
       .in('aar', visAar)
       .order('aar'),
     supabase.from('profiles').select('id, navn').eq('aktiv', true).order('navn'),
+    (supabase as any).from('arrangementmaler').select('navn').order('rekkefølge'),
   ])
+
+  const fasteArrangementer = ((maler ?? []) as { navn: string }[]).map(m => m.navn)
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
@@ -48,7 +41,7 @@ export default async function Arrangoransvar() {
             className="rounded-2xl overflow-hidden"
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
           >
-            {FASTE_ARRANGEMENTER.map((navn, i) => {
+            {fasteArrangementer.map((navn, i) => {
               const rad = (ansvar ?? []).find(
                 a => a.aar === aar && a.arrangement_navn.trim().toLowerCase() === navn.toLowerCase()
               )
