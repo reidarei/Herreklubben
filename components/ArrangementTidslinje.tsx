@@ -65,10 +65,12 @@ export default function ArrangementTidslinje({
   arrangementer,
   innloggetBrukerId,
   bursdager = [],
+  lastMerKnapp,
 }: {
   arrangementer: Arrangement[]
   innloggetBrukerId: string
   bursdager?: Bursdag[]
+  lastMerKnapp?: React.ReactNode
 }) {
   const alleItems: TidslinjeItem[] = [
     ...arrangementer.map(a => ({ type: 'arrangement' as const, data: a })),
@@ -257,8 +259,13 @@ export default function ArrangementTidslinje({
         </>
       )}
 
+      {/* Last mer-knapp (mellom kommende og tidligere) */}
+      {lastMerKnapp && (
+        <div className="mt-8">{lastMerKnapp}</div>
+      )}
+
       {/* Separator */}
-      {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0) && (
+      {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0 || lastMerKnapp) && (
         <div className="my-8" style={{ height: '1px', background: 'var(--border-subtle)' }} />
       )}
 

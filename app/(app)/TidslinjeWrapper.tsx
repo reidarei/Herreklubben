@@ -69,25 +69,25 @@ export default function TidslinjeWrapper({
   const [pending, startTransition] = useTransition()
   const bursdager = beregnBursdager(profilerMedBursdag, frem)
 
+  const lastMerKnapp = frem < MAKS_FREM ? (
+    <div className="text-center">
+      <button
+        onClick={() => startTransition(() => setFrem(f => f + 12))}
+        disabled={pending}
+        className="text-sm font-semibold px-5 py-2.5 rounded-xl"
+        style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+      >
+        Last mer
+      </button>
+    </div>
+  ) : undefined
+
   return (
-    <>
-      <ArrangementTidslinje
-        arrangementer={arrangementer}
-        innloggetBrukerId={innloggetBrukerId}
-        bursdager={bursdager}
-      />
-      {frem < MAKS_FREM && (
-        <div className="text-center mt-8">
-          <button
-            onClick={() => startTransition(() => setFrem(f => f + 12))}
-          disabled={pending}
-            className="text-sm font-semibold px-5 py-2.5 rounded-xl"
-            style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-          >
-            Last mer
-          </button>
-        </div>
-      )}
-    </>
+    <ArrangementTidslinje
+      arrangementer={arrangementer}
+      innloggetBrukerId={innloggetBrukerId}
+      bursdager={bursdager}
+      lastMerKnapp={lastMerKnapp}
+    />
   )
 }

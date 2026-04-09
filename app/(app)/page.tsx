@@ -11,7 +11,7 @@ export default async function Forside() {
     createServerClient(),
   ])
 
-  const toMndSiden = subMonths(new Date(), 2)
+  const toMndSiden = subMonths(new Date(), 3)
 
   const [{ data: arrangementer }, { data: profilerMedBursdag }] = await Promise.all([
     supabase
