@@ -79,7 +79,7 @@ export default function ArrangementTidslinje({
 
   const tidligereItems = alleItems
     .filter(item => erItemPast(item))
-    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
+    .sort((a, b) => itemDato(b).getTime() - itemDato(a).getTime())
 
   const idagItems = alleItems
     .filter(item => !erItemPast(item) && erItemIdag(item))
@@ -268,7 +268,7 @@ export default function ArrangementTidslinje({
 
       {/* Separator */}
       {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0 || lastMerKnapp) && (
-        <div className="my-8" style={{ height: '2px', background: 'var(--border)' }} />
+        <div className="my-8" style={{ height: '4px', background: 'var(--text-tertiary)', borderRadius: '2px' }} />
       )}
 
       {/* Tidligere */}
