@@ -15,7 +15,7 @@ export default async function Arrangoransvar() {
   const [{ data: ansvar }, { data: medlemmer }, { data: maler }] = await Promise.all([
     supabase
       .from('arrangoransvar')
-      .select(`id, aar, arrangement_navn, ansvarlig_id, profiles (id, navn), arrangementer (id, tittel)`)
+      .select(`id, aar, arrangement_navn, ansvarlig_id, profiles (id, navn), arrangementer (id, tittel, start_tidspunkt)`)
       .in('aar', visAar)
       .order('aar'),
     supabase.from('profiles').select('id, navn').eq('aktiv', true).order('navn'),
@@ -67,7 +67,7 @@ export default async function Arrangoransvar() {
                       </p>
                       {rad?.arrangementer ? (
                         <Link href={`/arrangementer/${rad.arrangementer.id}`} className="text-xs mt-0.5 inline-block" style={{ color: 'var(--success)' }}>
-                          ✓ Lagt inn
+                          {new Date(rad.arrangementer.start_tidspunkt) < new Date() ? '✓ Gjennomført' : '✓ Lagt inn'}
                         </Link>
                       ) : (
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Ikke lagt inn ennå</p>
