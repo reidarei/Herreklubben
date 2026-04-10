@@ -190,6 +190,8 @@ export default function ArrangementTidslinje({
 
   function BursdagNotis({ bursdag, dempet }: { bursdag: Bursdag; dempet?: boolean }) {
     const dato = itemDato({ type: 'bursdag', data: bursdag })
+    const erPast = isBefore(startOfDay(dato), startOfDay(new Date()))
+    const verb = erPast ? 'fylte' : 'fyller'
     return (
       <div
         className="flex items-center gap-3 px-4 py-3 rounded-2xl"
@@ -202,7 +204,7 @@ export default function ArrangementTidslinje({
         <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>🎂🎂🎂</span>
         <div>
           <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            {bursdag.visningsnavn} fyller {bursdag.alder} år
+            {bursdag.visningsnavn} {verb} {bursdag.alder} år
           </p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {format(dato, 'd. MMMM', { locale: nb })}
