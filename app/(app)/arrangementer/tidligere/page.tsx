@@ -6,7 +6,7 @@ import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 
 function konverterTilPreteritum(tittel: string): string {
   // Konverter "fyller" til "fylte" for tidligere arrangementer
-  return tittel.replace(' fyller ', ' fylte ')
+  return tittel.replace(/fyller/g, 'fylte')
 }
 
 export default async function TidligereArrangementer() {
