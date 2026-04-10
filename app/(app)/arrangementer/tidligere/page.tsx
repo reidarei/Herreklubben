@@ -4,6 +4,11 @@ import { nb } from 'date-fns/locale'
 import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 
+function konverterTilPreteritum(tittel: string): string {
+  // Konverter "fyller" til "fylte" for tidligere arrangementer
+  return tittel.replace(' fyller ', ' fylte ')
+}
+
 export default async function TidligereArrangementer() {
   const supabase = await createServerClient()
 
@@ -55,7 +60,7 @@ export default async function TidligereArrangementer() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{arr.tittel}</p>
+                  <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{konverterTilPreteritum(arr.tittel)}</p>
                   {arr.oppmoetested && (
                     <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{arr.oppmoetested}</p>
                   )}
