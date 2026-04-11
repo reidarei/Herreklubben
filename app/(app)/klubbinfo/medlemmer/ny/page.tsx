@@ -49,12 +49,17 @@ export default function NyttMedlem() {
         <div className="rounded-2xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
           <p className="font-semibold text-lg mb-2" style={{ color: 'var(--success)' }}>✓ Medlem opprettet</p>
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            Send dette til {navn}:
+            En velkomst-e-post med innloggingsinfo er sendt til {navn} på {epost}. Du trenger ikke gjøre mer.
           </p>
-          <div className="rounded-xl p-3 mb-4 space-y-1" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>E-post: <span className="font-mono">{epost}</span></p>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Passord: <span className="font-mono font-bold">{opprettet.passord}</span></p>
-          </div>
+          <details className="mb-4">
+            <summary className="text-sm cursor-pointer mb-2" style={{ color: 'var(--text-secondary)' }}>
+              Vis innloggingsinfo (hvis e-posten ikke kommer fram)
+            </summary>
+            <div className="rounded-xl p-3 mt-2 space-y-1" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>E-post: <span className="font-mono">{epost}</span></p>
+              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Passord: <span className="font-mono font-bold">{opprettet.passord}</span></p>
+            </div>
+          </details>
           <button
             onClick={() => router.push('/klubbinfo/medlemmer')}
             className="w-full py-3 rounded-xl font-semibold text-white"

@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@/lib/supabase/server'
+import { sendEpost, velkommenEpostHtml } from '@/lib/epost'
 import { NextResponse } from 'next/server'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklubb.no'
 
 function genererPassord() {
   const tegn = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -41,6 +44,18 @@ export async function POST(request: Request) {
     .from('profiles')
     .update({ navn, visningsnavn })
     .eq('id', data.user.id)
+
+  // Send velkomst-e-post med innloggingsinfo
+  await sendEpost({
+    til: epost,
+    emne: 'Velkommen til Mortensrud Herreklubb',
+    html: velkommenEpostHtml({
+      navn,
+      epost,
+      passord,
+      loggInnUrl: `${BASE_URL}/login`,
+    }),
+  })
 
   return NextResponse.json({ ok: true, passord })
 }
