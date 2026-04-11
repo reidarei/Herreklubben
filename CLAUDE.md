@@ -24,6 +24,7 @@ npm run dev          # Start dev-server (localhost:3000)
 npm run build        # Produksjonsbygg
 npm run lint         # ESLint
 npx supabase db push # Kjør migreringer mot Supabase
+npx supabase gen types typescript --project-id tdlfswmxezjdnxcbbiwn > lib/supabase/database.types.ts  # Regenerer typer etter migrering
 ```
 
 ## Arkitektur
@@ -34,9 +35,11 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Supabase** for alt: Auth (email + passord), PostgreSQL med RLS, scheduled jobs for påminnelser. Migrasjonsfiler i `supabase/migrations/`. Databaseskjema er definert i løsningsdesignet.
 
-**Varsler:** Web Push (VAPID) for installerte PWA-brukere + e-post til alle som fallback. Påminnelser 7 dager og 1 dag før arrangementer.
+**Varsler:** Web Push (VAPID) for installerte PWA-brukere + e-post via Resend til alle som fallback. Påminnelser 7 dager og 1 dag før arrangementer. E-post sendes fra `noreply@mortensrudherreklubb.no` (domenet er verifisert i Resend). **Viktig:** Bruk aldri `after()` fra `next/server` for varsler — det kjører ikke pålitelig på Vercel Hobby. Bruk `await` direkte i server actions.
 
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
+
+**Produksjon:** Appen kjører på [mortensrudherreklubb.no](https://mortensrudherreklubb.no) (Vercel, Dublin-region). Domenet er kjøpt via Domeneshop og DNS peker til Vercel.
 
 ## Scope
 
