@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   CalendarIcon,
+  CalendarDaysIcon,
   MapPinIcon,
   PaperAirplaneIcon,
   BanknotesIcon,
@@ -151,6 +152,21 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
             </>
           )}
         </div>
+
+        {/* Legg til i kalender */}
+        <a
+          href={`/api/arrangementer/${id}/ics`}
+          className="inline-flex items-center gap-2 text-sm px-3.5 py-2 rounded-xl mb-5"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            textDecoration: 'none',
+          }}
+        >
+          <CalendarDaysIcon className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+          Legg til i kalender
+        </a>
 
         {/* Beskrivelse */}
         {arr.beskrivelse && (
