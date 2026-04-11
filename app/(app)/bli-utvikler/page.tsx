@@ -82,11 +82,23 @@ export default function BliUtvikler() {
       >
         Bli en utvikler
       </h1>
-      <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+      <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
         Savner du noe i Herreklubb-appen? Skriv hva du ønsker deg — en ny funksjon,
         en forbedring, en bug du har opplevd, eller bare en idé. Ønsket sendes til
         utviklerne som ser på det ved neste anledning.
       </p>
+      <div
+        className="rounded-xl px-4 py-3 mb-6 text-sm leading-relaxed"
+        style={{
+          background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
+          color: 'var(--text-primary)',
+        }}
+      >
+        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Helt anonymt.</span>{' '}
+        Selv om du er innlogget, blir ikke navnet ditt sendt med. Utviklerne ser
+        bare selve ønsket.
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

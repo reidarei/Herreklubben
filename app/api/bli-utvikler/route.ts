@@ -6,6 +6,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklu
 const AKSENT = '#d4a853'
 
 export async function POST(request: Request) {
+  // Auth sjekkes kun for å hindre misbruk utenfra — identiteten brukes
+  // bevisst ikke videre. Skjemaet er anonymt for innsenderen.
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ feil: 'Ikke innlogget' }, { status: 401 })
@@ -14,13 +16,6 @@ export async function POST(request: Request) {
   if (typeof tekst !== 'string' || tekst.trim().length < 5) {
     return NextResponse.json({ feil: 'Ønsket er for kort' }, { status: 400 })
   }
-
-  // Hent profilen til innsenderen
-  const { data: innsender } = await supabase
-    .from('profiles')
-    .select('navn, visningsnavn, epost')
-    .eq('id', user.id)
-    .single()
 
   // Hent alle admin-eposter
   const { data: admins } = await supabase
@@ -33,9 +28,6 @@ export async function POST(request: Request) {
   if (adminEposter.length === 0) {
     return NextResponse.json({ feil: 'Fant ingen admin å sende til' }, { status: 500 })
   }
-
-  const navn = innsender?.navn ?? innsender?.visningsnavn ?? 'Et medlem'
-  const innsenderEpost = innsender?.epost ?? user.email ?? 'ukjent'
 
   // Trygg HTML-escaping så fritekst ikke bryter malen
   const escapeHtml = (s: string) =>
@@ -61,8 +53,8 @@ export async function POST(request: Request) {
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
         <tr><td style="padding:32px;">
           <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">Mortensrud Herreklubb</p>
-          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Nytt ønske fra ${escapeHtml(navn)}</h1>
-          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;">${escapeHtml(navn)} (${escapeHtml(innsenderEpost)}) har sendt inn et ønske via «Bli en utvikler»:</p>
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Nytt anonymt ønske</h1>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.6;">Et medlem har sendt inn et anonymt ønske via «Bli en utvikler». Innsenderen er ikke registrert.</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;border-left:3px solid ${AKSENT};">
             <tr><td style="padding:8px 0 8px 16px;font-size:15px;line-height:1.6;">${tekstHtml}</td></tr>
           </table>
@@ -83,7 +75,7 @@ export async function POST(request: Request) {
     adminEposter.map(til =>
       sendEpost({
         til,
-        emne: `Nytt ønske fra ${navn} — Mortensrud Herreklubb`,
+        emne: 'Nytt anonymt ønske — Mortensrud Herreklubb',
         html,
       })
     )
