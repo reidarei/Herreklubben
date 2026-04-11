@@ -89,7 +89,7 @@ export default function ArrangementTidslinje({
     .filter(item => !erItemPast(item) && !erItemIdag(item))
     .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
-  function ArrangementKort({ arr, dempet, prioritert }: { arr: Arrangement; dempet?: boolean; prioritert?: boolean }) {
+  function ArrangementKort({ arr, dempet, prioritert, idag }: { arr: Arrangement; dempet?: boolean; prioritert?: boolean; idag?: boolean }) {
     const dato = new Date(arr.start_tidspunkt)
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
@@ -104,15 +104,29 @@ export default function ArrangementTidslinje({
     return (
       <Link
         href={`/arrangementer/${arr.id}`}
-        className="block rounded-2xl overflow-hidden transition-transform duration-100 active:scale-[0.98]"
+        className="block rounded-2xl overflow-hidden transition-transform duration-100 active:scale-[0.98] relative"
         style={{
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
+          boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
           opacity: dempet ? 0.5 : 1,
           textDecoration: 'none',
           color: 'inherit',
         }}
       >
+        {idag && (
+          <span
+            className="absolute top-3 right-3 z-10 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full"
+            style={{
+              background: 'var(--accent)',
+              color: '#0a0a0a',
+              letterSpacing: '0.6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+            }}
+          >
+            I dag!
+          </span>
+        )}
         {/* Hero-bilde */}
         <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
           <Image
@@ -188,7 +202,7 @@ export default function ArrangementTidslinje({
     )
   }
 
-  function BursdagNotis({ bursdag, dempet }: { bursdag: Bursdag; dempet?: boolean }) {
+  function BursdagNotis({ bursdag, dempet, idag }: { bursdag: Bursdag; dempet?: boolean; idag?: boolean }) {
     const dato = itemDato({ type: 'bursdag', data: bursdag })
     const erPast = isBefore(startOfDay(dato), startOfDay(new Date()))
     const verb = erPast ? 'fylte' : 'fyller'
@@ -197,7 +211,8 @@ export default function ArrangementTidslinje({
         className="flex items-center gap-3 px-4 py-3 rounded-2xl"
         style={{
           background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
+          boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
           opacity: dempet ? 0.5 : 1,
         }}
       >
@@ -215,9 +230,9 @@ export default function ArrangementTidslinje({
     )
   }
 
-  function RenderItem({ item, dempet, prioritert }: { item: TidslinjeItem; dempet?: boolean; prioritert?: boolean }) {
-    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} prioritert={prioritert} />
-    return <BursdagNotis bursdag={item.data} dempet={dempet} />
+  function RenderItem({ item, dempet, prioritert, idag }: { item: TidslinjeItem; dempet?: boolean; prioritert?: boolean; idag?: boolean }) {
+    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} prioritert={prioritert} idag={idag} />
+    return <BursdagNotis bursdag={item.data} dempet={dempet} idag={idag} />
   }
 
   return (
@@ -226,14 +241,14 @@ export default function ArrangementTidslinje({
       {idagItems.length > 0 && (
         <>
           <p
-            className="text-xs font-semibold uppercase mb-3"
-            style={{ color: 'var(--text-secondary)', letterSpacing: '0.5px' }}
+            className="font-bold uppercase mb-3 flex items-center gap-2"
+            style={{ color: 'var(--accent)', letterSpacing: '1px', fontSize: '13px' }}
           >
-            I dag
+            <span>🎉</span> I dag <span>🎉</span>
           </p>
           <div className="space-y-4">
             {idagItems.map((item, i) => (
-              <RenderItem key={item.data.id} item={item} prioritert={i === 0} />
+              <RenderItem key={item.data.id} item={item} prioritert={i === 0} idag />
             ))}
           </div>
         </>
