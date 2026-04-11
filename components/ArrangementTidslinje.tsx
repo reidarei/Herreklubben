@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { format, isThisYear, isPast, isBefore, isToday, startOfDay } from 'date-fns'
+import { format, isThisYear, isBefore, isToday, startOfDay } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
@@ -52,8 +52,9 @@ function itemDato(item: TidslinjeItem): Date {
 }
 
 function erItemPast(item: TidslinjeItem): boolean {
-  if (item.type === 'arrangement') return isPast(new Date(item.data.start_tidspunkt))
-  // Bursdager: "past" bare hvis dagen er strengt før i dag
+  // Både arrangementer og bursdager: "past" bare hvis dagen er strengt før i dag.
+  // Et arrangement som er i dag forblir under "I dag" helt til midnatt, selv om
+  // det startet/sluttet tidligere på dagen.
   return isBefore(startOfDay(itemDato(item)), startOfDay(new Date()))
 }
 
