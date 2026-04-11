@@ -310,6 +310,25 @@ export default function ArrangementTidslinje({
           Ingen arrangementer
         </p>
       )}
+
+      <div className="mt-12 pt-8 text-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          Savner du noe i appen?
+        </p>
+        <Link
+          href="/bli-utvikler"
+          className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--accent)',
+            color: 'var(--accent)',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Bli en utvikler
+        </Link>
+      </div>
     </div>
   )
 }
