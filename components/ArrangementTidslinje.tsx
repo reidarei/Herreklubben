@@ -38,11 +38,11 @@ type TidslinjeItem =
   | { type: 'arrangement'; data: Arrangement }
   | { type: 'bursdag'; data: Bursdag }
 
-function statusBadge(status: string | undefined) {
-  if (status === 'ja') return { label: 'Påmeldt', variant: 'success' as const }
-  if (status === 'kanskje') return { label: 'Kanskje', variant: 'accent' as const }
-  if (status === 'nei') return { label: 'Avmeldt', variant: 'destructive' as const }
-  return { label: 'Ikke svart', variant: 'neutral' as const }
+function statusBadge(status: string | undefined, fortid?: boolean) {
+  if (status === 'ja') return { label: fortid ? 'Du svarte ja' : 'Påmeldt', variant: 'success' as const }
+  if (status === 'kanskje') return { label: fortid ? 'Du svarte kanskje' : 'Kanskje', variant: 'accent' as const }
+  if (status === 'nei') return { label: fortid ? 'Du svarte nei' : 'Avmeldt', variant: 'destructive' as const }
+  return { label: fortid ? 'Du svarte ikke' : 'Ikke svart', variant: 'neutral' as const }
 }
 
 function itemDato(item: TidslinjeItem): Date {
@@ -89,7 +89,7 @@ export default function ArrangementTidslinje({
     .filter(item => !erItemPast(item) && !erItemIdag(item))
     .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
 
-  function ArrangementKort({ arr, dempet, prioritert, idag }: { arr: Arrangement; dempet?: boolean; prioritert?: boolean; idag?: boolean }) {
+  function ArrangementKort({ arr, fortid, prioritert, idag }: { arr: Arrangement; fortid?: boolean; prioritert?: boolean; idag?: boolean }) {
     const dato = new Date(arr.start_tidspunkt)
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
@@ -99,7 +99,7 @@ export default function ArrangementTidslinje({
     const erTur = arr.type === 'tur'
     const erSensurert = (felt: string) =>
       (arr.sensurerte_felt as Record<string, boolean> | null)?.[felt] === true
-    const status = statusBadge(minPaamelding?.status)
+    const status = statusBadge(minPaamelding?.status, fortid)
 
     return (
       <Link
@@ -109,7 +109,7 @@ export default function ArrangementTidslinje({
           background: 'var(--bg-elevated)',
           border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
           boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
-          opacity: dempet ? 0.5 : 1,
+          opacity: fortid ? 0.5 : 1,
           textDecoration: 'none',
           color: 'inherit',
         }}
@@ -187,11 +187,12 @@ export default function ArrangementTidslinje({
                 style={{ background: 'var(--success)' }}
               />
               {antallJa === 0 ? (
-                <span>Ingen påmeldt ennå</span>
+                <span>{fortid ? 'Ingen deltok' : 'Ingen påmeldt ennå'}</span>
               ) : (
                 <span>
                   {jaNavnListe.join(', ')}
                   {resten > 0 && ` + ${resten} andre herrer`}
+                  {fortid && ' deltok'}
                 </span>
               )}
             </div>
@@ -202,7 +203,7 @@ export default function ArrangementTidslinje({
     )
   }
 
-  function BursdagNotis({ bursdag, dempet, idag }: { bursdag: Bursdag; dempet?: boolean; idag?: boolean }) {
+  function BursdagNotis({ bursdag, fortid, idag }: { bursdag: Bursdag; fortid?: boolean; idag?: boolean }) {
     const dato = itemDato({ type: 'bursdag', data: bursdag })
     const erPast = isBefore(startOfDay(dato), startOfDay(new Date()))
     const verb = erPast ? 'fylte' : 'fyller'
@@ -213,7 +214,7 @@ export default function ArrangementTidslinje({
           background: 'var(--bg-elevated)',
           border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
           boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
-          opacity: dempet ? 0.5 : 1,
+          opacity: fortid ? 0.5 : 1,
         }}
       >
         <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>🎂🎂🎂</span>
@@ -230,9 +231,9 @@ export default function ArrangementTidslinje({
     )
   }
 
-  function RenderItem({ item, dempet, prioritert, idag }: { item: TidslinjeItem; dempet?: boolean; prioritert?: boolean; idag?: boolean }) {
-    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} dempet={dempet} prioritert={prioritert} idag={idag} />
-    return <BursdagNotis bursdag={item.data} dempet={dempet} idag={idag} />
+  function RenderItem({ item, fortid, prioritert, idag }: { item: TidslinjeItem; fortid?: boolean; prioritert?: boolean; idag?: boolean }) {
+    if (item.type === 'arrangement') return <ArrangementKort arr={item.data} fortid={fortid} prioritert={prioritert} idag={idag} />
+    return <BursdagNotis bursdag={item.data} fortid={fortid} idag={idag} />
   }
 
   return (
@@ -297,7 +298,7 @@ export default function ArrangementTidslinje({
           </p>
           <div className="space-y-4">
             {tidligereItems.map(item => (
-              <RenderItem key={item.data.id} item={item} dempet />
+              <RenderItem key={item.data.id} item={item} fortid />
             ))}
           </div>
         </>
