@@ -75,7 +75,11 @@ export default function Chat({
           const ny = payload.new as Melding
           setMeldinger(prev => {
             if (prev.some(m => m.id === ny.id)) return prev
-            return [...prev, ny]
+            // Fjern optimistisk temp-melding med samme innhold fra samme bruker
+            const utenTemp = prev.filter(m =>
+              !(m.id.startsWith('temp-') && m.profil_id === ny.profil_id && m.innhold === ny.innhold)
+            )
+            return [...utenTemp, ny]
           })
         })
         .on('postgres_changes', {
