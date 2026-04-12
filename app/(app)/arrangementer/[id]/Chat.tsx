@@ -54,32 +54,50 @@ export default function Chat({
   useEffect(() => {
     if (!aapen) return
 
+    let cancelled = false
     const supabase = createClient()
-    const channel = supabase
-      .channel(`chat-${arrangementId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'arrangement_chat',
-        filter: `arrangement_id=eq.${arrangementId}`,
-      }, (payload) => {
-        const ny = payload.new as Melding
-        setMeldinger(prev => {
-          if (prev.some(m => m.id === ny.id)) return prev
-          return [...prev, ny]
-        })
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'arrangement_chat',
-      }, (payload) => {
-        const slettetId = (payload.old as { id: string }).id
-        setMeldinger(prev => prev.filter(m => m.id !== slettetId))
-      })
-      .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    async function startSubscription() {
+      // Sørg for at Realtime-tilkoblingen har auth-tokenet (kreves av RLS)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled || !session) return
+
+      supabase.realtime.setAuth(session.access_token)
+
+      const channel = supabase
+        .channel(`chat-${arrangementId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'arrangement_chat',
+          filter: `arrangement_id=eq.${arrangementId}`,
+        }, (payload) => {
+          const ny = payload.new as Melding
+          setMeldinger(prev => {
+            if (prev.some(m => m.id === ny.id)) return prev
+            return [...prev, ny]
+          })
+        })
+        .on('postgres_changes', {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'arrangement_chat',
+        }, (payload) => {
+          const slettetId = (payload.old as { id: string }).id
+          setMeldinger(prev => prev.filter(m => m.id !== slettetId))
+        })
+        .subscribe()
+
+      return channel
+    }
+
+    let channelRef: ReturnType<typeof supabase.channel> | undefined
+    startSubscription().then(ch => { channelRef = ch })
+
+    return () => {
+      cancelled = true
+      if (channelRef) supabase.removeChannel(channelRef)
+    }
   }, [aapen, arrangementId])
 
   // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen)
