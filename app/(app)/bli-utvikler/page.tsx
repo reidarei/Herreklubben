@@ -97,7 +97,7 @@ export default function BliUtvikler() {
       >
         <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Vær konkret</span>{' '}
         <br />
-        Vær så konkret som mulig så det blir enkelt å gjennomføre endringen. beskriv hva du vil og hvorfor
+        Vær så konkret som mulig, så det blir enkelt å gjennomføre endringen. Beskriv hva du vil og hvorfor.
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -113,7 +113,7 @@ export default function BliUtvikler() {
             onChange={e => setTekst(e.target.value)}
             required
             rows={8}
-            placeholder="F.eks. « jeg skulle ønske det var en tilbakemeldings knapp jeg appen. Når man trykker på denne skal man komme inn i et skjema der man kan skrive inn ønsket sitt og trykke på en knapp som heter send inn ønske hvor man trykker på denne knappen skal man få en kvittering og så skal ønske gå til utviklerne for utvikling», ..."
+            placeholder="F.eks. «Jeg skulle ønske det var en tilbakemeldingsknapp i appen. Når man trykker på denne, skal man komme inn i et skjema der man kan skrive inn ønsket sitt og trykke på en knapp som heter Send inn ønske. Når man trykker på knappen, skal man få en kvittering, og ønsket sendes til utviklerne.»"
             style={{
               background: 'var(--bg-elevated-2)',
               border: '1px solid var(--border)',
