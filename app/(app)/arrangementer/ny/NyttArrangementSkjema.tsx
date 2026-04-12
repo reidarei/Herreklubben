@@ -6,6 +6,7 @@ import { opprettArrangement } from '@/lib/actions/arrangementer'
 import TurFelt from '@/components/TurFelt'
 import BildeVelger from '@/components/BildeVelger'
 import Button from '@/components/ui/Button'
+import { formaterDato, datetimeLocalTilIso } from '@/lib/dato'
 
 type Ansvar = { id: string; arrangement_navn: string; aar: number }
 
@@ -49,9 +50,9 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
           type,
           tittel: fd.get('tittel') as string,
           beskrivelse: fd.get('beskrivelse') as string,
-          start_tidspunkt: startRaw ? new Date(startRaw).toISOString() : '',
+          start_tidspunkt: startRaw ? datetimeLocalTilIso(startRaw) : '',
           oppmoetested: fd.get('oppmoetested') as string,
-          slutt_tidspunkt: sluttRaw ? new Date(sluttRaw).toISOString() : undefined,
+          slutt_tidspunkt: sluttRaw ? datetimeLocalTilIso(sluttRaw) : undefined,
           destinasjon: fd.get('destinasjon') as string,
           pris_per_person: prisRaw ? parseInt(prisRaw) : undefined,
           sensurerte_felt: sensurert,
@@ -147,7 +148,7 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
         <label htmlFor="start_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
           {type === 'tur' ? 'Avreise' : 'Dato og tid'}
         </label>
-        <input id="start_tidspunkt" name="start_tidspunkt" type="datetime-local" required defaultValue={`${new Date().toISOString().slice(0, 10)}T17:00`} style={inputStil} />
+        <input id="start_tidspunkt" name="start_tidspunkt" type="datetime-local" required defaultValue={`${formaterDato(new Date().toISOString(), 'yyyy-MM-dd')}T17:00`} style={inputStil} />
       </div>
 
       {type === 'tur' && (

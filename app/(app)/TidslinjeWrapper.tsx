@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import ArrangementTidslinje from '@/components/ArrangementTidslinje'
+import { norskDatoNaa } from '@/lib/dato'
 import type { Json } from '@/lib/supabase/database.types'
 
 type ProfilMedBursdag = {
@@ -31,7 +32,7 @@ type Arrangement = {
 const MAKS_FREM = 48
 
 function beregnBursdager(profiler: ProfilMedBursdag[], frem: number) {
-  const now = new Date()
+  const now = norskDatoNaa()
   const toMndSiden = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate())
   const fremTid = new Date(now.getFullYear(), now.getMonth() + frem, now.getDate())
 

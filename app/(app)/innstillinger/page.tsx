@@ -3,8 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { nb } from 'date-fns/locale'
+import { formaterDato } from '@/lib/dato'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import VarselToggle from '@/components/VarselToggle'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
@@ -119,7 +118,7 @@ export default async function Innstillinger() {
                 </p>
               </div>
               <p style={{ color: 'var(--text-secondary)' }}>
-                {v.sendt_at ? format(new Date(v.sendt_at), 'd. MMM HH:mm', { locale: nb }) : ''}
+                {v.sendt_at ? formaterDato(v.sendt_at, 'd. MMM HH:mm') : ''}
               </p>
             </div>
           ))}

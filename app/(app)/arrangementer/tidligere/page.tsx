@@ -1,6 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
-import { format } from 'date-fns'
-import { nb } from 'date-fns/locale'
+import { formaterDato } from '@/lib/dato'
 import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 
@@ -43,13 +42,13 @@ export default async function TidligereArrangementer() {
                 {/* Dato */}
                 <div className="text-center shrink-0" style={{ minWidth: '36px' }}>
                   <div className="text-sm font-bold" style={{ color: 'var(--accent)' }}>
-                    {format(new Date(arr.start_tidspunkt), 'd', { locale: nb })}
+                    {formaterDato(arr.start_tidspunkt, 'd')}
                   </div>
                   <div className="text-xs uppercase" style={{ color: 'var(--text-secondary)' }}>
-                    {format(new Date(arr.start_tidspunkt), 'MMM', { locale: nb })}
+                    {formaterDato(arr.start_tidspunkt, 'MMM')}
                   </div>
                   <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {format(new Date(arr.start_tidspunkt), 'yyyy', { locale: nb })}
+                    {formaterDato(arr.start_tidspunkt, 'yyyy')}
                   </div>
                 </div>
 

@@ -6,6 +6,7 @@ import { oppdaterArrangement, slettArrangement } from '@/lib/actions/arrangement
 import TurFelt from '@/components/TurFelt'
 import BildeVelger from '@/components/BildeVelger'
 import Button from '@/components/ui/Button'
+import { isoTilDatetimeLocal, datetimeLocalTilIso } from '@/lib/dato'
 
 const inputStil: React.CSSProperties = {
   background: 'var(--bg-elevated-2)',
@@ -16,13 +17,6 @@ const inputStil: React.CSSProperties = {
   width: '100%',
   fontSize: '1rem',
   fontFamily: 'inherit',
-}
-
-function toDatetimeLocal(iso: string | null) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 export default function RedigerSkjema({ arrangement: arr }: { arrangement: Record<string, unknown> }) {
@@ -52,9 +46,9 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
         await oppdaterArrangement(arr.id as string, {
           tittel: fd.get('tittel') as string,
           beskrivelse: fd.get('beskrivelse') as string,
-          start_tidspunkt: startRaw ? new Date(startRaw).toISOString() : undefined,
+          start_tidspunkt: startRaw ? datetimeLocalTilIso(startRaw) : undefined,
           oppmoetested: fd.get('oppmoetested') as string,
-          slutt_tidspunkt: sluttRaw ? new Date(sluttRaw).toISOString() : undefined,
+          slutt_tidspunkt: sluttRaw ? datetimeLocalTilIso(sluttRaw) : undefined,
           destinasjon: fd.get('destinasjon') as string,
           pris_per_person: fd.get('pris_per_person') ? parseInt(fd.get('pris_per_person') as string) : undefined,
           sensurerte_felt: sensurert,
@@ -93,13 +87,13 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
           <label htmlFor="start_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
             {erTur ? 'Avreise' : 'Dato og tid'}
           </label>
-          <input id="start_tidspunkt" name="start_tidspunkt" type="datetime-local" required defaultValue={toDatetimeLocal(arr.start_tidspunkt as string)} style={inputStil} />
+          <input id="start_tidspunkt" name="start_tidspunkt" type="datetime-local" required defaultValue={isoTilDatetimeLocal(arr.start_tidspunkt as string)} style={inputStil} />
         </div>
 
         {erTur && (
           <div>
             <label htmlFor="slutt_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Hjemkomst</label>
-            <input id="slutt_tidspunkt" name="slutt_tidspunkt" type="datetime-local" defaultValue={toDatetimeLocal(arr.slutt_tidspunkt as string)} style={inputStil} />
+            <input id="slutt_tidspunkt" name="slutt_tidspunkt" type="datetime-local" defaultValue={isoTilDatetimeLocal(arr.slutt_tidspunkt as string)} style={inputStil} />
           </div>
         )}
 

@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { TrophyIcon } from '@heroicons/react/24/outline'
 import KaaringKort from './KaaringKort'
+import { norskAar } from '@/lib/dato'
 
 export default async function Kaaringer() {
   const [supabase, profil] = await Promise.all([
@@ -10,7 +11,7 @@ export default async function Kaaringer() {
   ])
 
   const erAdmin = profil?.rolle === 'admin'
-  const gjeldende_aar = new Date().getFullYear()
+  const gjeldende_aar = norskAar()
 
   const [{ data: maler }, { data: vinnere }, { data: medlemmer }, { data: arrangementer }] = await Promise.all([
     supabase

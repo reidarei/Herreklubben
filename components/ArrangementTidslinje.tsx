@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { format, isThisYear, isBefore, isToday, startOfDay } from 'date-fns'
-import { nb } from 'date-fns/locale'
+import { isBefore } from 'date-fns'
+import { formaterDato, norskDag, norskDatoNaa } from '@/lib/dato'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
 import Badge from './ui/Badge'
@@ -45,21 +45,19 @@ function statusBadge(status: string | undefined, fortid?: boolean) {
   return { label: fortid ? 'Du svarte ikke' : 'Ikke svart', variant: 'neutral' as const }
 }
 
-function itemDato(item: TidslinjeItem): Date {
-  if (item.type === 'arrangement') return new Date(item.data.start_tidspunkt)
+function itemDag(item: TidslinjeItem): Date {
+  if (item.type === 'arrangement') return norskDag(item.data.start_tidspunkt)
   const [yr, mnd, dag] = item.data.dato.split('-').map(Number)
   return new Date(yr, mnd - 1, dag)
 }
 
 function erItemPast(item: TidslinjeItem): boolean {
-  // Både arrangementer og bursdager: "past" bare hvis dagen er strengt før i dag.
-  // Et arrangement som er i dag forblir under "I dag" helt til midnatt, selv om
-  // det startet/sluttet tidligere på dagen.
-  return isBefore(startOfDay(itemDato(item)), startOfDay(new Date()))
+  // Både arrangementer og bursdager: "past" bare hvis dagen er strengt før i dag (norsk tid).
+  return isBefore(itemDag(item), norskDatoNaa())
 }
 
 function erItemIdag(item: TidslinjeItem): boolean {
-  return isToday(itemDato(item))
+  return itemDag(item).getTime() === norskDatoNaa().getTime()
 }
 
 export default function ArrangementTidslinje({
@@ -80,18 +78,18 @@ export default function ArrangementTidslinje({
 
   const tidligereItems = alleItems
     .filter(item => erItemPast(item))
-    .sort((a, b) => itemDato(b).getTime() - itemDato(a).getTime())
+    .sort((a, b) => itemDag(b).getTime() - itemDag(a).getTime())
 
   const idagItems = alleItems
     .filter(item => !erItemPast(item) && erItemIdag(item))
-    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
+    .sort((a, b) => itemDag(a).getTime() - itemDag(b).getTime())
 
   const kommendeItems = alleItems
     .filter(item => !erItemPast(item) && !erItemIdag(item))
-    .sort((a, b) => itemDato(a).getTime() - itemDato(b).getTime())
+    .sort((a, b) => itemDag(a).getTime() - itemDag(b).getTime())
 
   function ArrangementKort({ arr, fortid, prioritert, idag }: { arr: Arrangement; fortid?: boolean; prioritert?: boolean; idag?: boolean }) {
-    const dato = new Date(arr.start_tidspunkt)
+    const iso = arr.start_tidspunkt
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
     const antallJa = jaListe.length
@@ -146,10 +144,10 @@ export default function ArrangementTidslinje({
           <div className="flex items-center gap-2 mb-1.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
             <Badge variant="accent">{erTur ? 'Tur' : 'Møte'}</Badge>
             <span>
-              {format(dato, 'd. MMM', { locale: nb })}
-              {!isThisYear(dato) && ` ${format(dato, 'yyyy')}`}
+              {formaterDato(iso, 'd. MMM')}
+              {formaterDato(iso, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(iso, 'yyyy')}`}
               {' kl. '}
-              {format(dato, 'HH:mm')}
+              {formaterDato(iso, 'HH:mm')}
             </span>
           </div>
 
@@ -205,8 +203,8 @@ export default function ArrangementTidslinje({
   }
 
   function BursdagNotis({ bursdag, fortid, idag }: { bursdag: Bursdag; fortid?: boolean; idag?: boolean }) {
-    const dato = itemDato({ type: 'bursdag', data: bursdag })
-    const erPast = isBefore(startOfDay(dato), startOfDay(new Date()))
+    const dag = itemDag({ type: 'bursdag', data: bursdag })
+    const erPast = isBefore(dag, norskDatoNaa())
     const verb = erPast ? 'fylte' : 'fyller'
     return (
       <div
@@ -224,8 +222,8 @@ export default function ArrangementTidslinje({
             {bursdag.visningsnavn} {verb} {bursdag.alder} år
           </p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {format(dato, 'd. MMMM', { locale: nb })}
-            {!isThisYear(dato) && ` ${format(dato, 'yyyy')}`}
+            {formaterDato(bursdag.dato, 'd. MMMM')}
+            {formaterDato(bursdag.dato, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(bursdag.dato, 'yyyy')}`}
           </p>
         </div>
       </div>

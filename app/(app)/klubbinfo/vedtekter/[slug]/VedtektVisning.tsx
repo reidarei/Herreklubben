@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import MarkdownVisning from '@/components/MarkdownVisning'
-import { format } from 'date-fns'
-import { nb } from 'date-fns/locale'
+import { formaterDato } from '@/lib/dato'
 import { oppdaterVedtekt } from '@/lib/actions/vedtekter'
 import Button from '@/components/ui/Button'
 
@@ -100,7 +99,7 @@ export default function VedtektVisning({
           </div>
 
           <p className="text-xs mb-4" style={{ color: 'var(--text-secondary)' }}>
-            Sist oppdatert: {format(new Date(vedtekt.oppdatert), 'd. MMMM yyyy', { locale: nb })}
+            Sist oppdatert: {formaterDato(vedtekt.oppdatert, 'd. MMMM yyyy')}
           </p>
 
           {erAdmin && (
@@ -118,7 +117,7 @@ export default function VedtektVisning({
                   {versjoner.map(v => (
                     <div key={v.id} className="rounded-2xl px-4 py-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                       <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {format(new Date(v.vedtaksdato), 'd. MMMM yyyy', { locale: nb })} — {v.profiles?.navn}
+                        {formaterDato(v.vedtaksdato, 'd. MMMM yyyy')} — {v.profiles?.navn}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{v.endringsnotat}</p>
                     </div>

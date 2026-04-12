@@ -1,14 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
-import { formatInTimeZone } from 'date-fns-tz'
-import { nb } from 'date-fns/locale'
+import { formaterDato as fd } from '@/lib/dato'
 
-const TIDSSONE = 'Europe/Oslo'
-
-// Formater dato i norsk tidssone — viktig fordi serveren kjører i UTC (Dublin)
 function formaterDato(iso: string): string {
-  return formatInTimeZone(new Date(iso), TIDSSONE, "d. MMMM 'kl.' HH:mm", { locale: nb })
+  return fd(iso, "d. MMMM 'kl.' HH:mm")
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'

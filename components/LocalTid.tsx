@@ -1,8 +1,7 @@
 'use client'
 
-import { format } from 'date-fns'
-import { nb } from 'date-fns/locale'
+import { formaterDato } from '@/lib/dato'
 
 export default function LocalTid({ iso, formatStr }: { iso: string; formatStr: string }) {
-  return <>{format(new Date(iso), formatStr, { locale: nb })}</>
+  return <>{formaterDato(iso, formatStr)}</>
 }

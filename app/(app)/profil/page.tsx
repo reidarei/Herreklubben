@@ -5,6 +5,7 @@ import RedigerProfilSkjema from './RedigerProfilSkjema'
 import PushAbonnement from '@/components/PushAbonnement'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
+import { norskAar } from '@/lib/dato'
 
 export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
@@ -14,7 +15,7 @@ export default async function Profil() {
     supabase.from('arrangoransvar')
       .select('id, aar, arrangement_navn, arrangementer (id)')
       .eq('ansvarlig_id', user!.id)
-      .gte('aar', new Date().getFullYear())
+      .gte('aar', norskAar())
       .order('aar'),
   ])
 

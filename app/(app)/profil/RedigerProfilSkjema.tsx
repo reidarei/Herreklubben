@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
 import { createClient } from '@/lib/supabase/client'
+import { formaterDato } from '@/lib/dato'
 import { KeyIcon } from '@heroicons/react/24/outline'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -118,7 +119,7 @@ export default function RedigerProfilSkjema({
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Fødselsdato</p>
               <p className="font-medium">
                 {fodselsdato
-                  ? new Date(fodselsdato).toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
+                  ? formaterDato(fodselsdato, 'd. MMMM yyyy')
                   : '–'}
               </p>
             </div>

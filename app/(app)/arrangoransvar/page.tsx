@@ -3,13 +3,14 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import AnsvarAdmin from './AnsvarAdmin'
+import { norskAar } from '@/lib/dato'
 
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
   const [user, profil] = await Promise.all([getInnloggetBruker(), getProfil()])
   const erAdmin = profil?.rolle === 'admin'
 
-  const innevaerendeAar = new Date().getFullYear()
+  const innevaerendeAar = norskAar()
   const visAar = [innevaerendeAar, innevaerendeAar + 1]
 
   const [{ data: ansvar }, { data: medlemmer }, { data: maler }] = await Promise.all([

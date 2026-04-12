@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { formaterDato, TIDSSONE } from '@/lib/dato'
 
 // Escape for .ics TEXT-verdier: backslash, semikolon, komma og linjeskift
 function escapeIcs(s: string): string {
@@ -10,9 +11,9 @@ function escapeIcs(s: string): string {
     .replace(/\r\n|\n|\r/g, '\\n')
 }
 
-// Formatter til .ics UTC-format: YYYYMMDDTHHMMSSZ
-function formatIcsDate(d: Date): string {
-  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+// Formatter til .ics lokal tid i norsk tidssone: YYYYMMDDTHHMMSS
+function formatIcsDate(iso: string): string {
+  return formaterDato(iso, "yyyyMMdd'T'HHmmss")
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,10 +27,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (!arr) return new NextResponse('Not found', { status: 404 })
 
-  const start = new Date(arr.start_tidspunkt)
-  const slutt = arr.slutt_tidspunkt
-    ? new Date(arr.slutt_tidspunkt)
-    : new Date(start.getTime() + 2 * 60 * 60 * 1000) // 2 timer default når ingen sluttid er satt
+  const sluttIso = arr.slutt_tidspunkt
+    ?? new Date(new Date(arr.start_tidspunkt).getTime() + 2 * 60 * 60 * 1000).toISOString()
 
   const beskrivelseDeler: string[] = []
   if (arr.beskrivelse) beskrivelseDeler.push(arr.beskrivelse)
@@ -42,11 +41,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     'PRODID:-//Mortensrud Herreklubb//NO',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
+    `BEGIN:VTIMEZONE`,
+    `TZID:${TIDSSONE}`,
+    `END:VTIMEZONE`,
     'BEGIN:VEVENT',
     `UID:${id}@mortensrudherreklubb.no`,
-    `DTSTAMP:${formatIcsDate(new Date())}`,
-    `DTSTART:${formatIcsDate(start)}`,
-    `DTEND:${formatIcsDate(slutt)}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
+    `DTSTART;TZID=${TIDSSONE}:${formatIcsDate(arr.start_tidspunkt)}`,
+    `DTEND;TZID=${TIDSSONE}:${formatIcsDate(sluttIso)}`,
     `SUMMARY:${escapeIcs(arr.tittel)}`,
     `DESCRIPTION:${escapeIcs(beskrivelseDeler.join('\n'))}`,
     ...(arr.oppmoetested ? [`LOCATION:${escapeIcs(arr.oppmoetested)}`] : []),
