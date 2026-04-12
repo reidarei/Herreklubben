@@ -30,18 +30,12 @@ async function hentTestModus(): Promise<string | null> {
 }
 
 // Hent alle aktive profiler (i test-modus: kun profilen med test-eposten)
-async function hentProfiler(unnta?: string) {
+async function hentProfiler() {
   const supabase = createAdminClient()
   const testEpost = await hentTestModus()
 
   const query = supabase.from('profiles').select('id, navn, epost').eq('aktiv', true)
-  if (testEpost) {
-    // I test-modus: kun test-eposten, og ignorer unntak (slik at
-    // oppretteren også mottar varselet under testing)
-    query.eq('epost', testEpost)
-  } else if (unnta) {
-    query.neq('id', unnta)
-  }
+  if (testEpost) query.eq('epost', testEpost)
   const { data } = await query
   return data ?? []
 }
@@ -58,20 +52,18 @@ async function hentPushSubscriptions(profilIder: string[]) {
 
 // Send push + epost til alle aktive medlemmer
 async function sendTilAlle({
-  unntaProfilId,
   pushPayload,
   epostEmne,
   epostTekst,
   arrangementId,
 }: {
-  unntaProfilId?: string
   pushPayload: { tittel: string; melding: string }
   epostEmne: string
   epostTekst: string
   arrangementId: string
 }) {
   const testEpost = await hentTestModus()
-  const profiler = await hentProfiler(unntaProfilId)
+  const profiler = await hentProfiler()
   const profilIder = profiler.map(p => p.id)
   const subs = await hentPushSubscriptions(profilIder)
 
@@ -120,18 +112,15 @@ export async function sendNyttArrangementVarsler({
   arrangementId,
   tittel,
   startTidspunkt,
-  opprettetAv,
 }: {
   arrangementId: string
   tittel: string
   startTidspunkt: string
-  opprettetAv: string
 }) {
   if (!(await erVarselAktiv('nytt_arrangement'))) return
 
   const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
   await sendTilAlle({
-    unntaProfilId: opprettetAv,
     pushPayload: { tittel: 'Nytt arrangement', melding: `${tittel} — ${dato}` },
     epostEmne: `Nytt arrangement: ${tittel}`,
     epostTekst: `Det er satt opp et nytt arrangement: <strong>${tittel}</strong><br>${dato}`,

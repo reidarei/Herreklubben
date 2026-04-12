@@ -63,7 +63,6 @@ export async function opprettArrangement(data: ArrangementInput) {
     arrangementId: arrangement.id,
     tittel: arrangement.tittel,
     startTidspunkt: arrangement.start_tidspunkt,
-    opprettetAv: user.id,
   }).catch(console.error)
 
   redirect(`/arrangementer/${arrangement.id}?varslet=true`)
