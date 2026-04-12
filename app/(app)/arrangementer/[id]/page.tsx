@@ -85,9 +85,9 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
           {kanRedigere && (
             <Link
               href={`/arrangementer/${id}/rediger`}
-              className="text-sm px-3 py-1.5 rounded-xl"
+              className="text-sm font-medium px-3 py-1.5 rounded-xl inline-flex items-center"
               style={{
-                background: 'var(--bg-elevated)',
+                background: 'var(--bg-elevated-2)',
                 border: '1px solid var(--border)',
                 color: 'var(--text-secondary)',
                 textDecoration: 'none',

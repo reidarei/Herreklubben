@@ -24,9 +24,9 @@ export default function VarsleNuKnapp({ arrangementId }: { arrangementId: string
       onClick={handleVarsle}
       disabled={status === 'sender'}
       variant={status === 'ok' ? 'primary' : status === 'feil' ? 'destructive' : 'secondary'}
-      className="text-sm"
+      className="!py-1.5 !px-3 !font-medium"
     >
-      {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Varslet' : status === 'feil' ? '✗ Feil' : 'Varsle om oppdatering'}
+      {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Varslet' : status === 'feil' ? '✗ Feil' : 'Varsle'}
     </Button>
   )
 }
