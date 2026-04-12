@@ -41,11 +41,39 @@ export default function Chat({
   const [meldinger, setMeldinger] = useState<Melding[]>(initialMeldinger)
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
+  const [mentionSøk, setMentionSøk] = useState<string | null>(null)
   const bunnenRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const profilMap = useRef(new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent']))).current
+  const andreProfiler = useRef(profiler.filter(p => p.id !== brukerId && p.navn)).current
+
+  // Finn @mention-forslag basert på tekst etter siste @
+  const mentionForslag = mentionSøk !== null
+    ? andreProfiler.filter(p =>
+        p.navn!.toLowerCase().includes(mentionSøk.toLowerCase())
+      ).slice(0, 5)
+    : []
+
+  function oppdaterMentionSøk(verdi: string) {
+    const sisteAt = verdi.lastIndexOf('@')
+    if (sisteAt === -1) { setMentionSøk(null); return }
+    const etterAt = verdi.slice(sisteAt + 1)
+    // Aktiv mention: ingen mellomrom-etter-mellomrom (dvs. maks ett ord-mellomrom)
+    // Deaktiver hvis bruker har skrevet ferdig (avslutter med to mellomrom)
+    if (etterAt.endsWith('  ') || etterAt.includes('\n')) { setMentionSøk(null); return }
+    setMentionSøk(etterAt)
+  }
+
+  function velgMention(navn: string) {
+    const sisteAt = tekst.lastIndexOf('@')
+    if (sisteAt === -1) return
+    const nyTekst = tekst.slice(0, sisteAt) + '@' + navn + ' '
+    setTekst(nyTekst)
+    setMentionSøk(null)
+    inputRef.current?.focus()
+  }
 
   const scrollTilBunn = useCallback(() => {
     bunnenRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -137,6 +165,7 @@ export default function Chat({
     const melding = tekst.trim()
     if (!melding || sender) return
     setTekst('')
+    setMentionSøk(null)
     setSender(true)
 
     // Optimistisk: vis meldingen med en gang
@@ -274,13 +303,40 @@ export default function Chat({
             <div ref={bunnenRef} />
           </div>
 
+          {/* @mention-forslag */}
+          {mentionForslag.length > 0 && (
+            <div
+              className="flex flex-wrap gap-1.5 mt-2 px-1"
+            >
+              {mentionForslag.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => velgMention(p.navn!)}
+                  className="text-[13px] px-3 py-1.5 rounded-[10px]"
+                  style={{
+                    background: 'var(--bg-elevated-2)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  @{p.navn}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input */}
           <div className="flex gap-2 mt-2">
             <input
               ref={inputRef}
               type="text"
               value={tekst}
-              onChange={e => setTekst(e.target.value)}
+              onChange={e => { setTekst(e.target.value); oppdaterMentionSøk(e.target.value) }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
               placeholder="Skriv en melding..."
               maxLength={500}
