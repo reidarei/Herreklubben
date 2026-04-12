@@ -37,7 +37,6 @@ export default function Chat({
   initialMeldinger: Melding[]
   profiler: Profil[]
 }) {
-  const [aapen, setAapen] = useState(false)
   const [meldinger, setMeldinger] = useState<Melding[]>(initialMeldinger)
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
@@ -60,8 +59,6 @@ export default function Chat({
     const sisteAt = verdi.lastIndexOf('@')
     if (sisteAt === -1) { setMentionSøk(null); return }
     const etterAt = verdi.slice(sisteAt + 1)
-    // Aktiv mention: ingen mellomrom-etter-mellomrom (dvs. maks ett ord-mellomrom)
-    // Deaktiver hvis bruker har skrevet ferdig (avslutter med to mellomrom)
     if (etterAt.endsWith('  ') || etterAt.includes('\n')) { setMentionSøk(null); return }
     setMentionSøk(etterAt)
   }
@@ -87,15 +84,32 @@ export default function Chat({
     if (erNærBunn) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
+  // Scroll til bunn ved mount
+  useEffect(() => {
+    setTimeout(scrollTilBunn, 100)
+  }, [scrollTilBunn])
+
+  // Skjul bottom-nav når input har fokus (tastatur åpent på mobil)
+  useEffect(() => {
+    function handleFocus() { document.documentElement.classList.add('chat-input-fokus') }
+    function handleBlur() { document.documentElement.classList.remove('chat-input-fokus') }
+    const input = inputRef.current
+    if (!input) return
+    input.addEventListener('focus', handleFocus)
+    input.addEventListener('blur', handleBlur)
+    return () => {
+      input.removeEventListener('focus', handleFocus)
+      input.removeEventListener('blur', handleBlur)
+      document.documentElement.classList.remove('chat-input-fokus')
+    }
+  }, [])
+
   // Realtime-subscription
   useEffect(() => {
-    if (!aapen) return
-
     let cancelled = false
     const supabase = createClient()
 
     async function startSubscription() {
-      // Sørg for at Realtime-tilkoblingen har auth-tokenet (kreves av RLS)
       const { data: { session } } = await supabase.auth.getSession()
       if (cancelled || !session) return
 
@@ -112,7 +126,6 @@ export default function Chat({
           const ny = payload.new as Melding
           setMeldinger(prev => {
             if (prev.some(m => m.id === ny.id)) return prev
-            // Fjern optimistisk temp-melding med samme innhold fra samme bruker
             const utenTemp = prev.filter(m =>
               !(m.id.startsWith('temp-') && m.profil_id === ny.profil_id && m.innhold === ny.innhold)
             )
@@ -139,12 +152,10 @@ export default function Chat({
       cancelled = true
       if (channelRef) supabase.removeChannel(channelRef)
     }
-  }, [aapen, arrangementId])
+  }, [arrangementId])
 
   // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen)
   useEffect(() => {
-    if (!aapen) return
-
     async function reFetch() {
       if (document.visibilityState !== 'visible') return
       const supabase = createClient()
@@ -159,7 +170,7 @@ export default function Chat({
 
     document.addEventListener('visibilitychange', reFetch)
     return () => document.removeEventListener('visibilitychange', reFetch)
-  }, [aapen, arrangementId])
+  }, [arrangementId])
 
   async function handleSend() {
     const melding = tekst.trim()
@@ -168,7 +179,6 @@ export default function Chat({
     setMentionSøk(null)
     setSender(true)
 
-    // Optimistisk: vis meldingen med en gang
     const tempId = `temp-${Date.now()}`
     const optimistisk: Melding = {
       id: tempId,
@@ -181,7 +191,6 @@ export default function Chat({
     try {
       await sendMelding(arrangementId, melding)
     } catch {
-      // Fjern optimistisk melding ved feil
       setMeldinger(prev => prev.filter(m => m.id !== tempId))
     } finally {
       setSender(false)
@@ -194,7 +203,6 @@ export default function Chat({
     try {
       await slettMelding(id)
     } catch {
-      // Re-fetch ved feil
       const supabase = createClient()
       const { data } = await supabase
         .from('arrangement_chat')
@@ -206,7 +214,6 @@ export default function Chat({
     }
   }
 
-  // Vis tidsstempel når det er >5 min mellom meldinger
   function visTid(idx: number): boolean {
     if (idx === 0) return true
     const forrige = new Date(meldinger[idx - 1].opprettet).getTime()
@@ -216,150 +223,142 @@ export default function Chat({
 
   return (
     <div className="mt-6">
-      <button
-        onClick={() => { setAapen(!aapen); if (!aapen) setTimeout(scrollTilBunn, 100) }}
-        className="flex items-center gap-2 text-sm font-semibold w-full py-2"
-        style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+      <p
+        className="flex items-center gap-2 text-sm font-semibold py-2"
+        style={{ color: 'var(--text-secondary)' }}
       >
         <ChatBubbleLeftRightIcon className="w-4 h-4" />
         Chat {meldinger.length > 0 && `(${meldinger.length})`}
-        <span style={{ marginLeft: 'auto', fontSize: '12px' }}>{aapen ? '▲' : '▼'}</span>
-      </button>
+      </p>
 
-      {aapen && (
-        <div className="mt-2">
-          {/* Meldingsliste */}
-          <div
-            ref={scrollRef}
-            className="space-y-1 overflow-y-auto rounded-2xl p-3"
-            style={{
-              maxHeight: '360px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {meldinger.length === 0 && (
-              <p className="text-center text-sm py-6" style={{ color: 'var(--text-tertiary)' }}>
-                Ingen meldinger ennå. Skriv noe!
-              </p>
-            )}
+      {/* Meldingsliste */}
+      <div
+        ref={scrollRef}
+        className="space-y-1 overflow-y-auto rounded-2xl p-3"
+        style={{
+          maxHeight: '360px',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        {meldinger.length === 0 && (
+          <p className="text-center text-sm py-6" style={{ color: 'var(--text-tertiary)' }}>
+            Ingen meldinger ennå. Skriv noe!
+          </p>
+        )}
 
-            {meldinger.map((m, idx) => {
-              const erEgen = m.profil_id === brukerId
-              const kanSlette = erEgen || erAdmin
-              return (
-                <div key={m.id}>
-                  {visTid(idx) && (
-                    <p className="text-center text-[11px] py-1.5" style={{ color: 'var(--text-tertiary)' }}>
-                      {formaterDato(m.opprettet, "d. MMM 'kl.' HH:mm")}
+        {meldinger.map((m, idx) => {
+          const erEgen = m.profil_id === brukerId
+          const kanSlette = erEgen || erAdmin
+          return (
+            <div key={m.id}>
+              {visTid(idx) && (
+                <p className="text-center text-[11px] py-1.5" style={{ color: 'var(--text-tertiary)' }}>
+                  {formaterDato(m.opprettet, "d. MMM 'kl.' HH:mm")}
+                </p>
+              )}
+              <div style={{ display: 'flex', justifyContent: erEgen ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '80%' }}>
+                  {!erEgen && (
+                    <p className="text-[11px] mb-0.5 px-1" style={{ color: 'var(--text-tertiary)' }}>
+                      {profilMap.get(m.profil_id) ?? 'Ukjent'}
                     </p>
                   )}
-                  <div style={{ display: 'flex', justifyContent: erEgen ? 'flex-end' : 'flex-start' }}>
-                    <div style={{ maxWidth: '80%' }}>
-                      {!erEgen && (
-                        <p className="text-[11px] mb-0.5 px-1" style={{ color: 'var(--text-tertiary)' }}>
-                          {profilMap.get(m.profil_id) ?? 'Ukjent'}
-                        </p>
-                      )}
-                      <div
-                        className="group relative rounded-2xl px-3 py-2 text-sm"
+                  <div
+                    className="group relative rounded-2xl px-3 py-2 text-sm"
+                    style={{
+                      background: erEgen ? 'var(--accent)' : 'var(--bg-elevated-2)',
+                      color: erEgen ? '#0a0a0a' : 'var(--text-primary)',
+                      borderBottomRightRadius: erEgen ? '4px' : undefined,
+                      borderBottomLeftRadius: !erEgen ? '4px' : undefined,
+                    }}
+                  >
+                    <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {renderMedMentions(m.innhold, erEgen)}
+                    </span>
+                    {kanSlette && !m.id.startsWith('temp-') && (
+                      <button
+                        onClick={() => handleSlett(m.id)}
+                        className="absolute -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         style={{
-                          background: erEgen ? 'var(--accent)' : 'var(--bg-elevated-2)',
-                          color: erEgen ? '#0a0a0a' : 'var(--text-primary)',
-                          borderBottomRightRadius: erEgen ? '4px' : undefined,
-                          borderBottomLeftRadius: !erEgen ? '4px' : undefined,
+                          [erEgen ? 'left' : 'right']: '-8px',
+                          background: 'var(--bg-elevated)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '50%',
+                          width: '22px',
+                          height: '22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          padding: 0,
                         }}
                       >
-                        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                          {renderMedMentions(m.innhold, erEgen)}
-                        </span>
-                        {kanSlette && !m.id.startsWith('temp-') && (
-                          <button
-                            onClick={() => handleSlett(m.id)}
-                            className="absolute -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{
-                              [erEgen ? 'left' : 'right']: '-8px',
-                              background: 'var(--bg-elevated)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '50%',
-                              width: '22px',
-                              height: '22px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              padding: 0,
-                            }}
-                          >
-                            <TrashIcon className="w-3 h-3" style={{ color: 'var(--destructive)' }} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                        <TrashIcon className="w-3 h-3" style={{ color: 'var(--destructive)' }} />
+                      </button>
+                    )}
                   </div>
                 </div>
-              )
-            })}
-            <div ref={bunnenRef} />
-          </div>
-
-          {/* @mention-forslag */}
-          {mentionForslag.length > 0 && (
-            <div
-              className="flex flex-wrap gap-1.5 mt-2 px-1"
-            >
-              {mentionForslag.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => velgMention(p.navn!)}
-                  className="text-[13px] px-3 py-1.5 rounded-[10px]"
-                  style={{
-                    background: 'var(--bg-elevated-2)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--accent)',
-                    fontFamily: 'inherit',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  @{p.navn}
-                </button>
-              ))}
+              </div>
             </div>
-          )}
+          )
+        })}
+        <div ref={bunnenRef} />
+      </div>
 
-          {/* Input */}
-          <div className="flex gap-2 mt-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={tekst}
-              onChange={e => { setTekst(e.target.value); oppdaterMentionSøk(e.target.value) }}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-              placeholder="Skriv en melding..."
-              maxLength={500}
-              className="flex-1 text-sm rounded-xl px-3 py-2"
+      {/* @mention-forslag */}
+      {mentionForslag.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2 px-1">
+          {mentionForslag.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => velgMention(p.navn!)}
+              className="text-[13px] px-3 py-1.5 rounded-[10px]"
               style={{
                 background: 'var(--bg-elevated-2)',
                 border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
+                color: 'var(--accent)',
                 fontFamily: 'inherit',
-                outline: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
               }}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!tekst.trim() || sender}
-              className="rounded-xl px-3 py-2 disabled:opacity-30"
-              style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer' }}
             >
-              <PaperAirplaneIcon className="w-4 h-4" style={{ color: '#0a0a0a' }} />
+              @{p.navn}
             </button>
-          </div>
+          ))}
         </div>
       )}
+
+      {/* Input */}
+      <div className="flex gap-2 mt-2">
+        <input
+          ref={inputRef}
+          type="text"
+          value={tekst}
+          onChange={e => { setTekst(e.target.value); oppdaterMentionSøk(e.target.value) }}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+          placeholder="Skriv en melding..."
+          maxLength={500}
+          className="flex-1 text-sm rounded-xl px-3 py-2"
+          style={{
+            background: 'var(--bg-elevated-2)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            fontFamily: 'inherit',
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!tekst.trim() || sender}
+          className="rounded-xl px-3 py-2 disabled:opacity-30"
+          style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer' }}
+        >
+          <PaperAirplaneIcon className="w-4 h-4" style={{ color: '#0a0a0a' }} />
+        </button>
+      </div>
     </div>
   )
 }

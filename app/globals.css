@@ -56,3 +56,8 @@ body {
 .page-enter {
   animation: page-fadein 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
+
+/* Skjul bottom-nav når chat-input har fokus (tastatur åpent på mobil) */
+.chat-input-fokus nav.fixed {
+  display: none;
+}
