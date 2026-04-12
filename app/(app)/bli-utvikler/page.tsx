@@ -38,7 +38,7 @@ export default function BliUtvikler() {
 
   if (sendt) {
     return (
-      <div className="max-w-lg mx-auto px-5 pt-6">
+      <div className="max-w-lg mx-auto px-5 pt-10">
         <div
           className="rounded-2xl p-6 text-center"
           style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
