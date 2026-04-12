@@ -80,7 +80,7 @@ export default function BliUtvikler() {
         className="text-[26px] font-bold mb-2"
         style={{ color: 'var(--text-primary)', letterSpacing: '-0.4px' }}
       >
-        Bli en utvikler
+        Bidra til en bedre app
       </h1>
       <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
         Savner du noe i Herreklubb-appen? Skriv hva du ønsker deg — en ny funksjon,
@@ -95,10 +95,9 @@ export default function BliUtvikler() {
           color: 'var(--text-primary)',
         }}
       >
-        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Savner du noe i Herreklubb-appen?.</span>{' '}
-        Savner du noe i Herreklubb-appen? Skriv hva du ønsker deg — en ny funksjon,
-        en forbedring, en bug du har opplevd, eller bare en idé. Ønsket sendes til
-        utviklerne som ser på det ved neste anledning.
+        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Vær konkret</span>{' '}
+        <br />
+        Vær så konkret som mulig så det blir enkelt å gjennomføre endringen. beskriv hva du vil og hvorfor
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,7 +113,7 @@ export default function BliUtvikler() {
             onChange={e => setTekst(e.target.value)}
             required
             rows={8}
-            placeholder="F.eks. «Jeg skulle ønske vi kunne legge til bilder fra turene våre», «Det hadde vært kult med en kart-visning over destinasjoner», ..."
+            placeholder="F.eks. « jeg skulle ønske det var en tilbakemeldings knapp jeg appen. Når man trykker på denne skal man komme inn i et skjema der man kan skrive inn ønsket sitt og trykke på en knapp som heter send inn ønske hvor man trykker på denne knappen skal man få en kvittering og så skal ønske gå til utviklerne for utvikling», ..."
             style={{
               background: 'var(--bg-elevated-2)',
               border: '1px solid var(--border)',
