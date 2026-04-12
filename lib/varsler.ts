@@ -1,8 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
-import { format } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import { nb } from 'date-fns/locale'
+
+const TIDSSONE = 'Europe/Oslo'
+
+// Formater dato i norsk tidssone — viktig fordi serveren kjører i UTC (Dublin)
+function formaterDato(iso: string): string {
+  return formatInTimeZone(new Date(iso), TIDSSONE, "d. MMMM 'kl.' HH:mm", { locale: nb })
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
@@ -98,7 +105,7 @@ export async function sendOppdatertVarsler({
   tittel: string
   startTidspunkt: string
 }) {
-  const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
+  const dato = formaterDato(startTidspunkt)
   await sendTilAlle({
     pushPayload: { tittel: 'Arrangement oppdatert', melding: `${tittel} — ${dato}` },
     epostEmne: `Oppdatert: ${tittel}`,
@@ -119,7 +126,7 @@ export async function sendNyttArrangementVarsler({
 }) {
   if (!(await erVarselAktiv('nytt_arrangement'))) return
 
-  const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
+  const dato = formaterDato(startTidspunkt)
   await sendTilAlle({
     pushPayload: { tittel: 'Nytt arrangement', melding: `${tittel} — ${dato}` },
     epostEmne: `Nytt arrangement: ${tittel}`,
@@ -158,7 +165,7 @@ export async function sendPaaminneVarsler({
     .maybeSingle()
   if (logg) return
 
-  const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
+  const dato = formaterDato(startTidspunkt)
   const melding = dager === 7
     ? `${tittel} er om 7 dager — ${dato}`
     : `${tittel} er i morgen — ${dato}`
@@ -208,7 +215,7 @@ export async function sendPurringVarsler({
   const utenSvar = profiler.filter(p => !harSvart.has(p.id))
   if (utenSvar.length === 0) return
 
-  const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
+  const dato = formaterDato(startTidspunkt)
   const profilIder = utenSvar.map(p => p.id)
   const subs = await hentPushSubscriptions(profilIder)
   const url = `${BASE_URL}/arrangementer/${arrangementId}`
