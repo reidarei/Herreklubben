@@ -26,7 +26,7 @@ export default function VarsleNuKnapp({ arrangementId }: { arrangementId: string
       variant={status === 'ok' ? 'primary' : status === 'feil' ? 'destructive' : 'secondary'}
       className="text-sm"
     >
-      {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Varslet' : status === 'feil' ? '✗ Feil' : 'Varsle nå'}
+      {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Varslet' : status === 'feil' ? '✗ Feil' : 'Varsle om oppdatering'}
     </Button>
   )
 }

@@ -96,6 +96,25 @@ async function sendTilAlle({
   )
 }
 
+// Arrangement oppdatert — sendes til alle umiddelbart, ingen duplikatsjekk
+export async function sendOppdatertVarsler({
+  arrangementId,
+  tittel,
+  startTidspunkt,
+}: {
+  arrangementId: string
+  tittel: string
+  startTidspunkt: string
+}) {
+  const dato = format(new Date(startTidspunkt), "d. MMMM 'kl.' HH:mm", { locale: nb })
+  await sendTilAlle({
+    pushPayload: { tittel: 'Arrangement oppdatert', melding: `${tittel} — ${dato}` },
+    epostEmne: `Oppdatert: ${tittel}`,
+    epostTekst: `Arrangementet <strong>${tittel}</strong> (${dato}) er oppdatert. Sjekk detaljene i appen.`,
+    arrangementId,
+  })
+}
+
 // Nytt arrangement opprettet
 export async function sendNyttArrangementVarsler({
   arrangementId,

@@ -3,7 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { sendNyttArrangementVarsler, sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
+import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 
 export type ArrangementInput = {
@@ -110,26 +110,12 @@ export async function varslOmArrangement(arrangementId: string) {
   const erOpprettet = arrangement.opprettet_av === user.id
   if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
 
-  // Send varsler for alle tre typer
-  await Promise.all([
-    sendPaaminneVarsler({
-      arrangementId: arrangement.id,
-      tittel: arrangement.tittel,
-      startTidspunkt: arrangement.start_tidspunkt,
-      type: 'paaminne_7',
-    }).catch(console.error),
-    sendPaaminneVarsler({
-      arrangementId: arrangement.id,
-      tittel: arrangement.tittel,
-      startTidspunkt: arrangement.start_tidspunkt,
-      type: 'paaminne_1',
-    }).catch(console.error),
-    sendPurringVarsler({
-      arrangementId: arrangement.id,
-      tittel: arrangement.tittel,
-      startTidspunkt: arrangement.start_tidspunkt,
-    }).catch(console.error),
-  ])
+  // Send én oppdatert-varsling til alle
+  await sendOppdatertVarsler({
+    arrangementId: arrangement.id,
+    tittel: arrangement.tittel,
+    startTidspunkt: arrangement.start_tidspunkt,
+  })
 
   revalidatePath(`/arrangementer/${arrangementId}`)
 }
