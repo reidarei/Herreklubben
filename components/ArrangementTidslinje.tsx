@@ -34,9 +34,17 @@ type Bursdag = {
   alder: number
 }
 
+type IkkePlanlagt = {
+  id: string
+  arrangementNavn: string
+  ansvarlige: string[]
+  estimertDato: string
+}
+
 type TidslinjeItem =
   | { type: 'arrangement'; data: Arrangement }
   | { type: 'bursdag'; data: Bursdag }
+  | { type: 'ikke-planlagt'; data: IkkePlanlagt }
 
 function statusBadge(status: string | undefined, fortid?: boolean) {
   if (status === 'ja') return { label: fortid ? 'Du svarte ja' : 'Påmeldt', variant: 'success' as const }
@@ -47,6 +55,7 @@ function statusBadge(status: string | undefined, fortid?: boolean) {
 
 function itemDag(item: TidslinjeItem): Date {
   if (item.type === 'arrangement') return norskDag(item.data.start_tidspunkt)
+  if (item.type === 'ikke-planlagt') return norskDag(item.data.estimertDato)
   const [yr, mnd, dag] = item.data.dato.split('-').map(Number)
   return new Date(yr, mnd - 1, dag)
 }
@@ -64,16 +73,19 @@ export default function ArrangementTidslinje({
   arrangementer,
   innloggetBrukerId,
   bursdager = [],
+  ikkePlanlagt = [],
   lastMerKnapp,
 }: {
   arrangementer: Arrangement[]
   innloggetBrukerId: string
   bursdager?: Bursdag[]
+  ikkePlanlagt?: IkkePlanlagt[]
   lastMerKnapp?: React.ReactNode
 }) {
   const alleItems: TidslinjeItem[] = [
     ...arrangementer.map(a => ({ type: 'arrangement' as const, data: a })),
     ...bursdager.map(b => ({ type: 'bursdag' as const, data: b })),
+    ...ikkePlanlagt.map(p => ({ type: 'ikke-planlagt' as const, data: p })),
   ]
 
   const tidligereItems = alleItems
@@ -230,8 +242,55 @@ export default function ArrangementTidslinje({
     )
   }
 
+  function IkkePlanlagtKort({ data, fortid }: { data: IkkePlanlagt; fortid?: boolean }) {
+    return (
+      <Link
+        href="/arrangoransvar"
+        className="block rounded-2xl overflow-hidden"
+        style={{
+          background: 'var(--bg)',
+          border: '2px dashed var(--border)',
+          opacity: fortid ? 0.4 : 0.7,
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
+        <div className="px-5 py-6 flex items-center gap-4">
+          <span
+            className="flex items-center justify-center rounded-full shrink-0"
+            style={{
+              width: '48px',
+              height: '48px',
+              background: 'var(--bg-elevated)',
+              border: '2px dashed var(--border)',
+              color: 'var(--text-tertiary)',
+              fontSize: '24px',
+              fontWeight: 700,
+            }}
+          >
+            ?
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+              {data.arrangementNavn}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+              Ikke planlagt ennå
+            </p>
+            {data.ansvarlige.length > 0 && (
+              <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                Ansvarlig{data.ansvarlige.length > 1 ? 'e' : ''}: {data.ansvarlige.join(', ')}
+              </p>
+            )}
+          </div>
+        </div>
+      </Link>
+    )
+  }
+
   function RenderItem({ item, fortid, prioritert, idag }: { item: TidslinjeItem; fortid?: boolean; prioritert?: boolean; idag?: boolean }) {
     if (item.type === 'arrangement') return <ArrangementKort arr={item.data} fortid={fortid} prioritert={prioritert} idag={idag} />
+    if (item.type === 'ikke-planlagt') return <IkkePlanlagtKort data={item.data} fortid={fortid} />
     return <BursdagNotis bursdag={item.data} fortid={fortid} idag={idag} />
   }
 

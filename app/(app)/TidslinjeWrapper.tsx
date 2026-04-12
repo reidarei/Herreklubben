@@ -29,6 +29,13 @@ type Arrangement = {
   paameldinger: Paamelding[]
 }
 
+type IkkePlanlagt = {
+  id: string
+  arrangementNavn: string
+  ansvarlige: string[]
+  estimertDato: string
+}
+
 const MAKS_FREM = 48
 
 function beregnBursdager(profiler: ProfilMedBursdag[], frem: number) {
@@ -61,10 +68,12 @@ export default function TidslinjeWrapper({
   arrangementer,
   profilerMedBursdag,
   innloggetBrukerId,
+  ikkePlanlagt = [],
 }: {
   arrangementer: Arrangement[]
   profilerMedBursdag: ProfilMedBursdag[]
   innloggetBrukerId: string
+  ikkePlanlagt?: IkkePlanlagt[]
 }) {
   const [frem, setFrem] = useState(12)
   const [pending, startTransition] = useTransition()
@@ -88,6 +97,7 @@ export default function TidslinjeWrapper({
       arrangementer={arrangementer}
       innloggetBrukerId={innloggetBrukerId}
       bursdager={bursdager}
+      ikkePlanlagt={ikkePlanlagt}
       lastMerKnapp={lastMerKnapp}
     />
   )

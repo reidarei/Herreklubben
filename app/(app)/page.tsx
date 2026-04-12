@@ -4,6 +4,24 @@ import TidslinjeWrapper from './TidslinjeWrapper'
 import Link from 'next/link'
 import { subMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
+import { norskAar } from '@/lib/dato'
+
+function maanedFraNavn(navn: string): number {
+  const lower = navn.toLowerCase()
+  const maaneder: [string, number][] = [
+    ['januar', 1], ['februar', 2], ['mars', 3], ['april', 4],
+    ['mai', 5], ['juni', 6], ['juli', 7], ['august', 8],
+    ['september', 9], ['oktober', 10], ['november', 11], ['desember', 12],
+    ['jule', 12],
+  ]
+  const funnet: number[] = []
+  for (const [m, num] of maaneder) {
+    if (lower.includes(m) && !funnet.includes(num)) funnet.push(num)
+  }
+  if (funnet.length === 0) return 6
+  if (funnet.length === 1) return funnet[0]
+  return Math.round((funnet[0] + funnet[funnet.length - 1]) / 2)
+}
 
 export default async function Forside() {
   const [user, supabase] = await Promise.all([
@@ -12,8 +30,9 @@ export default async function Forside() {
   ])
 
   const toMndSiden = subMonths(new Date(), 3)
+  const aar = norskAar()
 
-  const [{ data: arrangementer }, { data: profilerMedBursdag }] = await Promise.all([
+  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(`
@@ -29,7 +48,28 @@ export default async function Forside() {
       .select('id, visningsnavn, fodselsdato')
       .eq('aktiv', true)
       .not('fodselsdato', 'is', null),
+    supabase
+      .from('arrangoransvar')
+      .select('arrangement_navn, ansvarlig_id, profiles (visningsnavn)')
+      .eq('aar', aar)
+      .is('arrangement_id', null),
   ])
+
+  // Grupper uplanlagte arrangementer etter navn
+  const uplanlagteMap = new Map<string, string[]>()
+  for (const a of ansvar ?? []) {
+    const navn = a.arrangement_navn
+    if (!uplanlagteMap.has(navn)) uplanlagteMap.set(navn, [])
+    const profNavn = (a.profiles as { visningsnavn: string | null } | null)?.visningsnavn
+    if (profNavn) uplanlagteMap.get(navn)!.push(profNavn)
+  }
+
+  const ikkePlanlagt = [...uplanlagteMap.entries()].map(([navn, ansvarlige]) => ({
+    id: `uplanlagt-${aar}-${navn}`,
+    arrangementNavn: navn,
+    ansvarlige,
+    estimertDato: `${aar}-${String(maanedFraNavn(navn)).padStart(2, '0')}-15T12:00:00Z`,
+  }))
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
@@ -59,6 +99,7 @@ export default async function Forside() {
           arrangementer={arrangementer}
           profilerMedBursdag={profilerMedBursdag ?? []}
           innloggetBrukerId={user!.id}
+          ikkePlanlagt={ikkePlanlagt}
         />
       )}
     </div>
