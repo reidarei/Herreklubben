@@ -84,10 +84,12 @@ export default function Chat({
     if (erNærBunn) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
-  // Scroll til bunn ved mount
+  // Scroll chat-boksen til bunn ved mount (uten å scrolle hele siden)
   useEffect(() => {
-    setTimeout(scrollTilBunn, 100)
-  }, [scrollTilBunn])
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [])
 
   // Skjul bottom-nav når input har fokus (tastatur åpent på mobil)
   useEffect(() => {
