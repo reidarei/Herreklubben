@@ -1,9 +1,3 @@
 {
-  "regions": ["dub1"],
-  "crons": [
-    {
-      "path": "/api/cron/paaminne",
-      "schedule": "0 8 * * *"
-    }
-  ]
+  "regions": ["dub1"]
 }
