@@ -15,6 +15,15 @@ type Melding = {
 
 type Profil = { id: string; navn: string | null }
 
+function renderMedMentions(tekst: string, erEgen: boolean) {
+  const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
+  return deler.map((del, i) =>
+    del.startsWith('@') ? (
+      <span key={i} style={{ fontWeight: 600, color: erEgen ? '#0a0a0a' : 'var(--accent)' }}>{del}</span>
+    ) : del
+  )
+}
+
 export default function Chat({
   arrangementId,
   brukerId,
@@ -232,7 +241,9 @@ export default function Chat({
                           borderBottomLeftRadius: !erEgen ? '4px' : undefined,
                         }}
                       >
-                        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.innhold}</span>
+                        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          {renderMedMentions(m.innhold, erEgen)}
+                        </span>
                         {kanSlette && !m.id.startsWith('temp-') && (
                           <button
                             onClick={() => handleSlett(m.id)}
