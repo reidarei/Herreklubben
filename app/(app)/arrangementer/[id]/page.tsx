@@ -19,6 +19,7 @@ import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import SladdetFelt from '@/components/SladdetFelt'
 import LocalTid from '@/components/LocalTid'
+import Chat from './Chat'
 
 export default async function ArrangementDetaljer({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ varslet?: string }> }) {
   const [{ id }, { varslet }] = await Promise.all([params, searchParams])
@@ -28,16 +29,28 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
     getProfil(),
   ])
 
-  const { data: arr } = await supabase
-    .from('arrangementer')
-    .select(`
-      id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
-      oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
-      bilde_url,
-      paameldinger (profil_id, status, profiles (navn))
-    `)
-    .eq('id', id)
-    .single()
+  const [{ data: arr }, { data: chatMeldinger }, { data: chatProfiler }] = await Promise.all([
+    supabase
+      .from('arrangementer')
+      .select(`
+        id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
+        oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
+        bilde_url,
+        paameldinger (profil_id, status, profiles (navn))
+      `)
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('arrangement_chat')
+      .select('id, profil_id, innhold, opprettet')
+      .eq('arrangement_id', id)
+      .order('opprettet')
+      .limit(100),
+    supabase
+      .from('profiles')
+      .select('id, navn')
+      .eq('aktiv', true),
+  ])
 
   if (!arr) notFound()
   const erAdmin = profil?.rolle === 'admin'
@@ -215,6 +228,14 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
           })}
         </div>
 
+        {/* Chat */}
+        <Chat
+          arrangementId={id}
+          brukerId={user!.id}
+          erAdmin={erAdmin}
+          initialMeldinger={chatMeldinger ?? []}
+          profiler={chatProfiler ?? []}
+        />
 
       </div>
     </div>

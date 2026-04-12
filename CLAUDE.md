@@ -44,9 +44,8 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 ## Scope
 
 Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig scope. Kortversjon:
-- **v1:** Arrangementer + påmelding, varsler, medlemsliste, vedtekter/historikk, statistikk, kåringer, roller/ansvar per år.
+- **v1:** Arrangementer + påmelding, varsler, medlemsliste, vedtekter/historikk, statistikk, kåringer, roller/ansvar per år, chat per arrangement.
 - **v2:** Bildedeling, kåringsavstemning.
-- **Aldri:** Kommentarer, chat.
 
 ## Ytelseskrav
 
