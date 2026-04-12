@@ -108,7 +108,9 @@ export default function BliUtvikler() {
           >
             Hva ønsker du deg?
           </label>
+          <style>{`textarea.ønske-felt::placeholder { color: var(--text-tertiary); opacity: 1; }`}</style>
           <textarea
+            className="ønske-felt"
             value={tekst}
             onChange={e => setTekst(e.target.value)}
             required
