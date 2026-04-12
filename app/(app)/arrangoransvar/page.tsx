@@ -43,10 +43,11 @@ export default async function Arrangoransvar() {
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
           >
             {fasteArrangementer.map((navn, i) => {
-              const rad = (ansvar ?? []).find(
+              const rader = (ansvar ?? []).filter(
                 a => a.aar === aar && a.arrangement_navn.trim().toLowerCase() === navn.toLowerCase()
               )
-              const erMitt = rad?.ansvarlig_id === user!.id
+              const erMitt = rader.some(r => r.ansvarlig_id === user!.id)
+              const lenketArr = rader.find(r => r.arrangementer)?.arrangementer
 
               return (
                 <div
@@ -63,22 +64,25 @@ export default async function Arrangoransvar() {
                         {navn}
                         {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--accent)' }}>← deg</span>}
                       </p>
-                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                        {rad?.profiles?.navn ?? <span style={{ color: 'var(--text-tertiary)' }}>Ingen ansvarlig</span>}
-                      </p>
-                      {rad?.arrangementer ? (
-                        <Link href={`/arrangementer/${rad.arrangementer.id}`} className="text-xs mt-0.5 inline-block" style={{ color: 'var(--success)' }}>
-                          {new Date(rad.arrangementer.start_tidspunkt) < new Date() ? '✓ Gjennomført' : '✓ Lagt inn'}
+                      {rader.filter(r => r.profiles).length > 0 ? (
+                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                          {rader.filter(r => r.profiles).map(r => r.profiles!.navn).join(', ')}
+                        </p>
+                      ) : (
+                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Ingen ansvarlig</p>
+                      )}
+                      {lenketArr ? (
+                        <Link href={`/arrangementer/${lenketArr.id}`} className="text-xs mt-0.5 inline-block" style={{ color: 'var(--success)' }}>
+                          {new Date(lenketArr.start_tidspunkt) < new Date() ? '✓ Gjennomført' : '✓ Lagt inn'}
                         </Link>
                       ) : (
                         <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Ikke lagt inn ennå</p>
                       )}
                       {erAdmin && (
                         <AnsvarAdmin
-                          ansvarId={rad?.id}
+                          ansvarlige={rader.filter(r => r.ansvarlig_id).map(r => ({ ansvarId: r.id, profilId: r.ansvarlig_id! }))}
                           arrangementNavn={navn}
                           aar={aar}
-                          ansvarligId={rad?.ansvarlig_id}
                           medlemmer={medlemmer ?? []}
                         />
                       )}
