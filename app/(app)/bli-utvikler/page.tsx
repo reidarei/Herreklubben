@@ -95,9 +95,10 @@ export default function BliUtvikler() {
           color: 'var(--text-primary)',
         }}
       >
-        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Helt anonymt.</span>{' '}
-        Selv om du er innlogget, blir ikke navnet ditt sendt med. Utviklerne ser
-        bare selve ønsket.
+        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Savner du noe i Herreklubb-appen?.</span>{' '}
+        Savner du noe i Herreklubb-appen? Skriv hva du ønsker deg — en ny funksjon,
+        en forbedring, en bug du har opplevd, eller bare en idé. Ønsket sendes til
+        utviklerne som ser på det ved neste anledning.
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
