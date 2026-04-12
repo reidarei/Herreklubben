@@ -343,6 +343,8 @@ export default function Chat({
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Skriv en melding..."
           maxLength={500}
+          enterKeyHint="send"
+          autoComplete="off"
           className="flex-1 text-sm rounded-xl px-3 py-2"
           style={{
             background: 'var(--bg-elevated-2)',
