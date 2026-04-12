@@ -6,7 +6,8 @@ import { subMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
 import { norskAar } from '@/lib/dato'
 
-function maanedFraNavn(navn: string): number {
+// Returnerer [måned, dag] for omtrentlig midtpunkt av perioden
+function estimertDatoFraNavn(navn: string): [number, number] {
   const lower = navn.toLowerCase()
   const maaneder: [string, number][] = [
     ['januar', 1], ['februar', 2], ['mars', 3], ['april', 4],
@@ -18,9 +19,10 @@ function maanedFraNavn(navn: string): number {
   for (const [m, num] of maaneder) {
     if (lower.includes(m) && !funnet.includes(num)) funnet.push(num)
   }
-  if (funnet.length === 0) return 6
-  if (funnet.length === 1) return funnet[0]
-  return Math.round((funnet[0] + funnet[funnet.length - 1]) / 2)
+  if (funnet.length === 0) return [6, 15]
+  if (funnet.length === 1) return [funnet[0], 15]
+  // To måneder: midtpunktet er ca. 1. i den siste måneden
+  return [funnet[funnet.length - 1], 1]
 }
 
 export default async function Forside() {
@@ -68,7 +70,7 @@ export default async function Forside() {
     id: `uplanlagt-${aar}-${navn}`,
     arrangementNavn: navn,
     ansvarlige,
-    estimertDato: `${aar}-${String(maanedFraNavn(navn)).padStart(2, '0')}-15T12:00:00Z`,
+    estimertDato: (() => { const [m, d] = estimertDatoFraNavn(navn); return `${aar}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T12:00:00Z` })(),
   }))
 
   return (
