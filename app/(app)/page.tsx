@@ -34,7 +34,7 @@ export default async function Forside() {
   const toMndSiden = subMonths(new Date(), 3)
   const aar = norskAar()
 
-  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }] = await Promise.all([
+  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }, { count: pushCount }] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(`
@@ -55,6 +55,10 @@ export default async function Forside() {
       .select('arrangement_navn, ansvarlig_id, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
+    supabase
+      .from('push_subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('profil_id', user!.id),
   ])
 
   // Grupper uplanlagte arrangementer etter navn
@@ -87,6 +91,22 @@ export default async function Forside() {
           <span className="text-lg leading-none">+</span> Nytt
         </Link>
       </div>
+
+      {pushCount === 0 && (
+        <Link
+          href="/innstillinger"
+          className="flex items-center gap-2.5 px-4 py-3 rounded-xl mb-6 text-sm"
+          style={{
+            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+            color: 'var(--text-secondary)',
+            textDecoration: 'none',
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>🔔</span>
+          <span>Skru på push-varsler så du ikke går glipp av noe</span>
+        </Link>
+      )}
 
       {!arrangementer || arrangementer.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
