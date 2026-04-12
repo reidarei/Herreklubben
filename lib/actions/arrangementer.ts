@@ -47,13 +47,21 @@ export async function opprettArrangement(data: ArrangementInput) {
 
   if (error) throw new Error(error.message)
 
-  // Koble til arrangøransvar hvis valgt
+  // Koble til arrangøransvar hvis valgt — oppdater ALLE rader for samme arrangement/år
   if (data.ansvar_id) {
-    await supabase
+    const { data: ansvarRad } = await supabase
       .from('arrangoransvar')
-      .update({ arrangement_id: arrangement.id })
+      .select('aar, arrangement_navn')
       .eq('id', data.ansvar_id)
-      .eq('ansvarlig_id', user.id)
+      .single()
+
+    if (ansvarRad) {
+      await supabase
+        .from('arrangoransvar')
+        .update({ arrangement_id: arrangement.id })
+        .eq('aar', ansvarRad.aar)
+        .eq('arrangement_navn', ansvarRad.arrangement_navn)
+    }
   }
 
   revalidatePath('/')
