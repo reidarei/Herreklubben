@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { isBefore } from 'date-fns'
+import { useEffect, useRef, useState } from 'react'
 import { formaterDato, norskDag, norskDatoNaa } from '@/lib/dato'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
@@ -69,6 +70,57 @@ function erItemIdag(item: TidslinjeItem): boolean {
   return itemDag(item).getTime() === norskDatoNaa().getTime()
 }
 
+function DeltakerLinje({ navnliste, fortid }: { navnliste: string[]; fortid?: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [visAntall, setVisAntall] = useState(navnliste.length)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    function beregn() {
+      const tilgjengelig = el!.clientWidth
+      if (tilgjengelig === 0) return
+
+      const m = document.createElement('span')
+      const cs = getComputedStyle(el!)
+      m.style.cssText = `visibility:hidden;position:absolute;white-space:nowrap;font:${cs.font}`
+      document.body.appendChild(m)
+
+      let best = 1
+      for (let i = navnliste.length; i >= 1; i--) {
+        const tekst = navnliste.slice(0, i).join(', ')
+        const rest = navnliste.length - i
+        m.textContent = rest > 0
+          ? `${tekst} + ${rest} til${fortid ? ' deltok' : ''}`
+          : `${tekst}${fortid ? ' deltok' : ''}`
+        if (m.offsetWidth <= tilgjengelig) {
+          best = i
+          break
+        }
+      }
+      document.body.removeChild(m)
+      setVisAntall(best)
+    }
+
+    beregn()
+    const ro = new ResizeObserver(beregn)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [navnliste, fortid])
+
+  const visNavn = navnliste.slice(0, visAntall)
+  const resten = navnliste.length - visAntall
+
+  return (
+    <span ref={ref} style={{ flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', display: 'block' }}>
+      {visNavn.join(', ')}
+      {resten > 0 && ` + ${resten} til`}
+      {fortid && ' deltok'}
+    </span>
+  )
+}
+
 export default function ArrangementTidslinje({
   arrangementer,
   innloggetBrukerId,
@@ -105,8 +157,7 @@ export default function ArrangementTidslinje({
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
     const antallJa = jaListe.length
-    const jaNavnListe = jaListe.map(p => p.profiles?.visningsnavn).filter(Boolean).slice(0, 3) as string[]
-    const resten = antallJa - jaNavnListe.length
+    const jaNavnListe = jaListe.map(p => p.profiles?.visningsnavn).filter(Boolean) as string[]
     const erTur = arr.type === 'tur'
     const erSensurert = (felt: string) =>
       (arr.sensurerte_felt as Record<string, boolean> | null)?.[felt] === true
@@ -192,7 +243,7 @@ export default function ArrangementTidslinje({
             className="flex items-center justify-between mt-3.5 pt-3"
             style={{ borderTop: '1px solid var(--border-subtle)' }}
           >
-            <div className="flex items-center gap-1.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-1.5 flex-1 min-w-0" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ background: 'var(--success)' }}
@@ -200,11 +251,7 @@ export default function ArrangementTidslinje({
               {antallJa === 0 ? (
                 <span>{fortid ? 'Ingen deltok' : 'Ingen påmeldt ennå'}</span>
               ) : (
-                <span>
-                  {jaNavnListe.join(', ')}
-                  {resten > 0 && ` + ${resten} andre herrer`}
-                  {fortid && ' deltok'}
-                </span>
+                <DeltakerLinje navnliste={jaNavnListe} fortid={fortid} />
               )}
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
