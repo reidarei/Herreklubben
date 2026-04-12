@@ -47,10 +47,10 @@ export default function BliUtvikler() {
             <SparklesIcon className="w-10 h-10" style={{ color: 'var(--accent)' }} />
           </div>
           <p className="font-semibold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-            Takk, gutten!
+            Takk, Herre!
           </p>
           <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-            Ønsket ditt er sendt til utviklerne. Vi ser på det så fort vi får tid.
+            Ønsket ditt lagt i ei krokke majjones. Vi ser på det så fort vi får tid.
           </p>
           <button
             onClick={() => router.push('/')}
