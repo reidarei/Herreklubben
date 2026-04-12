@@ -66,7 +66,7 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
       {/* Varslet-banner */}
       {varslet === 'true' && (
         <div className="mx-5 mt-5 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)' }}>
-          Alle gutta er varslet om oppdateringen 👍
+          Varsel er sendt 👍
         </div>
       )}
 
