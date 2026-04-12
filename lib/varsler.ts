@@ -35,8 +35,13 @@ async function hentProfiler(unnta?: string) {
   const testEpost = await hentTestModus()
 
   const query = supabase.from('profiles').select('id, navn, epost').eq('aktiv', true)
-  if (testEpost) query.eq('epost', testEpost)
-  if (unnta) query.neq('id', unnta)
+  if (testEpost) {
+    // I test-modus: kun test-eposten, og ignorer unntak (slik at
+    // oppretteren også mottar varselet under testing)
+    query.eq('epost', testEpost)
+  } else if (unnta) {
+    query.neq('id', unnta)
+  }
   const { data } = await query
   return data ?? []
 }
@@ -65,6 +70,7 @@ async function sendTilAlle({
   epostTekst: string
   arrangementId: string
 }) {
+  const testEpost = await hentTestModus()
   const profiler = await hentProfiler(unntaProfilId)
   const profilIder = profiler.map(p => p.id)
   const subs = await hentPushSubscriptions(profilIder)
@@ -74,9 +80,11 @@ async function sendTilAlle({
   // Send push til alle med aktiv subscription
   await Promise.all(subs.map(s => sendPush(s, { ...pushPayload, url })))
 
-  // Send epost til alle uten subscription
+  // Send epost: i test-modus til alle (også de med push), ellers kun de uten push
   const subProfilIder = new Set(subs.map(s => s.profil_id))
-  const utenPush = profiler.filter(p => !subProfilIder.has(p.id))
+  const utenPush = testEpost
+    ? profiler
+    : profiler.filter(p => !subProfilIder.has(p.id))
   const html = arrangementEpostHtml({
     tittel: epostEmne,
     tekst: epostTekst,
