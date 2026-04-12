@@ -17,10 +17,25 @@ async function erVarselAktiv(noekkel: string): Promise<boolean> {
   return data?.aktiv ?? true
 }
 
-// Hent alle aktive profiler
+// Sjekk om test-modus er aktiv — returnerer test-epost eller null
+async function hentTestModus(): Promise<string | null> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('varsel_innstillinger')
+    .select('aktiv, beskrivelse')
+    .eq('noekkel', 'test_modus')
+    .maybeSingle()
+  if (data?.aktiv && data.beskrivelse) return data.beskrivelse
+  return null
+}
+
+// Hent alle aktive profiler (i test-modus: kun profilen med test-eposten)
 async function hentProfiler(unnta?: string) {
   const supabase = createAdminClient()
+  const testEpost = await hentTestModus()
+
   const query = supabase.from('profiles').select('id, navn, epost').eq('aktiv', true)
+  if (testEpost) query.eq('epost', testEpost)
   if (unnta) query.neq('id', unnta)
   const { data } = await query
   return data ?? []
