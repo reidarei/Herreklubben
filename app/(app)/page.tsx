@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { subMonths } from 'date-fns'
 import { CalendarIcon } from '@heroicons/react/24/outline'
 import { norskAar } from '@/lib/dato'
+import PushPaaminnelse from './PushPaaminnelse'
 
 // Returnerer [måned, dag] for omtrentlig midtpunkt av perioden
 function estimertDatoFraNavn(navn: string): [number, number] {
@@ -92,21 +93,7 @@ export default async function Forside() {
         </Link>
       </div>
 
-      {pushCount === 0 && (
-        <Link
-          href="/innstillinger"
-          className="flex items-center gap-2.5 px-4 py-3 rounded-xl mb-6 text-sm"
-          style={{
-            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-            color: 'var(--text-secondary)',
-            textDecoration: 'none',
-          }}
-        >
-          <span style={{ fontSize: '18px' }}>🔔</span>
-          <span>Skru på push-varsler så du ikke går glipp av noe</span>
-        </Link>
-      )}
+      {pushCount === 0 && <PushPaaminnelse />}
 
       {!arrangementer || arrangementer.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
