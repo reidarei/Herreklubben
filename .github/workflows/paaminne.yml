@@ -12,7 +12,12 @@ jobs:
     steps:
       - name: Send påminnelser
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L \
             -X POST "${{ secrets.APP_URL }}/api/cron/paaminne" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json"
+            -H "Content-Type: application/json")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Påminnelse-endepunktet svarte med HTTP $STATUS"
+            exit 1
+          fi
