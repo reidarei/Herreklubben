@@ -1,10 +1,12 @@
 import { cache } from 'react'
 import { createServerClient } from '@/lib/supabase/server'
 
+// Bruker getSession() i stedet for getUser() — leser JWT fra cookie
+// uten nettverkskall til Supabase. Trygt fordi middleware allerede validerer.
 export const getInnloggetBruker = cache(async () => {
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.user ?? null
 })
 
 export const getProfil = cache(async () => {
