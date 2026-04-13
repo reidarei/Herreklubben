@@ -22,6 +22,7 @@ const innstillingLabels: Record<string, string> = {
   paaminnelse_7d: 'Påminnelse 7 dager før',
   paaminnelse_1d: 'Påminnelse 1 dag før',
   purring_aktiv: 'Purring til de som ikke har svart (3 dager før)',
+  test_modus: 'Testmodus — varsler sendes kun til deg',
 }
 
 export default async function Innstillinger() {
@@ -77,7 +78,7 @@ export default async function Innstillinger() {
       <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
         <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Varsler</p>
         <div className="space-y-1">
-          {(innstillinger ?? []).filter(inn => inn.noekkel !== 'test_modus').map(inn => (
+          {(innstillinger ?? []).map(inn => (
             <VarselToggle
               key={inn.noekkel}
               noekkel={inn.noekkel}
