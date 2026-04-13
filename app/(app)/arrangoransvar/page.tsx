@@ -76,7 +76,7 @@ export default async function Arrangoransvar() {
                           {new Date(lenketArr.start_tidspunkt) < new Date() ? '✓ Gjennomført' : '✓ Lagt inn'}
                         </Link>
                       ) : (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Ikke lagt inn ennå</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--destructive)' }}>✗ Ikke lagt inn ennå</p>
                       )}
                       {erAdmin && (
                         <AnsvarAdmin
