@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
-import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
+import { arrangementEpostHtml } from '@/lib/epost'
 import crypto from 'crypto'
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
@@ -100,6 +100,7 @@ export async function POST(request: Request) {
   }
 
   // Send alltid epost i tillegg (personlig varsel, viktig å nå frem)
+  let epostStatus = 'ingen epost-adresse'
   if (profil.epost) {
     const html = arrangementEpostHtml({
       tittel,
@@ -107,8 +108,29 @@ export async function POST(request: Request) {
       url,
       knappTekst: 'Åpne appen',
     })
-    await sendEpost({ til: profil.epost, emne: tittel, html })
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM ?? 'Herreklubben <onboarding@resend.dev>',
+          to: profil.epost,
+          subject: tittel,
+          html,
+        }),
+      })
+      if (res.ok) {
+        epostStatus = 'sendt'
+      } else {
+        epostStatus = `feilet (${res.status}): ${await res.text()}`
+      }
+    } catch (err) {
+      epostStatus = `exception: ${err}`
+    }
   }
 
-  return NextResponse.json({ ok: true, varslet: profilId })
+  return NextResponse.json({ ok: true, varslet: profilId, push: subs?.length ?? 0, epost: epostStatus })
 }
