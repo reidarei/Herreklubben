@@ -5,18 +5,23 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
 const REPO = 'reidarei/Herreklubben'
 
 export async function POST(request: Request) {
-  // Auth sjekkes kun for å hindre misbruk utenfra — identiteten brukes
-  // bevisst ikke videre. Skjemaet er anonymt for innsenderen.
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ feil: 'Ikke innlogget' }, { status: 401 })
+
+  const { data: profil } = await supabase
+    .from('profiles')
+    .select('visningsnavn, navn')
+    .eq('id', user.id)
+    .single()
+
+  const navn = profil?.visningsnavn ?? profil?.navn ?? 'Ukjent'
 
   const { tekst } = await request.json()
   if (typeof tekst !== 'string' || tekst.trim().length < 5) {
     return NextResponse.json({ feil: 'Ønsket er for kort' }, { status: 400 })
   }
 
-  // Opprett GitHub Issue
   const res = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
     method: 'POST',
     headers: {
@@ -28,7 +33,7 @@ export async function POST(request: Request) {
       title: tekst.trim().length > 80
         ? tekst.trim().slice(0, 77) + '...'
         : tekst.trim(),
-      body: `## Anonymt ønske fra appen\n\nSendt inn via «Bli en utvikler»-skjemaet.\n\n---\n\n${tekst.trim()}`,
+      body: `## Ønske fra ${navn}\n\n${tekst.trim()}\n\n<!-- profil_id:${user.id} -->`,
       labels: ['ønske'],
     }),
   })
