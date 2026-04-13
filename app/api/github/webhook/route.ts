@@ -83,9 +83,17 @@ export async function POST(request: Request) {
 
   if (!profil) return NextResponse.json({ ok: true, info: 'Profil ikke funnet' })
 
-  const tittel = `Ønsket ditt er gjennomført`
+  const tittel = 'Ønsket ditt er gjennomført'
   const melding = oppsummering
-  const url = `${BASE_URL}/`
+
+  // Lagre personlig varsel i databasen
+  const { data: varsel } = await admin
+    .from('personlige_varsler')
+    .insert({ profil_id: profilId, tittel, melding })
+    .select('id')
+    .single()
+
+  const url = varsel ? `${BASE_URL}/varsler/${varsel.id}` : `${BASE_URL}/`
 
   // Send push
   const { data: subs } = await admin
@@ -105,7 +113,7 @@ export async function POST(request: Request) {
       tittel,
       tekst: melding,
       url,
-      knappTekst: 'Åpne appen',
+      knappTekst: 'Se svaret',
     })
     await sendEpost({ til: profil.epost, emne: tittel, html })
   }
