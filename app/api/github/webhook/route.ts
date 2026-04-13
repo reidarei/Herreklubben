@@ -25,22 +25,22 @@ export async function POST(request: Request) {
 
   const event = request.headers.get('x-github-event')
   if (event !== 'issues') {
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, skipped: 'not-issues-event' })
   }
 
   const payload = JSON.parse(rawBody)
 
   // Kun når issue lukkes
   if (payload.action !== 'closed') {
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, skipped: 'not-closed' })
   }
 
   const issue = payload.issue
-  if (!issue) return NextResponse.json({ ok: true })
+  if (!issue) return NextResponse.json({ ok: true, skipped: 'no-issue' })
 
-  // Sjekk at det er et ønske-issue
-  const harLabel = issue.labels?.some((l: { name: string }) => l.name === 'ønske')
-  if (!harLabel) return NextResponse.json({ ok: true })
+  // Sjekk at det er et ønske-issue (case-insensitive)
+  const harLabel = issue.labels?.some((l: { name: string }) => l.name.toLowerCase() === 'ønske')
+  if (!harLabel) return NextResponse.json({ ok: true, skipped: 'no-ønske-label' })
 
   // Finn profil_id fra issue body
   const match = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)
@@ -107,11 +107,7 @@ export async function POST(request: Request) {
       url,
       knappTekst: 'Åpne appen',
     })
-    console.log(`Webhook: sender epost til ${profil.epost} for issue "${issue.title}"`)
     await sendEpost({ til: profil.epost, emne: tittel, html })
-    console.log('Webhook: epost sendt OK')
-  } else {
-    console.log(`Webhook: profil ${profilId} har ingen epost`)
   }
 
   return NextResponse.json({ ok: true, varslet: profilId })

@@ -13,10 +13,7 @@ export async function sendEpost({ til, emne, html }: { til: string; emne: string
       body: JSON.stringify({ from: RESEND_FROM, to: til, subject: emne, html }),
     })
     if (!res.ok) {
-      const body = await res.text()
-      console.error(`Epost feilet (${res.status}):`, body)
-    } else {
-      console.log(`Epost sendt til ${til}: ${emne}`)
+      console.error('Epost feilet:', await res.text())
     }
   } catch (err) {
     console.error('Epost-feil:', err)
