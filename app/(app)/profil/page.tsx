@@ -62,7 +62,7 @@ export default async function Profil() {
       )}
 
       <VarslerInnstillinger
-        pushAktiv={varselPref?.push_aktiv ?? true}
+        pushAktiv={varselPref?.push_aktiv ?? false}
         epostAktiv={varselPref?.epost_aktiv ?? true}
       />
 

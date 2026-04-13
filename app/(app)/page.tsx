@@ -98,7 +98,7 @@ export default async function Forside() {
         </Link>
       </div>
 
-      {pushCount === 0 && <PushPaaminnelse pushAktiv={varselPref?.push_aktiv ?? true} />}
+      {pushCount === 0 && <PushPaaminnelse pushAktiv={varselPref?.push_aktiv ?? false} />}
 
       {!arrangementer || arrangementer.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>

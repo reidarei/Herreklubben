@@ -1,7 +1,7 @@
 -- Per-bruker varselpreferanser: push og e-post av/på
 create table varsel_preferanser (
   profil_id uuid primary key references profiles(id) on delete cascade,
-  push_aktiv boolean not null default true,
+  push_aktiv boolean not null default false,
   epost_aktiv boolean not null default true,
   oppdatert timestamptz default now()
 );
