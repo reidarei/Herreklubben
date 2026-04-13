@@ -261,6 +261,13 @@ export default function ArrangementTidslinje({
     )
   }
 
+  function bursdagEmojier(navn: string): string {
+    const sett = ['🎂🎁🎉', '🥳🎂🎊', '🎁🎉🎂', '🎊🥳🎁', '🎉🎂🥳', '🎂🎊🎁']
+    let hash = 0
+    for (let i = 0; i < navn.length; i++) hash = ((hash << 5) - hash + navn.charCodeAt(i)) | 0
+    return sett[Math.abs(hash) % sett.length]
+  }
+
   function BursdagNotis({ bursdag, fortid, idag }: { bursdag: Bursdag; fortid?: boolean; idag?: boolean }) {
     const dag = itemDag({ type: 'bursdag', data: bursdag })
     const erPast = isBefore(dag, norskDatoNaa())
@@ -275,7 +282,7 @@ export default function ArrangementTidslinje({
           opacity: fortid ? 0.5 : 1,
         }}
       >
-        <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>🎂🎂🎂</span>
+        <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>{bursdagEmojier(bursdag.visningsnavn)}</span>
         <div>
           <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
             {bursdag.visningsnavn} {verb} {bursdag.alder} år
