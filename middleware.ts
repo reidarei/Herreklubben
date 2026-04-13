@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Offentlige API-ruter som ikke krever auth (webhooks, cron)
+  if (request.nextUrl.pathname.startsWith('/api/github/') ||
+      request.nextUrl.pathname.startsWith('/api/cron/')) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
