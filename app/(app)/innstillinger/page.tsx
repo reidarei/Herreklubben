@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { formaterDato } from '@/lib/dato'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import VarselToggle from '@/components/VarselToggle'
+import IssuesListe from './IssuesListe'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
 
@@ -98,6 +99,9 @@ export default async function Innstillinger() {
         <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Kåringer</p>
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
       </div>
+
+      {/* Ønsker fra brukerne */}
+      <IssuesListe />
 
       {/* Varselhistorikk */}
       <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Siste varsler</h2>
