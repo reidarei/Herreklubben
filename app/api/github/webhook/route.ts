@@ -107,7 +107,11 @@ export async function POST(request: Request) {
       url,
       knappTekst: 'Åpne appen',
     })
+    console.log(`Webhook: sender epost til ${profil.epost} for issue "${issue.title}"`)
     await sendEpost({ til: profil.epost, emne: tittel, html })
+    console.log('Webhook: epost sendt OK')
+  } else {
+    console.log(`Webhook: profil ${profilId} har ingen epost`)
   }
 
   return NextResponse.json({ ok: true, varslet: profilId })
