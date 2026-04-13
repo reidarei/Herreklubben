@@ -262,7 +262,10 @@ export default function ArrangementTidslinje({
   }
 
   function bursdagEmojier(navn: string): string {
-    const sett = ['🎂🎁🎉', '🥳🎂🎊', '🎁🎉🎂', '🎊🥳🎁', '🎉🎂🥳', '🎂🎊🎁']
+    const sett = [
+      '🎂🎁🎉', '🥳🍾🎊', '🎁🌟🎂', '🎊🥂🎁', '🎉🍻🥳',
+      '🎂🍸🎉', '🥳🎂💎', '🍺🎊🎁', '👏🎉🎂', '🌟🥳🍾',
+    ]
     let hash = 0
     for (let i = 0; i < navn.length; i++) hash = ((hash << 5) - hash + navn.charCodeAt(i)) | 0
     return sett[Math.abs(hash) % sett.length]
