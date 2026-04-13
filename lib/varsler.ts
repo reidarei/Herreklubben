@@ -91,10 +91,12 @@ async function sendTilAlle({
 
   const url = `${BASE_URL}/arrangementer/${arrangementId}`
 
-  // Send push kun til de som har push_aktiv=true (default true hvis ingen rad)
+  // Send push kun til de som har push_aktiv=true (i test-modus: kun test-profilen)
+  const testProfilIder = testEpost ? new Set(profiler.map(p => p.id)) : null
   const pushSubs = subs.filter(s => {
+    if (testProfilIder && !testProfilIder.has(s.profil_id)) return false
     const pref = prefs.get(s.profil_id)
-    return pref ? pref.push_aktiv : true
+    return pref ? pref.push_aktiv : false
   })
   await Promise.all(pushSubs.map(s => sendPush(s, { ...pushPayload, url })))
 
