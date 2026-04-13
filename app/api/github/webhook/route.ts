@@ -99,8 +99,8 @@ export async function POST(request: Request) {
     ))
   }
 
-  // Send epost som fallback
-  if ((!subs || subs.length === 0) && profil.epost) {
+  // Send alltid epost i tillegg (personlig varsel, viktig å nå frem)
+  if (profil.epost) {
     const html = arrangementEpostHtml({
       tittel,
       tekst: melding,
