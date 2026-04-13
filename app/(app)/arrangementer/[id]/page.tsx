@@ -210,17 +210,19 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {liste.map((p) => (
-                    <span
+                    <Link
                       key={p.profil_id}
+                      href={`/klubbinfo/medlemmer/${p.profil_id}`}
                       className="text-[13px] px-3 py-1.5 rounded-[10px]"
                       style={{
                         background: 'var(--bg-elevated)',
                         border: '1px solid var(--border)',
                         color: 'var(--text-primary)',
+                        textDecoration: 'none',
                       }}
                     >
                       {p.profiles?.navn ?? '–'}
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>

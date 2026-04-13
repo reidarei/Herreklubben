@@ -59,12 +59,12 @@ export default async function Medlemmer() {
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <Link href={`/klubbinfo/medlemmer/${m.id}`} className="font-semibold" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
                 {m.navn}
                 {m.rolle === 'admin' && (
                   <span className="ml-2"><Badge variant="accent">admin</Badge></span>
                 )}
-              </p>
+              </Link>
               {erAdmin && (
                 <Link
                   href={`/klubbinfo/medlemmer/${m.id}/rediger`}
