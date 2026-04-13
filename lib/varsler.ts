@@ -43,6 +43,18 @@ async function hentProfiler() {
   return data ?? []
 }
 
+// Hent varselpreferanser for alle profiler
+async function hentVarselPreferanser(profilIder: string[]) {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('varsel_preferanser')
+    .select('profil_id, push_aktiv, epost_aktiv')
+    .in('profil_id', profilIder)
+  const map = new Map<string, { push_aktiv: boolean; epost_aktiv: boolean }>()
+  for (const p of data ?? []) map.set(p.profil_id, p)
+  return map
+}
+
 // Hent alle push-subscriptions for en liste med profil-IDer
 async function hentPushSubscriptions(profilIder: string[]) {
   const supabase = createAdminClient()
@@ -53,41 +65,56 @@ async function hentPushSubscriptions(profilIder: string[]) {
   return data ?? []
 }
 
-// Send push + epost til alle aktive medlemmer
+// Send push + epost til mottakere (default: alle aktive medlemmer)
 async function sendTilAlle({
   pushPayload,
   epostEmne,
   epostTekst,
   arrangementId,
+  knappTekst = 'Se arrangementet',
+  mottakere,
 }: {
   pushPayload: { tittel: string; melding: string }
   epostEmne: string
   epostTekst: string
   arrangementId: string
+  knappTekst?: string
+  mottakere?: { id: string; navn: string | null; epost: string | null }[]
 }) {
   const testEpost = await hentTestModus()
-  const profiler = await hentProfiler()
+  const profiler = mottakere ?? await hentProfiler()
   const profilIder = profiler.map(p => p.id)
-  const subs = await hentPushSubscriptions(profilIder)
+  const [subs, prefs] = await Promise.all([
+    hentPushSubscriptions(profilIder),
+    hentVarselPreferanser(profilIder),
+  ])
 
   const url = `${BASE_URL}/arrangementer/${arrangementId}`
 
-  // Send push til alle med aktiv subscription
-  await Promise.all(subs.map(s => sendPush(s, { ...pushPayload, url })))
+  // Send push kun til de som har push_aktiv=true (default true hvis ingen rad)
+  const pushSubs = subs.filter(s => {
+    const pref = prefs.get(s.profil_id)
+    return pref ? pref.push_aktiv : true
+  })
+  await Promise.all(pushSubs.map(s => sendPush(s, { ...pushPayload, url })))
 
-  // Send epost: i test-modus til alle (også de med push), ellers kun de uten push
-  const subProfilIder = new Set(subs.map(s => s.profil_id))
-  const utenPush = testEpost
+  // Send e-post kun til de som har epost_aktiv=true og ikke fikk push
+  const pushProfilIder = new Set(pushSubs.map(s => s.profil_id))
+  const epostMottakere = testEpost
     ? profiler
-    : profiler.filter(p => !subProfilIder.has(p.id))
+    : profiler.filter(p => {
+        const pref = prefs.get(p.id)
+        const epostOk = pref ? pref.epost_aktiv : true
+        return epostOk && !pushProfilIder.has(p.id)
+      })
   const html = arrangementEpostHtml({
     tittel: epostEmne,
     tekst: epostTekst,
     url,
-    knappTekst: 'Se arrangementet',
+    knappTekst,
   })
   await Promise.all(
-    utenPush.filter(p => p.epost).map(p => sendEpost({ til: p.epost, emne: epostEmne, html }))
+    epostMottakere.filter(p => p.epost).map(p => sendEpost({ til: p.epost!, emne: epostEmne, html }))
   )
 }
 
@@ -212,24 +239,16 @@ export async function sendPurringVarsler({
   if (utenSvar.length === 0) return
 
   const dato = formaterDato(startTidspunkt)
-  const profilIder = utenSvar.map(p => p.id)
-  const subs = await hentPushSubscriptions(profilIder)
-  const url = `${BASE_URL}/arrangementer/${arrangementId}`
   const melding = `${tittel} — ${dato}. Du har ikke svart enda.`
 
-  await Promise.all(subs.map(s => sendPush(s, { tittel: 'Husk å svare!', melding, url })))
-
-  const subProfilIder = new Set(subs.map(s => s.profil_id))
-  const utenPush = utenSvar.filter(p => !subProfilIder.has(p.id))
-  const html = arrangementEpostHtml({
-    tittel: `Husk å svare: ${tittel}`,
-    tekst: melding,
-    url,
+  await sendTilAlle({
+    pushPayload: { tittel: 'Husk å svare!', melding },
+    epostEmne: `Husk å svare: ${tittel}`,
+    epostTekst: melding,
+    arrangementId,
     knappTekst: 'Svar nå',
+    mottakere: utenSvar,
   })
-  await Promise.all(
-    utenPush.filter(p => p.epost).map(p => sendEpost({ til: p.epost, emne: `Husk å svare: ${tittel}`, html }))
-  )
 
   await supabase.from('varsler_logg').insert({ arrangement_id: arrangementId, type: 'purring' })
 }

@@ -35,7 +35,7 @@ export default async function Forside() {
   const toMndSiden = subMonths(new Date(), 3)
   const aar = norskAar()
 
-  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }, { count: pushCount }] = await Promise.all([
+  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }, { count: pushCount }, { data: varselPref }] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(`
@@ -60,6 +60,11 @@ export default async function Forside() {
       .from('push_subscriptions')
       .select('id', { count: 'exact', head: true })
       .eq('profil_id', user!.id),
+    supabase
+      .from('varsel_preferanser')
+      .select('push_aktiv')
+      .eq('profil_id', user!.id)
+      .maybeSingle(),
   ])
 
   // Grupper uplanlagte arrangementer etter navn
@@ -93,7 +98,7 @@ export default async function Forside() {
         </Link>
       </div>
 
-      {pushCount === 0 && <PushPaaminnelse />}
+      {pushCount === 0 && <PushPaaminnelse pushAktiv={varselPref?.push_aktiv ?? true} />}
 
       {!arrangementer || arrangementer.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>

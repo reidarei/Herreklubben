@@ -407,6 +407,35 @@ export type Database = {
         }
         Relationships: []
       }
+      varsel_preferanser: {
+        Row: {
+          epost_aktiv: boolean
+          oppdatert: string | null
+          profil_id: string
+          push_aktiv: boolean
+        }
+        Insert: {
+          epost_aktiv?: boolean
+          oppdatert?: string | null
+          profil_id: string
+          push_aktiv?: boolean
+        }
+        Update: {
+          epost_aktiv?: boolean
+          oppdatert?: string | null
+          profil_id?: string
+          push_aktiv?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "varsel_preferanser_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       varsler_logg: {
         Row: {
           arrangement_id: string

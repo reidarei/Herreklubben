@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import LoggUtKnapp from './LoggUtKnapp'
 import RedigerProfilSkjema from './RedigerProfilSkjema'
-import PushAbonnement from '@/components/PushAbonnement'
+import VarslerInnstillinger from '@/components/VarslerInnstillinger'
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import { norskAar } from '@/lib/dato'
@@ -10,13 +10,14 @@ import { norskAar } from '@/lib/dato'
 export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
-  const [{ data: profil }, { data: ansvar }] = await Promise.all([
+  const [{ data: profil }, { data: ansvar }, { data: varselPref }] = await Promise.all([
     supabase.from('profiles').select('navn, visningsnavn, epost, telefon, rolle, fodselsdato').eq('id', user!.id).single(),
     supabase.from('arrangoransvar')
       .select('id, aar, arrangement_navn, arrangementer (id)')
       .eq('ansvarlig_id', user!.id)
       .gte('aar', norskAar())
       .order('aar'),
+    supabase.from('varsel_preferanser').select('push_aktiv, epost_aktiv').eq('profil_id', user!.id).maybeSingle(),
   ])
 
   return (
@@ -60,7 +61,10 @@ export default async function Profil() {
         </div>
       )}
 
-      <PushAbonnement />
+      <VarslerInnstillinger
+        pushAktiv={varselPref?.push_aktiv ?? true}
+        epostAktiv={varselPref?.epost_aktiv ?? true}
+      />
 
       <div className="mt-6">
         <LoggUtKnapp />

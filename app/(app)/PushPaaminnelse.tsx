@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 
 type Status = 'laster' | 'vis' | 'skjul'
 
-export default function PushPaaminnelse() {
+export default function PushPaaminnelse({ pushAktiv }: { pushAktiv: boolean }) {
   const [status, setStatus] = useState<Status>('laster')
 
   useEffect(() => {
+    // Ikke vis banneret hvis brukeren bevisst har skrudd av push
+    if (!pushAktiv) {
+      setStatus('skjul')
+      return
+    }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setStatus('skjul')
       return
@@ -21,7 +25,7 @@ export default function PushPaaminnelse() {
       const sub = await reg.pushManager.getSubscription()
       setStatus(sub ? 'skjul' : 'vis')
     })
-  }, [])
+  }, [pushAktiv])
 
   async function aktiverPush() {
     try {
@@ -38,6 +42,12 @@ export default function PushPaaminnelse() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
+      })
+      // Oppdater preferanse til push_aktiv=true
+      await fetch('/api/varsel-preferanser', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ push_aktiv: true }),
       })
       setStatus('skjul')
     } catch {
