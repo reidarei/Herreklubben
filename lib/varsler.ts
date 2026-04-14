@@ -65,81 +65,126 @@ async function hentPushSubscriptions(profilIder: string[]) {
   return data ?? []
 }
 
-// Send push + epost til mottakere (default: alle aktive medlemmer)
-async function sendTilAlle({
-  pushPayload,
-  epostEmne,
-  epostTekst,
-  arrangementId,
-  knappTekst = 'Se arrangementet',
+// ─── SENTRAL VARSLINGSFUNKSJON ───────────────────────────────────────────────
+
+export async function sendVarsel({
   mottakere,
+  tittel,
+  melding,
+  url,
+  knappTekst = 'Åpne i appen',
+  type,
+  arrangementId,
+  tillatDuplikat = false,
 }: {
-  pushPayload: { tittel: string; melding: string }
-  epostEmne: string
-  epostTekst: string
-  arrangementId: string
+  mottakere?: string[]
+  tittel: string
+  melding: string
+  url?: string
   knappTekst?: string
-  mottakere?: { id: string; navn: string | null; epost: string | null }[]
+  type: string
+  arrangementId?: string
+  tillatDuplikat?: boolean
 }) {
+  const supabase = createAdminClient()
+
+  // 1. Dedup-sjekk
+  if (!tillatDuplikat && arrangementId) {
+    const { data: eksisterende } = await supabase
+      .from('varsel_logg')
+      .select('id')
+      .eq('type', type)
+      .eq('arrangement_id', arrangementId)
+      .limit(1)
+    if (eksisterende && eksisterende.length > 0) return
+  }
+
+  // 2. Testmodus
   const testEpost = await hentTestModus()
-  const profiler = mottakere ?? await hentProfiler()
+
+  // 3. Løs opp mottakere + dedupliser
+  let profiler: { id: string; navn: string | null; epost: string | null }[]
+  if (mottakere) {
+    const unikeIder = [...new Set(mottakere)]
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, navn, epost')
+      .in('id', unikeIder)
+      .eq('aktiv', true)
+    profiler = data ?? []
+  } else {
+    profiler = await hentProfiler()
+  }
+
+  // I testmodus: filtrer til kun testprofilen
+  if (testEpost) {
+    profiler = profiler.filter(p => p.epost === testEpost)
+  }
+
+  if (profiler.length === 0) return
+
+  // 4. Hent preferanser + push-subscriptions
   const profilIder = profiler.map(p => p.id)
   const [subs, prefs] = await Promise.all([
     hentPushSubscriptions(profilIder),
     hentVarselPreferanser(profilIder),
   ])
 
-  const url = `${BASE_URL}/arrangementer/${arrangementId}`
+  const subsByProfil = new Map<string, typeof subs>()
+  for (const s of subs) {
+    const arr = subsByProfil.get(s.profil_id) ?? []
+    arr.push(s)
+    subsByProfil.set(s.profil_id, arr)
+  }
 
-  // Send push kun til de som har push_aktiv=true (i test-modus: kun test-profilen)
-  const testProfilIder = testEpost ? new Set(profiler.map(p => p.id)) : null
-  const pushSubs = subs.filter(s => {
-    if (testProfilIder && !testProfilIder.has(s.profil_id)) return false
-    const pref = prefs.get(s.profil_id)
-    return pref ? pref.push_aktiv : false
-  })
-  await Promise.all(pushSubs.map(s => sendPush(s, { ...pushPayload, url })))
+  // 5. For hver mottaker: bestem kanal, send, logg
+  for (const profil of profiler) {
+    const pref = prefs.get(profil.id)
+    const pushAktiv = pref ? pref.push_aktiv : false
+    const epostAktiv = pref ? pref.epost_aktiv : true
+    const profilSubs = subsByProfil.get(profil.id) ?? []
 
-  // Send e-post kun til de som har epost_aktiv=true og ikke fikk push
-  const pushProfilIder = new Set(pushSubs.map(s => s.profil_id))
-  const epostMottakere = testEpost
-    ? profiler
-    : profiler.filter(p => {
-        const pref = prefs.get(p.id)
-        const epostOk = pref ? pref.epost_aktiv : true
-        return epostOk && !pushProfilIder.has(p.id)
+    // Insert i varsel_logg først (for å få ID til URL)
+    const kanPush = pushAktiv && profilSubs.length > 0
+    const kanEpost = epostAktiv && !!profil.epost
+    const kanal = kanPush && kanEpost ? 'begge' : kanPush ? 'push' : kanEpost ? 'epost' : null
+
+    if (!kanal) continue // Ingen kanal aktiv
+
+    const { data: loggRad } = await supabase
+      .from('varsel_logg')
+      .insert({
+        profil_id: profil.id,
+        tittel,
+        melding,
+        type,
+        kanal,
+        url: url ?? null,
+        arrangement_id: arrangementId ?? null,
       })
-  const html = arrangementEpostHtml({
-    tittel: epostEmne,
-    tekst: epostTekst,
-    url,
-    knappTekst,
-  })
-  await Promise.all(
-    epostMottakere.filter(p => p.epost).map(p => sendEpost({ til: p.epost!, emne: epostEmne, html }))
-  )
+      .select('id')
+      .single()
+
+    // URL: bruk oppgitt url, eller fall tilbake til varsel-detaljsiden
+    const varselUrl = url ?? (loggRad ? `${BASE_URL}/varsler/${loggRad.id}` : BASE_URL)
+
+    // Send push
+    if (kanPush) {
+      await Promise.all(profilSubs.map(s =>
+        sendPush(s, { tittel, melding, url: varselUrl })
+      ))
+    }
+
+    // Send epost
+    if (kanEpost) {
+      const html = arrangementEpostHtml({ tittel, tekst: melding, url: varselUrl, knappTekst })
+      await sendEpost({ til: profil.epost!, emne: tittel, html })
+    }
+  }
 }
 
-// Arrangement oppdatert — sendes til alle umiddelbart, ingen duplikatsjekk
-export async function sendOppdatertVarsler({
-  arrangementId,
-  tittel,
-  startTidspunkt,
-}: {
-  arrangementId: string
-  tittel: string
-  startTidspunkt: string
-}) {
-  const dato = formaterDato(startTidspunkt)
-  await sendTilAlle({
-    pushPayload: { tittel: 'Arrangement oppdatert', melding: `${tittel} — ${dato}` },
-    epostEmne: `Oppdatert: ${tittel}`,
-    epostTekst: `Arrangementet <strong>${tittel}</strong> (${dato}) er oppdatert. Sjekk detaljene i appen.`,
-    arrangementId,
-  })
-}
+// ─── WRAPPER-FUNKSJONER ─────────────────────────────────────────────────────
 
-// Nytt arrangement opprettet
 export async function sendNyttArrangementVarsler({
   arrangementId,
   tittel,
@@ -150,20 +195,36 @@ export async function sendNyttArrangementVarsler({
   startTidspunkt: string
 }) {
   if (!(await erVarselAktiv('nytt_arrangement'))) return
-
   const dato = formaterDato(startTidspunkt)
-  await sendTilAlle({
-    pushPayload: { tittel: 'Nytt arrangement', melding: `${tittel} — ${dato}` },
-    epostEmne: `Nytt arrangement: ${tittel}`,
-    epostTekst: `Det er satt opp et nytt arrangement: <strong>${tittel}</strong><br>${dato}`,
+  await sendVarsel({
+    tittel: 'Nytt arrangement',
+    melding: `${tittel} — ${dato}`,
+    url: `${BASE_URL}/arrangementer/${arrangementId}`,
+    type: 'nytt_arrangement',
     arrangementId,
   })
-
-  const supabase = createAdminClient()
-  await supabase.from('varsler_logg').insert({ arrangement_id: arrangementId, type: 'nytt' })
 }
 
-// Påminnelse (7 dager eller 1 dag før)
+export async function sendOppdatertVarsler({
+  arrangementId,
+  tittel,
+  startTidspunkt,
+}: {
+  arrangementId: string
+  tittel: string
+  startTidspunkt: string
+}) {
+  const dato = formaterDato(startTidspunkt)
+  await sendVarsel({
+    tittel: 'Arrangement oppdatert',
+    melding: `${tittel} — ${dato}`,
+    url: `${BASE_URL}/arrangementer/${arrangementId}`,
+    type: 'oppdatert',
+    arrangementId,
+    tillatDuplikat: true,
+  })
+}
+
 export async function sendPaaminneVarsler({
   arrangementId,
   tittel,
@@ -177,35 +238,17 @@ export async function sendPaaminneVarsler({
 }) {
   const noekkel = type === 'paaminne_7' ? 'paaminnelse_7d' : 'paaminnelse_1d'
   if (!(await erVarselAktiv(noekkel))) return
-
-  const supabase = createAdminClient()
-  const dager = type === 'paaminne_7' ? 7 : 1
-
-  // Sjekk om allerede sendt
-  const { data: logg } = await supabase
-    .from('varsler_logg')
-    .select('id')
-    .eq('arrangement_id', arrangementId)
-    .eq('type', type)
-    .maybeSingle()
-  if (logg) return
-
   const dato = formaterDato(startTidspunkt)
-  const melding = dager === 7
-    ? `${tittel} er om 7 dager — ${dato}`
-    : `${tittel} er i morgen — ${dato}`
-
-  await sendTilAlle({
-    pushPayload: { tittel: `Påminnelse: ${tittel}`, melding },
-    epostEmne: `Påminnelse: ${tittel}`,
-    epostTekst: melding,
+  const dager = type === 'paaminne_7' ? 7 : 1
+  await sendVarsel({
+    tittel: `Påminnelse: ${tittel}`,
+    melding: dager === 7 ? `${tittel} er om 7 dager — ${dato}` : `${tittel} er i morgen — ${dato}`,
+    url: `${BASE_URL}/arrangementer/${arrangementId}`,
+    type,
     arrangementId,
   })
-
-  await supabase.from('varsler_logg').insert({ arrangement_id: arrangementId, type })
 }
 
-// Purring — send kun til de som ikke har svart
 export async function sendPurringVarsler({
   arrangementId,
   tittel,
@@ -219,16 +262,6 @@ export async function sendPurringVarsler({
 
   const supabase = createAdminClient()
 
-  // Sjekk om allerede sendt
-  const { data: logg } = await supabase
-    .from('varsler_logg')
-    .select('id')
-    .eq('arrangement_id', arrangementId)
-    .eq('type', 'purring')
-    .maybeSingle()
-  if (logg) return
-
-  // Finn hvem som IKKE har svart
   const { data: paameldinger } = await supabase
     .from('paameldinger')
     .select('profil_id')
@@ -241,16 +274,13 @@ export async function sendPurringVarsler({
   if (utenSvar.length === 0) return
 
   const dato = formaterDato(startTidspunkt)
-  const melding = `${tittel} — ${dato}. Du har ikke svart enda.`
-
-  await sendTilAlle({
-    pushPayload: { tittel: 'Husk å svare!', melding },
-    epostEmne: `Husk å svare: ${tittel}`,
-    epostTekst: melding,
-    arrangementId,
+  await sendVarsel({
+    mottakere: utenSvar.map(p => p.id),
+    tittel: 'Husk å svare!',
+    melding: `${tittel} — ${dato}. Du har ikke svart enda.`,
+    url: `${BASE_URL}/arrangementer/${arrangementId}`,
     knappTekst: 'Svar nå',
-    mottakere: utenSvar,
+    type: 'purring',
+    arrangementId,
   })
-
-  await supabase.from('varsler_logg').insert({ arrangement_id: arrangementId, type: 'purring' })
 }

@@ -2,7 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
-import { addDays, subHours, addHours } from 'date-fns'
+import { addDays } from 'date-fns'
 import { revalidatePath } from 'next/cache'
 
 export async function oppdaterVarselInnstilling(noekkel: string, aktiv: boolean) {
@@ -33,19 +33,17 @@ export async function kjorPaaminnerManuelt(): Promise<boolean> {
 
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
-  const naa = new Date()
 
-  const sju_fra = subHours(addDays(naa, 7), 12).toISOString()
-  const sju_til = addHours(addDays(naa, 7), 12).toISOString()
-  const en_fra = subHours(addDays(naa, 1), 12).toISOString()
-  const en_til = addHours(addDays(naa, 1), 12).toISOString()
-  const tre_fra = subHours(addDays(naa, 3), 12).toISOString()
-  const tre_til = addHours(addDays(naa, 3), 12).toISOString()
+  // TODO: bruk global tidsstyring når den er på plass
+  const naa = new Date()
+  const dag7 = addDays(naa, 7).toISOString().slice(0, 10)
+  const dag1 = addDays(naa, 1).toISOString().slice(0, 10)
+  const dag3 = addDays(naa, 3).toISOString().slice(0, 10)
 
   const [{ data: arr_7 }, { data: arr_1 }, { data: arr_3 }] = await Promise.all([
-    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', sju_fra).lte('start_tidspunkt', sju_til),
-    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', en_fra).lte('start_tidspunkt', en_til),
-    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', tre_fra).lte('start_tidspunkt', tre_til),
+    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', `${dag7}T00:00:00`).lt('start_tidspunkt', `${dag7}T23:59:59`),
+    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', `${dag1}T00:00:00`).lt('start_tidspunkt', `${dag1}T23:59:59`),
+    admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', `${dag3}T00:00:00`).lt('start_tidspunkt', `${dag3}T23:59:59`),
   ])
 
   for (const a of arr_7 ?? []) await sendPaaminneVarsler({ arrangementId: a.id, tittel: a.tittel, startTidspunkt: a.start_tidspunkt, type: 'paaminne_7' })

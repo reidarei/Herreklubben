@@ -9,8 +9,8 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
   const { data: varsel } = await supabase
-    .from('personlige_varsler')
-    .select('id, tittel, melding, lest, opprettet')
+    .from('varsel_logg')
+    .select('id, tittel, melding, lest, opprettet, url')
     .eq('id', id)
     .eq('profil_id', user!.id)
     .single()
@@ -19,7 +19,7 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
 
   // Marker som lest
   if (!varsel.lest) {
-    await supabase.from('personlige_varsler').update({ lest: true }).eq('id', id)
+    await supabase.from('varsel_logg').update({ lest: true }).eq('id', id)
   }
 
   return (
@@ -46,6 +46,21 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
         <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
           {varsel.melding}
         </p>
+
+        {varsel.url && (
+          <Link
+            href={varsel.url}
+            className="inline-block text-sm px-4 py-2 rounded-xl mb-4"
+            style={{
+              background: 'var(--accent)',
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Gå til saken
+          </Link>
+        )}
 
         {varsel.opprettet && (
           <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>

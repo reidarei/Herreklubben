@@ -11,10 +11,14 @@ import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
 
 const typeLabels: Record<string, string> = {
-  nytt: 'Nytt arrangement',
+  nytt_arrangement: 'Nytt arrangement',
+  oppdatert: 'Arrangement oppdatert',
   paaminne_7: 'Påminnelse 7 dager',
   paaminne_1: 'Påminnelse 1 dag',
   purring: 'Purring',
+  mention: 'Chat-mention',
+  'ønske_ny': 'Nytt innspill',
+  'ønske_lukket': 'Innspill gjennomført',
 }
 
 const innstillingLabels: Record<string, string> = {
@@ -36,10 +40,10 @@ export default async function Innstillinger() {
   const admin = createAdminClient()
   const [{ data: logg }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
     admin
-      .from('varsler_logg')
-      .select('id, type, sendt_at, arrangementer (tittel)')
-      .order('sendt_at', { ascending: false })
-      .limit(30),
+      .from('varsel_logg')
+      .select('id, tittel, type, kanal, opprettet, profil_id, profiles (visningsnavn)')
+      .order('opprettet', { ascending: false })
+      .limit(50),
     supabase
       .from('push_subscriptions')
       .select('*', { count: 'exact', head: true }),
@@ -110,14 +114,14 @@ export default async function Innstillinger() {
                 background: i % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg)',
                 borderTop: i > 0 ? '1px solid var(--border)' : undefined,
               }}>
-              <div>
-                <p style={{ color: 'var(--text-primary)' }}>{typeLabels[v.type] ?? v.type}</p>
-                <p style={{ color: 'var(--text-secondary)' }}>
-                  {v.arrangementer?.tittel}
+              <div className="min-w-0 flex-1">
+                <p style={{ color: 'var(--text-primary)' }}>{typeLabels[v.type ?? ''] ?? v.type ?? '—'}</p>
+                <p className="truncate" style={{ color: 'var(--text-secondary)' }}>
+                  {(v.profiles as { visningsnavn: string | null } | null)?.visningsnavn ?? '—'}{v.kanal ? ` · ${v.kanal}` : ''}
                 </p>
               </div>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                {v.sendt_at ? formaterDato(v.sendt_at, 'd. MMM HH:mm') : ''}
+              <p className="shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                {v.opprettet ? formaterDato(v.opprettet, 'd. MMM HH:mm') : ''}
               </p>
             </div>
           ))}

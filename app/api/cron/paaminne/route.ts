@@ -1,47 +1,35 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
 import { NextRequest, NextResponse } from 'next/server'
-import { addDays, subHours, addHours } from 'date-fns'
+import { addDays } from 'date-fns'
 
 async function kjorPaaminnelser(req: NextRequest) {
-  // Autentiser med CRON_SECRET
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ feil: 'Uautorisert' }, { status: 401 })
   }
 
   const supabase = createAdminClient()
+
+  // TODO: bruk global tidsstyring når den er på plass (alltid 08:00 norsk tid)
   const naa = new Date()
 
-  // Finn arrangementer 7 dager frem (±12t)
-  const sju_fra = subHours(addDays(naa, 7), 12).toISOString()
-  const sju_til = addHours(addDays(naa, 7), 12).toISOString()
+  // Datobasert sjekk: finn arrangementer på nøyaktig riktig dato
+  const dag7 = addDays(naa, 7).toISOString().slice(0, 10)
+  const dag1 = addDays(naa, 1).toISOString().slice(0, 10)
+  const dag3 = addDays(naa, 3).toISOString().slice(0, 10)
 
-  // Finn arrangementer 1 dag frem (±12t)
-  const en_fra = subHours(addDays(naa, 1), 12).toISOString()
-  const en_til = addHours(addDays(naa, 1), 12).toISOString()
-
-  // Finn arrangementer 3 dager frem (for purring — de som ikke har svart)
-  const tre_fra = subHours(addDays(naa, 3), 12).toISOString()
-  const tre_til = addHours(addDays(naa, 3), 12).toISOString()
-
-  const { data: arr_7 } = await supabase
-    .from('arrangementer')
-    .select('id, tittel, start_tidspunkt')
-    .gte('start_tidspunkt', sju_fra)
-    .lte('start_tidspunkt', sju_til)
-
-  const { data: arr_1 } = await supabase
-    .from('arrangementer')
-    .select('id, tittel, start_tidspunkt')
-    .gte('start_tidspunkt', en_fra)
-    .lte('start_tidspunkt', en_til)
-
-  const { data: arr_3 } = await supabase
-    .from('arrangementer')
-    .select('id, tittel, start_tidspunkt')
-    .gte('start_tidspunkt', tre_fra)
-    .lte('start_tidspunkt', tre_til)
+  const [{ data: arr_7 }, { data: arr_1 }, { data: arr_3 }] = await Promise.all([
+    supabase.from('arrangementer').select('id, tittel, start_tidspunkt')
+      .gte('start_tidspunkt', `${dag7}T00:00:00`)
+      .lt('start_tidspunkt', `${dag7}T23:59:59`),
+    supabase.from('arrangementer').select('id, tittel, start_tidspunkt')
+      .gte('start_tidspunkt', `${dag1}T00:00:00`)
+      .lt('start_tidspunkt', `${dag1}T23:59:59`),
+    supabase.from('arrangementer').select('id, tittel, start_tidspunkt')
+      .gte('start_tidspunkt', `${dag3}T00:00:00`)
+      .lt('start_tidspunkt', `${dag3}T23:59:59`),
+  ])
 
   const resultater = []
 

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendPush } from '@/lib/push'
-import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
+import { sendVarsel } from '@/lib/varsler'
 import crypto from 'crypto'
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 function verifiserSignatur(body: string, signatur: string | null): boolean {
   if (!WEBHOOK_SECRET || !signatur) return false
@@ -13,36 +11,6 @@ function verifiserSignatur(body: string, signatur: string | null): boolean {
   hmac.update(body)
   const forventet = `sha256=${hmac.digest('hex')}`
   return crypto.timingSafeEqual(Buffer.from(signatur), Buffer.from(forventet))
-}
-
-async function varsleProfil(admin: ReturnType<typeof createAdminClient>, profilId: string, tittel: string, melding: string, knappTekst: string) {
-  const { data: varsel } = await admin
-    .from('personlige_varsler')
-    .insert({ profil_id: profilId, tittel, melding })
-    .select('id')
-    .single()
-
-  const url = varsel ? `${BASE_URL}/varsler/${varsel.id}` : `${BASE_URL}/`
-
-  const { data: profil } = await admin
-    .from('profiles')
-    .select('epost')
-    .eq('id', profilId)
-    .single()
-
-  const { data: subs } = await admin
-    .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
-    .eq('profil_id', profilId)
-
-  if (subs && subs.length > 0) {
-    await Promise.all(subs.map(s => sendPush(s, { tittel, melding, url })))
-  }
-
-  if (profil?.epost) {
-    const html = arrangementEpostHtml({ tittel, tekst: melding, url, knappTekst })
-    await sendEpost({ til: profil.epost, emne: tittel, html })
-  }
 }
 
 export async function POST(request: Request) {
@@ -67,7 +35,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
-  // Nytt ønske — varsle admins
+  // Nytt ønske — varsle admins + oppretter
   if (payload.action === 'opened') {
     const innhold = issue.body
       ?.replace(/## Ønske fra .+\n\n/i, '')
@@ -81,13 +49,20 @@ export async function POST(request: Request) {
       .eq('rolle', 'admin')
       .eq('aktiv', true)
 
-    if (admins) {
-      await Promise.all(admins.map(a =>
-        varsleProfil(admin, a.id, 'Nytt innspill fra appen', innhold, 'Se innspillet')
-      ))
-    }
+    const adminIder = (admins ?? []).map(a => a.id)
+    const oppretterId = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)?.[1]
+    const mottakere = oppretterId ? [...adminIder, oppretterId] : adminIder
 
-    return NextResponse.json({ ok: true, action: 'opened', adminsVarslet: admins?.length ?? 0 })
+    await sendVarsel({
+      mottakere,
+      tittel: 'Nytt innspill fra appen',
+      melding: innhold,
+      knappTekst: 'Se innspillet',
+      type: 'ønske_ny',
+      tillatDuplikat: true,
+    })
+
+    return NextResponse.json({ ok: true, action: 'opened', varslet: mottakere.length })
   }
 
   // Ønske lukket — varsle innsenderen
@@ -119,7 +94,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Legg til info om at endringen er live om ca. 1 minutt (rund opp til helt minutt)
+    // Legg til info om at endringen er live om ca. 1 minutt
+    // TODO: bruk global tidsstyring når den er på plass
     const liveTid = new Date(Math.ceil((Date.now() + 60_000) / 60_000) * 60_000)
     const liveKl = liveTid.toLocaleString('nb-NO', {
       timeZone: 'Europe/Oslo',
@@ -128,7 +104,15 @@ export async function POST(request: Request) {
     })
     oppsummering += `\n\nEndringen er live i appen ca. kl. ${liveKl}.`
 
-    await varsleProfil(admin, profilId, 'Ønsket ditt er gjennomført', oppsummering, 'Se svaret')
+    await sendVarsel({
+      mottakere: [profilId],
+      tittel: 'Ønsket ditt er gjennomført',
+      melding: oppsummering,
+      knappTekst: 'Se svaret',
+      type: 'ønske_lukket',
+      tillatDuplikat: true,
+    })
+
     return NextResponse.json({ ok: true, action: 'closed', varslet: profilId })
   }
 

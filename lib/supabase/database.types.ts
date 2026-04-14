@@ -303,41 +303,6 @@ export type Database = {
           },
         ]
       }
-      personlige_varsler: {
-        Row: {
-          id: string
-          lest: boolean
-          melding: string
-          opprettet: string | null
-          profil_id: string
-          tittel: string
-        }
-        Insert: {
-          id?: string
-          lest?: boolean
-          melding: string
-          opprettet?: string | null
-          profil_id: string
-          tittel: string
-        }
-        Update: {
-          id?: string
-          lest?: boolean
-          melding?: string
-          opprettet?: string | null
-          profil_id?: string
-          tittel?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "personlige_varsler_profil_id_fkey"
-            columns: ["profil_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           aktiv: boolean
@@ -442,6 +407,60 @@ export type Database = {
         }
         Relationships: []
       }
+      varsel_logg: {
+        Row: {
+          arrangement_id: string | null
+          id: string
+          kanal: string | null
+          lest: boolean
+          melding: string
+          opprettet: string | null
+          profil_id: string
+          tittel: string
+          type: string | null
+          url: string | null
+        }
+        Insert: {
+          arrangement_id?: string | null
+          id?: string
+          kanal?: string | null
+          lest?: boolean
+          melding: string
+          opprettet?: string | null
+          profil_id: string
+          tittel: string
+          type?: string | null
+          url?: string | null
+        }
+        Update: {
+          arrangement_id?: string | null
+          id?: string
+          kanal?: string | null
+          lest?: boolean
+          melding?: string
+          opprettet?: string | null
+          profil_id?: string
+          tittel?: string
+          type?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personlige_varsler_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "varsel_logg_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "arrangementer"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       varsel_preferanser: {
         Row: {
           epost_aktiv: boolean
@@ -467,35 +486,6 @@ export type Database = {
             columns: ["profil_id"]
             isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      varsler_logg: {
-        Row: {
-          arrangement_id: string
-          id: string
-          sendt_at: string | null
-          type: string
-        }
-        Insert: {
-          arrangement_id: string
-          id?: string
-          sendt_at?: string | null
-          type: string
-        }
-        Update: {
-          arrangement_id?: string
-          id?: string
-          sendt_at?: string | null
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "varsler_logg_arrangement_id_fkey"
-            columns: ["arrangement_id"]
-            isOneToOne: false
-            referencedRelation: "arrangementer"
             referencedColumns: ["id"]
           },
         ]
