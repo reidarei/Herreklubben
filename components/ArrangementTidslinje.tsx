@@ -423,7 +423,7 @@ export default function ArrangementTidslinje({
 
       {/* Separator */}
       {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0 || lastMerKnapp) && (
-        <div className="my-8" style={{ height: '4px', background: 'var(--text-tertiary)', borderRadius: '2px' }} />
+        <div className="my-8" style={{ height: '1px', background: 'var(--border-subtle)' }} />
       )}
 
       {/* Tidligere */}
