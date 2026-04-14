@@ -285,7 +285,7 @@ export default function ArrangementTidslinje({
         className="flex items-center gap-3 px-4 py-3 rounded-2xl"
         style={{
           background: 'var(--bg-elevated)',
-          border: idag ? '2px solid var(--accent)' : '1px solid var(--accent)',
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
           opacity: fortid ? 0.5 : 1,
         }}
       >
