@@ -280,31 +280,28 @@ export default function ArrangementTidslinje({
     const erPast = isBefore(dag, norskDatoNaa())
     const verb = erPast ? 'fylte' : 'fyller'
     return (
-      <Link
-        href={`/klubbinfo/medlemmer/${bursdag.id}`}
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-transform duration-100 active:scale-[0.98]"
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
         style={{
           background: 'var(--bg-elevated)',
           border: idag ? '2px solid var(--accent)' : '1px solid var(--accent)',
-          boxShadow: idag
-            ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)'
-            : '0 0 0 1px rgba(212, 168, 83, 0.15)',
           opacity: fortid ? 0.5 : 1,
-          textDecoration: 'none',
-          color: 'inherit',
         }}
       >
         <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>{bursdagEmojier(bursdag.visningsnavn)}</span>
         <div>
           <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            {bursdag.visningsnavn} {verb} {bursdag.alder} år
+            <Link href={`/klubbinfo/medlemmer/${bursdag.id}`} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', textDecorationColor: 'var(--accent)' }}>
+              {bursdag.visningsnavn}
+            </Link>
+            {' '}{verb} {bursdag.alder} år
           </p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {formaterDato(bursdag.dato, 'd. MMMM')}
             {formaterDato(bursdag.dato, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(bursdag.dato, 'yyyy')}`}
           </p>
         </div>
-      </Link>
+      </div>
     )
   }
 
