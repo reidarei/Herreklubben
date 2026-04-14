@@ -402,7 +402,7 @@ export default function ArrangementTidslinje({
       )}
 
       {/* Send inn forslag */}
-      <div className="mt-8 text-center">
+      <div className="mt-8 pt-8 text-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
           Savner du noe i appen?
         </p>
