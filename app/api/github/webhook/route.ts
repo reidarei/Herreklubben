@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
 import crypto from 'crypto'
 
+export const maxDuration = 60
+
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 function verifiserSignatur(body: string, signatur: string | null): boolean {
   if (!WEBHOOK_SECRET || !signatur) return false
@@ -15,12 +19,21 @@ function verifiserSignatur(body: string, signatur: string | null): boolean {
   return crypto.timingSafeEqual(Buffer.from(signatur), Buffer.from(forventet))
 }
 
-async function varsleProfil(admin: ReturnType<typeof createAdminClient>, profilId: string, tittel: string, melding: string, knappTekst: string) {
+async function varsleProfil(
+  admin: ReturnType<typeof createAdminClient>,
+  profilId: string,
+  tittel: string,
+  melding: string,
+  knappTekst: string,
+  ventMs = 0,
+) {
   const { data: varsel } = await admin
     .from('personlige_varsler')
     .insert({ profil_id: profilId, tittel, melding })
     .select('id')
     .single()
+
+  if (ventMs > 0) await sleep(ventMs)
 
   const url = varsel ? `${BASE_URL}/varsler/${varsel.id}` : `${BASE_URL}/`
 
@@ -90,7 +103,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, action: 'opened', adminsVarslet: admins?.length ?? 0 })
   }
 
-  // Ønske lukket — varsle innsenderen
+  // Ønske lukket — varsle innsenderen (forsinket, venter på deploy)
   if (payload.action === 'closed') {
     const match = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)
     if (!match) return NextResponse.json({ ok: true, info: 'Ingen profil_id funnet' })
@@ -119,8 +132,12 @@ export async function POST(request: Request) {
       }
     }
 
-    await varsleProfil(admin, profilId, 'Ønsket ditt er gjennomført', oppsummering, 'Se svaret')
-    return NextResponse.json({ ok: true, action: 'closed', varslet: profilId })
+    // Send varselet etter 60 sekunder (venter på at Vercel deployer)
+    after(async () => {
+      await varsleProfil(admin, profilId, 'Ønsket ditt er gjennomført', oppsummering, 'Se svaret', 60_000)
+    })
+
+    return NextResponse.json({ ok: true, action: 'closed', varslet: profilId, forsinkelse: '60s' })
   }
 
   return NextResponse.json({ ok: true, skipped: 'unhandled-action' })
