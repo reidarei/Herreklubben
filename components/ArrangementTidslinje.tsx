@@ -444,7 +444,7 @@ export default function ArrangementTidslinje({
             fontWeight: 600,
           }}
         >
-          Bli en utvikler
+          Send inn forslag
         </Link>
       </div>
     </div>
