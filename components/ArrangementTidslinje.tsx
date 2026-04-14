@@ -401,6 +401,26 @@ export default function ArrangementTidslinje({
         <div className="mt-8">{lastMerKnapp}</div>
       )}
 
+      {/* Send inn forslag */}
+      <div className="mt-8 text-center">
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          Savner du noe i appen?
+        </p>
+        <Link
+          href="/bli-utvikler"
+          className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl"
+          style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--accent)',
+            color: 'var(--accent)',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Send inn forslag
+        </Link>
+      </div>
+
       {/* Separator */}
       {tidligereItems.length > 0 && (idagItems.length > 0 || kommendeItems.length > 0 || lastMerKnapp) && (
         <div className="my-8" style={{ height: '4px', background: 'var(--text-tertiary)', borderRadius: '2px' }} />
@@ -429,24 +449,6 @@ export default function ArrangementTidslinje({
         </p>
       )}
 
-      <div className="mt-12 pt-8 text-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Savner du noe i appen?
-        </p>
-        <Link
-          href="/bli-utvikler"
-          className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl"
-          style={{
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--accent)',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            fontWeight: 600,
-          }}
-        >
-          Send inn forslag
-        </Link>
-      </div>
     </div>
   )
 }
