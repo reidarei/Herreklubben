@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
+import { norskDatoNaa } from '@/lib/dato'
 import { NextRequest, NextResponse } from 'next/server'
 import { addDays } from 'date-fns'
 
@@ -11,13 +12,12 @@ async function kjorPaaminnelser(req: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // TODO: bruk global tidsstyring når den er på plass (alltid 08:00 norsk tid)
-  const naa = new Date()
+  // Bruk norsk dato slik at datosjekken er riktig uansett servertid
+  const idag = norskDatoNaa()
 
-  // Datobasert sjekk: finn arrangementer på nøyaktig riktig dato
-  const dag7 = addDays(naa, 7).toISOString().slice(0, 10)
-  const dag1 = addDays(naa, 1).toISOString().slice(0, 10)
-  const dag3 = addDays(naa, 3).toISOString().slice(0, 10)
+  const dag7 = addDays(idag, 7).toISOString().slice(0, 10)
+  const dag1 = addDays(idag, 1).toISOString().slice(0, 10)
+  const dag3 = addDays(idag, 3).toISOString().slice(0, 10)
 
   const [{ data: arr_7 }, { data: arr_1 }, { data: arr_3 }] = await Promise.all([
     supabase.from('arrangementer').select('id, tittel, start_tidspunkt')

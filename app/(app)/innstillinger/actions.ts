@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
+import { norskDatoNaa } from '@/lib/dato'
 import { addDays } from 'date-fns'
 import { revalidatePath } from 'next/cache'
 
@@ -34,11 +35,10 @@ export async function kjorPaaminnerManuelt(): Promise<boolean> {
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const admin = createAdminClient()
 
-  // TODO: bruk global tidsstyring når den er på plass
-  const naa = new Date()
-  const dag7 = addDays(naa, 7).toISOString().slice(0, 10)
-  const dag1 = addDays(naa, 1).toISOString().slice(0, 10)
-  const dag3 = addDays(naa, 3).toISOString().slice(0, 10)
+  const idag = norskDatoNaa()
+  const dag7 = addDays(idag, 7).toISOString().slice(0, 10)
+  const dag1 = addDays(idag, 1).toISOString().slice(0, 10)
+  const dag3 = addDays(idag, 3).toISOString().slice(0, 10)
 
   const [{ data: arr_7 }, { data: arr_1 }, { data: arr_3 }] = await Promise.all([
     admin.from('arrangementer').select('id, tittel, start_tidspunkt').gte('start_tidspunkt', `${dag7}T00:00:00`).lt('start_tidspunkt', `${dag7}T23:59:59`),

@@ -3,7 +3,8 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import AnsvarAdmin from './AnsvarAdmin'
-import { norskAar } from '@/lib/dato'
+import { norskAar, norskDag, norskDatoNaa } from '@/lib/dato'
+import { isBefore } from 'date-fns'
 
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
@@ -73,7 +74,7 @@ export default async function Arrangoransvar() {
                       )}
                       {lenketArr ? (
                         <Link href={`/arrangementer/${lenketArr.id}`} className="text-xs mt-0.5 inline-block" style={{ color: 'var(--success)' }}>
-                          {new Date(lenketArr.start_tidspunkt) < new Date() ? '✓ Gjennomført' : '✓ Lagt inn'}
+                          {isBefore(norskDag(lenketArr.start_tidspunkt), norskDatoNaa()) ? '✓ Gjennomført' : '✓ Lagt inn'}
                         </Link>
                       ) : (
                         <p className="text-xs mt-0.5" style={{ color: 'var(--destructive)' }}>✗ Ikke lagt inn ennå</p>
