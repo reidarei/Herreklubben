@@ -30,6 +30,7 @@ type Arrangement = {
 
 type Bursdag = {
   id: string
+  profilId: string
   visningsnavn: string
   dato: string   // YYYY-MM-DD for the occurrence year
   alder: number
@@ -291,7 +292,7 @@ export default function ArrangementTidslinje({
         <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>{bursdagEmojier(bursdag.visningsnavn)}</span>
         <div>
           <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-            <Link href={`/klubbinfo/medlemmer/${bursdag.id}`} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', textDecorationColor: 'var(--accent)' }}>
+            <Link href={`/klubbinfo/medlemmer/${bursdag.profilId}`} style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', textDecorationColor: 'var(--accent)' }}>
               {bursdag.visningsnavn}
             </Link>
             {' '}{verb} {bursdag.alder} år

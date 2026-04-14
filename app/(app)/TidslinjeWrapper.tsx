@@ -46,7 +46,7 @@ function beregnBursdager(profiler: ProfilMedBursdag[], frem: number) {
   return profiler.flatMap(p => {
     if (!p.fodselsdato) return []
     const [fodselsaar, mnd, dag] = p.fodselsdato.split('-').map(Number)
-    const items: { id: string; visningsnavn: string; dato: string; alder: number }[] = []
+    const items: { id: string; profilId: string; visningsnavn: string; dato: string; alder: number }[] = []
     const aarRange = Math.ceil(frem / 12) + 2
     for (let i = -1; i <= aarRange; i++) {
       const yr = now.getFullYear() + i
@@ -54,6 +54,7 @@ function beregnBursdager(profiler: ProfilMedBursdag[], frem: number) {
       if (bdag >= toMndSiden && bdag <= fremTid) {
         items.push({
           id: `bursdag-${p.id}-${yr}`,
+          profilId: p.id,
           visningsnavn: p.visningsnavn ?? '',
           dato: `${yr}-${String(mnd).padStart(2, '0')}-${String(dag).padStart(2, '0')}`,
           alder: yr - fodselsaar,
