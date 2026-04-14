@@ -280,13 +280,18 @@ export default function ArrangementTidslinje({
     const erPast = isBefore(dag, norskDatoNaa())
     const verb = erPast ? 'fylte' : 'fyller'
     return (
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+      <Link
+        href={`/klubbinfo/medlemmer/${bursdag.id}`}
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-transform duration-100 active:scale-[0.98]"
         style={{
           background: 'var(--bg-elevated)',
-          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
-          boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--accent)',
+          boxShadow: idag
+            ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)'
+            : '0 0 0 1px rgba(212, 168, 83, 0.15)',
           opacity: fortid ? 0.5 : 1,
+          textDecoration: 'none',
+          color: 'inherit',
         }}
       >
         <span style={{ fontSize: '20px', letterSpacing: '-3px', lineHeight: 1 }}>{bursdagEmojier(bursdag.visningsnavn)}</span>
@@ -299,7 +304,7 @@ export default function ArrangementTidslinje({
             {formaterDato(bursdag.dato, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(bursdag.dato, 'yyyy')}`}
           </p>
         </div>
-      </div>
+      </Link>
     )
   }
 
