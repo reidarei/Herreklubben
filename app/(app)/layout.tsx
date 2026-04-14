@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import BottomNav from '@/components/BottomNav'
 import PageTransition from '@/components/PageTransition'
 import ServiceWorkerRegistrering from '@/components/ServiceWorkerRegistrering'
+import DeployInfo from '@/components/DeployInfo'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
 
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 pb-24 relative z-10">
         <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
         <PageTransition>{children}</PageTransition>
+        <DeployInfo />
       </main>
       <Suspense fallback={<BottomNav erAdmin={false} />}>
         <NavMedRolle />
