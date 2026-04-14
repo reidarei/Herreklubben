@@ -262,15 +262,17 @@ export default function ArrangementTidslinje({
   }
 
   function bursdagEmojier(navn: string): string {
-    const sett = [
-      '🎂🎁🎉', '🥳🍾🎊', '🎁🌟🎂', '🎊🥂🎁', '🎉🍻🥳',
-      '🎂🍸🎉', '🥳🎂💎', '🍺🎊🎁', '👏🎉🎂', '🌟🥳🍾',
-      '🎈🎂🥂', '🪅🎁🥳', '🎆🍾🎂', '🎇🎉🍻', '🧁🎊🌟',
-      '🎂🎀🎉', '🥳🎈🍸', '🎁🎆🥂', '💐🎂🍾', '🎊🧁🎈',
-    ]
-    let hash = 0
-    for (let i = 0; i < navn.length; i++) hash = ((hash << 5) - hash + navn.charCodeAt(i)) | 0
-    return sett[Math.abs(hash) % sett.length]
+    const emojier = ['🎂', '🎁', '🎉', '🥳', '🍾', '🎊', '🌟', '🥂', '🍻', '🍸', '💎', '🍺', '👏', '🎈', '🪅', '🎆', '🎇', '🧁', '🎀', '💐', '🪩', '🎶']
+    // FNV-1a hash for bedre spredning
+    let h = 0x811c9dc5
+    for (let i = 0; i < navn.length; i++) { h ^= navn.charCodeAt(i); h = Math.imul(h, 0x01000193) }
+    const a = (h >>> 0) % emojier.length
+    let b = ((h >>> 8) ^ (h >>> 16)) % (emojier.length - 1)
+    if (b >= a) b++
+    let c = ((h >>> 4) ^ (h >>> 12)) % (emojier.length - 2)
+    if (c >= Math.min(a, b)) c++
+    if (c >= Math.max(a, b)) c++
+    return emojier[a] + emojier[b] + emojier[c]
   }
 
   function BursdagNotis({ bursdag, fortid, idag }: { bursdag: Bursdag; fortid?: boolean; idag?: boolean }) {

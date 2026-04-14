@@ -15,6 +15,36 @@ function verifiserSignatur(body: string, signatur: string | null): boolean {
   return crypto.timingSafeEqual(Buffer.from(signatur), Buffer.from(forventet))
 }
 
+async function varsleProfil(admin: ReturnType<typeof createAdminClient>, profilId: string, tittel: string, melding: string, knappTekst: string) {
+  const { data: varsel } = await admin
+    .from('personlige_varsler')
+    .insert({ profil_id: profilId, tittel, melding })
+    .select('id')
+    .single()
+
+  const url = varsel ? `${BASE_URL}/varsler/${varsel.id}` : `${BASE_URL}/`
+
+  const { data: profil } = await admin
+    .from('profiles')
+    .select('epost')
+    .eq('id', profilId)
+    .single()
+
+  const { data: subs } = await admin
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('profil_id', profilId)
+
+  if (subs && subs.length > 0) {
+    await Promise.all(subs.map(s => sendPush(s, { tittel, melding, url })))
+  }
+
+  if (profil?.epost) {
+    const html = arrangementEpostHtml({ tittel, tekst: melding, url, knappTekst })
+    await sendEpost({ til: profil.epost, emne: tittel, html })
+  }
+}
+
 export async function POST(request: Request) {
   const rawBody = await request.text()
   const signatur = request.headers.get('x-hub-signature-256')
@@ -29,94 +59,69 @@ export async function POST(request: Request) {
   }
 
   const payload = JSON.parse(rawBody)
-
-  // Kun når issue lukkes
-  if (payload.action !== 'closed') {
-    return NextResponse.json({ ok: true, skipped: 'not-closed' })
-  }
-
   const issue = payload.issue
   if (!issue) return NextResponse.json({ ok: true, skipped: 'no-issue' })
 
-  // Sjekk at det er et ønske-issue (case-insensitive)
   const harLabel = issue.labels?.some((l: { name: string }) => l.name.toLowerCase() === 'ønske')
   if (!harLabel) return NextResponse.json({ ok: true, skipped: 'no-ønske-label' })
 
-  // Finn profil_id fra issue body
-  const match = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)
-  if (!match) return NextResponse.json({ ok: true, info: 'Ingen profil_id funnet' })
-
-  const profilId = match[1]
-
-  // Hent siste kommentar som oppsummering
-  let oppsummering = 'Ønsket ditt er håndtert!'
-  if (issue.comments > 0 && issue.comments_url) {
-    try {
-      const token = process.env.GITHUB_TOKEN
-      const kommentarerRes = await fetch(
-        `${issue.comments_url}?per_page=1&page=${issue.comments}`,
-        { headers: token ? { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } : {} }
-      )
-      if (kommentarerRes.ok) {
-        const kommentarer = await kommentarerRes.json()
-        if (kommentarer.length > 0) {
-          // Strip markdown formatting for a clean message
-          oppsummering = kommentarer[0].body
-            .replace(/#{1,6}\s/g, '')
-            .replace(/[*_`]/g, '')
-            .slice(0, 200)
-        }
-      }
-    } catch {
-      // Bruk default oppsummering
-    }
-  }
-
   const admin = createAdminClient()
 
-  // Hent profil med epost
-  const { data: profil } = await admin
-    .from('profiles')
-    .select('id, visningsnavn, epost')
-    .eq('id', profilId)
-    .single()
+  // Nytt ønske — varsle admins
+  if (payload.action === 'opened') {
+    const innhold = issue.body
+      ?.replace(/## Ønske fra .+\n\n/i, '')
+      ?.replace(/<!--[\s\S]*?-->/g, '')
+      ?.trim()
+      ?.slice(0, 200) ?? 'Nytt innspill i appen'
 
-  if (!profil) return NextResponse.json({ ok: true, info: 'Profil ikke funnet' })
+    const { data: admins } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('rolle', 'admin')
+      .eq('aktiv', true)
 
-  const tittel = 'Ønsket ditt er gjennomført'
-  const melding = oppsummering
+    if (admins) {
+      await Promise.all(admins.map(a =>
+        varsleProfil(admin, a.id, 'Nytt innspill fra appen', innhold, 'Se innspillet')
+      ))
+    }
 
-  // Lagre personlig varsel i databasen
-  const { data: varsel } = await admin
-    .from('personlige_varsler')
-    .insert({ profil_id: profilId, tittel, melding })
-    .select('id')
-    .single()
-
-  const url = varsel ? `${BASE_URL}/varsler/${varsel.id}` : `${BASE_URL}/`
-
-  // Send push
-  const { data: subs } = await admin
-    .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
-    .eq('profil_id', profilId)
-
-  if (subs && subs.length > 0) {
-    await Promise.all(subs.map(s =>
-      sendPush(s, { tittel, melding, url })
-    ))
+    return NextResponse.json({ ok: true, action: 'opened', adminsVarslet: admins?.length ?? 0 })
   }
 
-  // Send alltid epost i tillegg (personlig varsel, viktig å nå frem)
-  if (profil.epost) {
-    const html = arrangementEpostHtml({
-      tittel,
-      tekst: melding,
-      url,
-      knappTekst: 'Se svaret',
-    })
-    await sendEpost({ til: profil.epost, emne: tittel, html })
+  // Ønske lukket — varsle innsenderen
+  if (payload.action === 'closed') {
+    const match = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)
+    if (!match) return NextResponse.json({ ok: true, info: 'Ingen profil_id funnet' })
+
+    const profilId = match[1]
+
+    let oppsummering = 'Ønsket ditt er håndtert!'
+    if (issue.comments > 0 && issue.comments_url) {
+      try {
+        const token = process.env.GITHUB_TOKEN
+        const kommentarerRes = await fetch(
+          `${issue.comments_url}?per_page=1&page=${issue.comments}`,
+          { headers: token ? { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } : {} }
+        )
+        if (kommentarerRes.ok) {
+          const kommentarer = await kommentarerRes.json()
+          if (kommentarer.length > 0) {
+            oppsummering = kommentarer[0].body
+              .replace(/#{1,6}\s/g, '')
+              .replace(/[*_`]/g, '')
+              .slice(0, 200)
+          }
+        }
+      } catch {
+        // Bruk default oppsummering
+      }
+    }
+
+    await varsleProfil(admin, profilId, 'Ønsket ditt er gjennomført', oppsummering, 'Se svaret')
+    return NextResponse.json({ ok: true, action: 'closed', varslet: profilId })
   }
 
-  return NextResponse.json({ ok: true, varslet: profilId })
+  return NextResponse.json({ ok: true, skipped: 'unhandled-action' })
 }
