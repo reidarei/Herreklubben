@@ -1,5 +1,5 @@
 const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'lokal'
-const bygget = new Date().toLocaleString('nb-NO', { timeZone: 'Europe/Oslo', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const bygget = process.env.BUILD_TIMESTAMP ?? 'ukjent'
 
 export default function DeployInfo() {
   return (
