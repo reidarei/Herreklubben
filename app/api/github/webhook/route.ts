@@ -119,8 +119,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Legg til info om at endringen er live om ca. 1 minutt
-    const liveKl = new Date(Date.now() + 60_000).toLocaleString('nb-NO', {
+    // Legg til info om at endringen er live om ca. 1 minutt (rund opp til helt minutt)
+    const liveTid = new Date(Math.ceil((Date.now() + 60_000) / 60_000) * 60_000)
+    const liveKl = liveTid.toLocaleString('nb-NO', {
       timeZone: 'Europe/Oslo',
       hour: '2-digit',
       minute: '2-digit',
