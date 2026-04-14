@@ -16,7 +16,6 @@ export default function TurFelt({
   hemmelig: boolean
   onToggle: () => void
   defaultValue?: string | number
-  inputStil?: React.CSSProperties
 }) {
   const inputStyle: React.CSSProperties = {
     background: 'var(--bg-elevated-2)',

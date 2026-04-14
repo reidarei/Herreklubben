@@ -27,7 +27,7 @@ export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: V
   const admin = createAdminClient()
 
   // Check if vinner already exists for this mal_id and aar
-  const { data: eksisterende } = await (admin as any)
+  const { data: eksisterende } = await admin
     .from('kaaring_vinnere')
     .select('id')
     .eq('mal_id', malId)
@@ -36,7 +36,7 @@ export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: V
 
   if (eksisterende) {
     // Update existing
-    const { error } = await (admin as any)
+    const { error } = await admin
       .from('kaaring_vinnere')
       .update({
         profil_id: vinner.profil_id || null,
@@ -49,7 +49,7 @@ export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: V
     if (error) throw new Error(error.message)
   } else {
     // Create new
-    const { error } = await (admin as any)
+    const { error } = await admin
       .from('kaaring_vinnere')
       .insert({
         mal_id: malId,
@@ -70,7 +70,7 @@ export async function fjernVinnerFraKaaring(malId: string, aar: number) {
   await sjekkAdmin()
   const admin = createAdminClient()
 
-  const { error } = await (admin as any)
+  const { error } = await admin
     .from('kaaring_vinnere')
     .delete()
     .eq('mal_id', malId)

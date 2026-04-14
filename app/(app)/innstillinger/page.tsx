@@ -34,7 +34,7 @@ export default async function Innstillinger() {
   if (profil?.rolle !== 'admin') notFound()
 
   const admin = createAdminClient()
-  const [{ data: logg }, { count: pushCount }, { data: innstillinger }, { data: maler }, { data: kaaringmaler }] = await Promise.all([
+  const [{ data: logg }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
     admin
       .from('varsler_logg')
       .select('id, type, sendt_at, arrangementer (tittel)')
@@ -47,15 +47,9 @@ export default async function Innstillinger() {
       .from('varsel_innstillinger')
       .select('noekkel, aktiv, beskrivelse')
       .order('noekkel'),
-    (admin as any)
-      .from('arrangementmaler')
-      .select('id, navn, rekkefølge')
-      .order('rekkefølge'),
-    (admin as any)
-      .from('kaaringmaler')
-      .select('id, navn, rekkefolge')
-      .order('rekkefolge'),
   ])
+  const { data: maler } = await admin.from('arrangementmaler').select('*').order('rekkefølge')
+  const { data: kaaringmaler } = await admin.from('kaaringmaler').select('id, navn, rekkefolge').order('rekkefolge')
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-8">

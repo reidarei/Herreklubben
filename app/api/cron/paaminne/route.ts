@@ -7,7 +7,7 @@ async function kjorPaaminnelser(req: NextRequest) {
   // Autentiser med CRON_SECRET
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Uautorisert' }, { status: 401 })
+    return NextResponse.json({ feil: 'Uautorisert' }, { status: 401 })
   }
 
   const supabase = createAdminClient()

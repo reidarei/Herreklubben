@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { leggTilKaaringMal, oppdaterKaaringMal, slettKaaringMal } from '@/lib/actions/kaaringmaler'
 
-type Mal = { id: string; navn: string; rekkefølge: number }
+type Mal = { id: string; navn: string; rekkefolge: number }
 
 const inputStil: React.CSSProperties = {
   background: 'var(--bg-elevated-2)',

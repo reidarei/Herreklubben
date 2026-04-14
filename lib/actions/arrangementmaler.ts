@@ -15,8 +15,8 @@ async function sjekkAdmin() {
 export async function leggTilMal(navn: string) {
   await sjekkAdmin()
   const admin = createAdminClient()
-  const { data: max } = await (admin as any).from('arrangementmaler').select('rekkefølge').order('rekkefølge', { ascending: false }).limit(1).single()
-  const { error } = await (admin as any).from('arrangementmaler').insert({ navn: navn.trim(), rekkefølge: (max?.rekkefølge ?? 0) + 1 })
+  const { data: max } = await admin.from('arrangementmaler').select('*').order('rekkefølge', { ascending: false }).limit(1).single()
+  const { error } = await admin.from('arrangementmaler').insert({ navn: navn.trim(), rekkefølge: (max?.rekkefølge ?? 0) + 1 })
   if (error) throw new Error(error.message)
   revalidatePath('/innstillinger')
   revalidatePath('/arrangoransvar')
@@ -25,7 +25,7 @@ export async function leggTilMal(navn: string) {
 export async function oppdaterMal(id: string, navn: string) {
   await sjekkAdmin()
   const admin = createAdminClient()
-  const { error } = await (admin as any).from('arrangementmaler').update({ navn: navn.trim() }).eq('id', id)
+  const { error } = await admin.from('arrangementmaler').update({ navn: navn.trim() }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/innstillinger')
   revalidatePath('/arrangoransvar')
@@ -34,7 +34,7 @@ export async function oppdaterMal(id: string, navn: string) {
 export async function slettMal(id: string) {
   await sjekkAdmin()
   const admin = createAdminClient()
-  const { error } = await (admin as any).from('arrangementmaler').delete().eq('id', id)
+  const { error } = await admin.from('arrangementmaler').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/innstillinger')
   revalidatePath('/arrangoransvar')

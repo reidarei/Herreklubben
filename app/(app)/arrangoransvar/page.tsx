@@ -20,7 +20,7 @@ export default async function Arrangoransvar() {
       .in('aar', visAar)
       .order('aar'),
     supabase.from('profiles').select('id, navn').eq('aktiv', true).order('navn'),
-    (supabase as any).from('arrangementmaler').select('navn').order('rekkefølge'),
+    supabase.from('arrangementmaler').select('*').order('rekkefølge'),
   ])
 
   const fasteArrangementer = ((maler ?? []) as { navn: string }[]).map(m => m.navn)
