@@ -265,6 +265,8 @@ export default function ArrangementTidslinje({
     const sett = [
       '🎂🎁🎉', '🥳🍾🎊', '🎁🌟🎂', '🎊🥂🎁', '🎉🍻🥳',
       '🎂🍸🎉', '🥳🎂💎', '🍺🎊🎁', '👏🎉🎂', '🌟🥳🍾',
+      '🎈🎂🥂', '🪅🎁🥳', '🎆🍾🎂', '🎇🎉🍻', '🧁🎊🌟',
+      '🎂🎀🎉', '🥳🎈🍸', '🎁🎆🥂', '💐🎂🍾', '🎊🧁🎈',
     ]
     let hash = 0
     for (let i = 0; i < navn.length; i++) hash = ((hash << 5) - hash + navn.charCodeAt(i)) | 0
