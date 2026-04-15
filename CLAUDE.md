@@ -35,7 +35,9 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Supabase** for alt: Auth (email + passord), PostgreSQL med RLS, scheduled jobs for påminnelser. Migrasjonsfiler i `supabase/migrations/`. Databaseskjema er definert i løsningsdesignet.
 
-**Varsler:** Web Push (VAPID) for installerte PWA-brukere + e-post via Resend til alle som fallback. Påminnelser 7 dager og 1 dag før arrangementer. E-post sendes fra `noreply@mortensrudherreklubb.no` (domenet er verifisert i Resend). **Viktig:** Bruk aldri `after()` fra `next/server` for varsler — det kjører ikke pålitelig på Vercel Hobby. Bruk `await` direkte i server actions.
+**Varsler:** Sentral varslingsfunksjon `sendVarsel()` i `lib/varsler.ts` — all utgående kommunikasjon (push, epost) går gjennom denne. Se **Policy: Varsler** nedenfor.
+
+**Tid:** All tidshåndtering går gjennom `lib/dato.ts` med `Europe/Oslo` tidssone. Se **Policy: Tidshåndtering** nedenfor.
 
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
@@ -56,5 +58,46 @@ Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig sc
 - UI-tekst og databasekolonner på norsk (f.eks. `opprettet_av`, `start_tidspunkt`)
 - Datoer via `date-fns` med norsk locale (`nb`)
 - Oslo-østkant-tone / oslo-losen i UI-tekst (a-endelser, f.eks. «gutta»)
+
+## Policy: Varsler
+
+All utgående kommunikasjon (push, epost) skal gå gjennom `sendVarsel()` i `lib/varsler.ts`. **Aldri** importer `sendPush` eller `sendEpost` direkte i andre filer — bruk `sendVarsel`.
+
+**Funksjonen håndterer:**
+- Testmodus (filtrerer til kun testprofil)
+- Brukerpreferanser (`push_aktiv`, `epost_aktiv` fra `varsel_preferanser`)
+- Dedup via `tillatDuplikat`-parameter (false = sjekker `varsel_logg` for eksisterende type+arrangement_id)
+- Deduplisering av mottakerliste (Set)
+- Logging til `varsel_logg`-tabellen med kanal-info (push/epost/begge)
+- URL-generering: oppgitt URL brukes, ellers genereres `/varsler/{id}`
+
+**Parametre:**
+- `mottakere?: string[]` — profil_id-er, utelat = alle aktive
+- `tittel`, `melding` — innhold i varselet
+- `url?` — lenke i push/epost
+- `knappTekst?` — epost CTA (default: "Åpne i appen")
+- `type` — kategorisering for logging og dedup
+- `arrangementId?` — referanse for dedup
+- `tillatDuplikat?` — true = send alltid (default: false)
+
+**Tabell:** `varsel_logg` (tidligere `personlige_varsler` + `varsler_logg` slått sammen). Kolonner: profil_id, tittel, melding, type, kanal, url, arrangement_id, lest, opprettet.
+
+**Cron:** Vercel cron `0 6 * * *` (08:00 norsk sommertid) kaller `/api/cron/paaminne`. Datobasert sjekk — arrangementets dato sammenlignes med norsk dato, ikke tidspunkt.
+
+**Viktig:** Bruk aldri `after()` fra `next/server` for varsler — det kjører ikke pålitelig på Vercel Hobby. Bruk `await` direkte.
+
+## Policy: Tidshåndtering
+
+All tidshåndtering skal gå gjennom `lib/dato.ts`. **Aldri** bruk `new Date()` for å bestemme "hvilken dag er det" — bruk `norskDatoNaa()`.
+
+**Regler:**
+- **Visning av dato/tid:** Bruk `formaterDato(iso, format)` — konverterer automatisk fra UTC til `Europe/Oslo`
+- **"Er dette i dag/fortid?":** Bruk `norskDatoNaa()` og `norskDag(iso)` for sammenligning
+- **Hvilket år er det?:** Bruk `norskAar()`
+- **Lagring i database:** Alltid UTC via `.toISOString()` — dette er korrekt
+- **Cron/datoberegning:** Bruk `norskDatoNaa()` som utgangspunkt, `addDays()` for å beregne fremtidige datoer
+- **`new Date()` er OK for:** tidsstempler til DB (`.toISOString()`), elapsed time-beregninger, unike ID-er
+
+**Tidssone:** `Europe/Oslo` (eksportert som `TIDSSONE` fra `lib/dato.ts`). Håndterer automatisk sommertid/vintertid via `date-fns-tz`.
 
 Supabase: Herreklubbens org, Herreklubbens webapp, Database passord: d2F3j$G!-@j!i94

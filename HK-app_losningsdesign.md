@@ -1,6 +1,6 @@
 # Mortensrud Herreklubb — Løsningsdesign
 
-> **Status:** Implementert og live på Vercel (2026-04-06). Dette dokumentet er et design-referansedokument — koden er autoritativ for gjeldende implementasjon.
+> **Status:** Implementert og live på Vercel. Oppdatert 2026-04-15 (varsler, tidshåndtering). Koden er autoritativ — dette dokumentet er referanse.
 
 > Basert på kravspesifikasjonen i `HK-app_kravspesifikasjon.md` (låst).
 > Arkitektur: **Next.js 15 App Router + Supabase + PWA**.
@@ -14,7 +14,7 @@
 | T1 | Rollemodell i database | `profiles.rolle` enum (`admin` / `medlem`) | Enklest. RLS-policyer sjekker `rolle` direkte. Ingen ekstra tabell. |
 | T2 | Versjonshistorikk vedtekter | Full historikk via `vedtekter_versjoner`-tabell | UC-7.2 krever vedtaksdato og endringsnotat per versjon. |
 | T3 | E-post-tjeneste | **Resend** | 100 gratis e-post/dag, moderne API, god Next.js-integrasjon. Mer enn nok for 17 brukere. |
-| T4 | Triggering av påminnelser | Supabase `pg_cron` + Edge Functions | Holder alt på Supabase-plattformen. pg_cron trigger Edge Functions som sender push + e-post. |
+| T4 | Triggering av påminnelser | Vercel Cron → `/api/cron/paaminne` | Daglig cron kl. 06:00 UTC. Datobasert sjekk mot norsk tid via `norskDatoNaa()`. |
 | T5 | Datamodell for turer | Én `arrangementer`-tabell med `type`-discriminator + nullable tur-felter | 17 brukere, enkel modell. Unngår JOIN for de vanligste spørringene. |
 | T6 | Datamodell for kåringer | `kaaringer` + `kaaring_vinnere` (junction). Vinner er enten profil eller arrangement. | V1 er manuell registrering. `kaaring_stemmer` legges til i V2. |
 | T7 | Editor for vedtekter | Markdown med preview | Balanse mellom formatering og enkelhet. Rendres med `react-markdown`. |
@@ -502,88 +502,79 @@ Dersom en bruker har flere uoppfylte ansvar (sjelden, men mulig), vises en nedtr
 
 ---
 
-## 6. Varsler og scheduled jobs
+## 6. Varsler
 
-### 6.1 Varseltyper
+### 6.1 Sentral varslingsfunksjon
 
-| Varsel | Trigger | Push | E-post | UC |
-|--------|---------|------|--------|-----|
-| Nytt arrangement | Insert i `arrangementer` | Ja (PWA-brukere) | Ja (alle) | UC-5.1 |
-| Påminnelse 7d | pg_cron daglig | Ja | Ja | UC-5.2 |
-| Påminnelse 1d | pg_cron daglig | Ja | Ja | UC-5.2 |
-| Ansvarsvarsel | Insert/update i `arrangoransvar` | Ja | Ja | UC-5.3 |
-| Purring | pg_cron daglig | Ja | Ja | UC-5.4 |
-
-### 6.2 Arkitektur
+All utgående kommunikasjon går gjennom `sendVarsel()` i `lib/varsler.ts`. Push og epost importeres **aldri** direkte i andre filer.
 
 ```
-[Database event / pg_cron]
+[Trigger: server action, webhook, cron]
         │
         ▼
-[Supabase Edge Function: send-varsler]
+  sendVarsel({ mottakere?, tittel, melding, url?, type, tillatDuplikat? })
         │
-        ├── Web Push (web-push npm-pakke)
-        │     └── POST til push-endepunkt per subscription
+        ├── 1. Dedup-sjekk (hvis tillatDuplikat=false)
+        │      → Sjekk varsel_logg for type + arrangement_id
         │
-        └── E-post (Resend API)
-              └── POST til Resend med HTML-template
+        ├── 2. Testmodus → filtrer til testprofil
+        │
+        ├── 3. Løs opp mottakere (oppgitte eller alle aktive)
+        │      Dedupliser med Set
+        │
+        ├── 4. Hent preferanser + push-subscriptions
+        │
+        └── 5. For hver mottaker:
+               ├── Push (hvis push_aktiv=true)
+               ├── Epost (hvis epost_aktiv=true)
+               └── Logg til varsel_logg (type, kanal, url)
 ```
 
-### 6.3 pg_cron-jobber
+### 6.2 Varseltyper
 
-```sql
--- Daglig jobb kl. 08:00 Oslo-tid: sjekk påminnelser og purringer
-select cron.schedule(
-  'daglig-varselsjekk',
-  '0 7 * * *',  -- 07:00 UTC ≈ 08:00/09:00 CET/CEST
-  $$
-    select net.http_post(
-      url := 'https://<project>.supabase.co/functions/v1/send-varsler',
-      headers := '{"Authorization": "Bearer <service_role_key>"}'::jsonb,
-      body := '{}'::jsonb
-    );
-  $$
-);
-```
+| Type | Trigger | Mottakere | Dedup | Admin-bryter |
+|------|---------|-----------|-------|-------------|
+| `nytt_arrangement` | Opprett arrangement | Alle | Ja | `nytt_arrangement` |
+| `oppdatert` | Manuell «Varsle nå»-knapp | Alle | Nei (`tillatDuplikat: true`) | Ingen |
+| `paaminne_7` | Cron (7 dager før) | Alle | Ja | `paaminnelse_7d` |
+| `paaminne_1` | Cron (1 dag før) | Alle | Ja | `paaminnelse_1d` |
+| `purring` | Cron (3 dager før) | Kun ubesvarte | Ja | `purring_aktiv` |
+| `mention` | @-mention i chat | Nevnte | Nei (`tillatDuplikat: true`) | Ingen |
+| `ønske_ny` | GitHub issue opened | Admins + oppretter | Nei (`tillatDuplikat: true`) | Ingen |
+| `ønske_lukket` | GitHub issue closed | Innsenderen | Nei (`tillatDuplikat: true`) | Ingen |
 
-### 6.4 Edge Function: send-varsler
+### 6.3 Cron
 
-```typescript
-// supabase/functions/send-varsler/index.ts
-// Pseudokode:
+Vercel cron (`vercel.json`): `0 6 * * *` (06:00 UTC = 08:00 norsk sommertid).
 
-// 1. Hent varsel_innstillinger (sjekk hva som er aktivt)
-// 2. Finn arrangementer som trenger påminnelse (7d / 1d)
-// 3. Purring: finn rader i arrangoransvar der
-//      arrangement_id IS NULL
-//      AND purredato IS NOT NULL
-//      AND purredato <= CURRENT_DATE
-//    (ingen tekstparsing — purredato settes eksplisitt av admin)
-// 4. For hver varsel:
-//    a. Hent push_subscriptions for mottakere
-//    b. Send Web Push via web-push
-//    c. Send e-post via Resend
-```
+Datobasert sjekk — arrangementets dato sammenlignes med norsk dato via `norskDatoNaa()`, ikke tidspunkt-vindu. Auth: Bearer `CRON_SECRET`.
 
-### 6.5 Varsel ved nytt arrangement
+### 6.4 Brukerpreferanser
 
-Trigges fra Server Action (ikke database-trigger) for å ha kontroll over timing og innhold:
+Tabell `varsel_preferanser`: `push_aktiv` (default false), `epost_aktiv` (default true). Begge kan være på samtidig — brukeren kan få både push og epost. Administreres via `/profil`.
 
-```typescript
-// I lib/actions/arrangementer.ts, etter vellykket insert:
-// 1. Hent alle push_subscriptions
-// 2. Send push til hver
-// 3. Send e-post til alle medlemmer via Resend
-```
+### 6.5 Varsel-logg
 
-### 6.6 Ansvarsvarsel
+Tabell `varsel_logg` (tidligere `personlige_varsler` + `varsler_logg`): én rad per mottaker per varsling. Kolonner: profil_id, tittel, melding, type, kanal, url, arrangement_id, lest, opprettet. Admin ser alle via RLS-policy. Brukes også for dedup (type + arrangement_id).
 
-Trigges fra Server Action i `arrangoransvar.ts` etter at admin lagrer ansvar:
+### 6.6 Testmodus
 
-```typescript
-// Etter vellykket insert/update av arrangoransvar:
-// Send push + e-post til den/de som fikk ansvar
-```
+Admin setter `test_modus` i `varsel_innstillinger` med test-epost i `beskrivelse`-feltet. Når aktiv: kun profilen med test-eposten mottar varsler. Gjelder alle varslingsstier via `sendVarsel()`.
+
+## 6b. Tidshåndtering
+
+All tidshåndtering går gjennom `lib/dato.ts` med tidssone `Europe/Oslo`.
+
+| Funksjon | Bruk |
+|----------|------|
+| `formaterDato(iso, format)` | Visning: konverterer UTC → Oslo |
+| `norskDatoNaa()` | «Hvilken dag er det?» i Oslo |
+| `norskDag(iso)` | Dato uten tid, i Oslo |
+| `norskAar()` | Inneværende år i Oslo |
+| `isoTilDatetimeLocal(iso)` | ISO → HTML datetime-local input |
+| `datetimeLocalTilIso(str)` | HTML input → ISO (UTC) |
+
+**Regel:** `new Date()` brukes kun for UTC-tidsstempler til DB (`.toISOString()`) og elapsed time. For dato-logikk (dag, år, sammenligning) brukes alltid funksjonene over.
 
 ---
 
