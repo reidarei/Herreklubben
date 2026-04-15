@@ -87,19 +87,21 @@ export default function IssuesListeKlient({ aapne }: { aapne: GitHubIssue[] }) {
     setVisLukkede(v => !v)
   }
 
-  if (aapne.length === 0 && !visLukkede && lukkede.length === 0) return null
-
   return (
     <div className="mb-6">
       <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>
         Ønsker fra gutta ({aapne.length} åpne)
       </h2>
 
-      {aapne.length > 0 && (
+      {aapne.length > 0 ? (
         <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {aapne.map((issue, i) => (
             <IssueRad key={issue.number} issue={issue} i={i} erLukket={false} />
           ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+          <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>Ingen åpne ønsker</p>
         </div>
       )}
 
