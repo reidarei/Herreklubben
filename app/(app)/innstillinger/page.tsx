@@ -3,23 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formaterDato } from '@/lib/dato'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import VarselToggle from '@/components/VarselToggle'
 import IssuesListe from './IssuesListe'
+import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
-
-const typeLabels: Record<string, string> = {
-  nytt_arrangement: 'Nytt arrangement',
-  oppdatert: 'Arrangement oppdatert',
-  paaminne_7: 'Påminnelse 7 dager',
-  paaminne_1: 'Påminnelse 1 dag',
-  purring: 'Purring',
-  mention: 'Chat-mention',
-  'ønske_ny': 'Nytt innspill',
-  'ønske_lukket': 'Innspill gjennomført',
-}
 
 const innstillingLabels: Record<string, string> = {
   nytt_arrangement: 'Varsel ved nytt arrangement',
@@ -38,12 +27,12 @@ export default async function Innstillinger() {
   if (profil?.rolle !== 'admin') notFound()
 
   const admin = createAdminClient()
-  const [{ data: logg }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
+  const [{ data: logg, count: varselTotal }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
     admin
       .from('varsel_logg')
-      .select('id, tittel, type, kanal, opprettet, profil_id, profiles (visningsnavn)')
+      .select('id, tittel, type, kanal, opprettet, profil_id, profiles (visningsnavn)', { count: 'exact' })
       .order('opprettet', { ascending: false })
-      .limit(50),
+      .limit(10),
     supabase
       .from('push_subscriptions')
       .select('*', { count: 'exact', head: true }),
@@ -103,30 +92,7 @@ export default async function Innstillinger() {
       <IssuesListe />
 
       {/* Varselhistorikk */}
-      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Siste varsler</h2>
-      {!logg || logg.length === 0 ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Ingen varsler sendt ennå.</p>
-      ) : (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {logg.map((v, i) => (
-            <div key={v.id} className="flex items-center justify-between px-4 py-2.5 text-xs"
-              style={{
-                background: i % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg)',
-                borderTop: i > 0 ? '1px solid var(--border)' : undefined,
-              }}>
-              <div className="min-w-0 flex-1">
-                <p style={{ color: 'var(--text-primary)' }}>{typeLabels[v.type ?? ''] ?? v.type ?? '—'}</p>
-                <p className="truncate" style={{ color: 'var(--text-secondary)' }}>
-                  {(v.profiles as { visningsnavn: string | null } | null)?.visningsnavn ?? '—'}{v.kanal ? ` · ${v.kanal}` : ''}
-                </p>
-              </div>
-              <p className="shrink-0" style={{ color: 'var(--text-secondary)' }}>
-                {v.opprettet ? formaterDato(v.opprettet, 'd. MMM HH:mm') : ''}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+      <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
     </div>
   )
 }

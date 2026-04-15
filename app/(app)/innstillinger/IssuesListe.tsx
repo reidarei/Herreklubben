@@ -9,12 +9,12 @@ type GitHubIssue = {
   labels: { name: string }[]
 }
 
-async function hentIssues(): Promise<GitHubIssue[]> {
+async function hentAapneIssues(): Promise<GitHubIssue[]> {
   const token = process.env.GITHUB_TOKEN
   if (!token) return []
 
   const res = await fetch(
-    'https://api.github.com/repos/reidarei/Herreklubben/issues?labels=%C3%B8nske&state=all&sort=created&direction=desc&per_page=50',
+    'https://api.github.com/repos/reidarei/Herreklubben/issues?labels=%C3%B8nske&state=open&sort=created&direction=desc&per_page=50',
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -29,12 +29,7 @@ async function hentIssues(): Promise<GitHubIssue[]> {
 }
 
 export default async function IssuesListe() {
-  const issues = await hentIssues()
+  const aapne = await hentAapneIssues()
 
-  if (issues.length === 0) return null
-
-  const aapne = issues.filter(i => i.state === 'open')
-  const lukkede = issues.filter(i => i.state === 'closed')
-
-  return <IssuesListeKlient aapne={aapne} lukkede={lukkede} />
+  return <IssuesListeKlient aapne={aapne} />
 }

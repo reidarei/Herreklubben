@@ -14,7 +14,6 @@ type GitHubIssue = {
 function IssueRad({ issue, i, erLukket }: { issue: GitHubIssue; i: number; erLukket: boolean }) {
   return (
     <a
-      key={issue.number}
       href={issue.html_url}
       target="_blank"
       rel="noopener noreferrer"
@@ -55,20 +54,40 @@ function IssueRad({ issue, i, erLukket }: { issue: GitHubIssue; i: number; erLuk
   )
 }
 
-const LUKKEDE_PER_SIDE = 10
+const PER_SIDE = 10
 
-export default function IssuesListeKlient({
-  aapne,
-  lukkede,
-}: {
-  aapne: GitHubIssue[]
-  lukkede: GitHubIssue[]
-}) {
+export default function IssuesListeKlient({ aapne }: { aapne: GitHubIssue[] }) {
   const [visLukkede, setVisLukkede] = useState(false)
-  const [antallVist, setAntallVist] = useState(LUKKEDE_PER_SIDE)
+  const [lukkede, setLukkede] = useState<GitHubIssue[]>([])
+  const [side, setSide] = useState(1)
+  const [harFlere, setHarFlere] = useState(true)
+  const [laster, setLaster] = useState(false)
 
-  const lukkedeAaVise = lukkede.slice(0, antallVist)
-  const harFlere = antallVist < lukkede.length
+  async function hentLukkede(pageNr: number) {
+    setLaster(true)
+    try {
+      const res = await fetch(`/api/admin/issues?state=closed&page=${pageNr}&per_page=${PER_SIDE}`)
+      const { data } = await res.json() as { data: GitHubIssue[] }
+      if (pageNr === 1) {
+        setLukkede(data)
+      } else {
+        setLukkede(prev => [...prev, ...data])
+      }
+      setHarFlere(data.length === PER_SIDE)
+      setSide(pageNr)
+    } finally {
+      setLaster(false)
+    }
+  }
+
+  async function toggleLukkede() {
+    if (!visLukkede && lukkede.length === 0) {
+      await hentLukkede(1)
+    }
+    setVisLukkede(v => !v)
+  }
+
+  if (aapne.length === 0 && !visLukkede && lukkede.length === 0) return null
 
   return (
     <div className="mb-6">
@@ -84,36 +103,36 @@ export default function IssuesListeKlient({
         </div>
       )}
 
-      {lukkede.length > 0 && (
-        <div className="mt-4">
-          <button
-            onClick={() => setVisLukkede(v => !v)}
-            className="text-xs font-medium mb-2"
-            style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          >
-            {visLukkede ? '▾ Skjul lukkede' : `▸ Vis lukkede (${lukkede.length})`}
-          </button>
+      <div className="mt-4">
+        <button
+          onClick={toggleLukkede}
+          disabled={laster}
+          className="text-xs font-medium mb-2"
+          style={{ color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          {laster ? 'Laster…' : visLukkede ? '▾ Skjul lukkede' : '▸ Vis lukkede'}
+        </button>
 
-          {visLukkede && (
-            <>
-              <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                {lukkedeAaVise.map((issue, i) => (
-                  <IssueRad key={issue.number} issue={issue} i={i} erLukket />
-                ))}
-              </div>
-              {harFlere && (
-                <button
-                  onClick={() => setAntallVist(n => n + LUKKEDE_PER_SIDE)}
-                  className="text-xs font-medium mt-2 block"
-                  style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  Vis flere ({lukkede.length - antallVist} igjen)
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
+        {visLukkede && lukkede.length > 0 && (
+          <>
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              {lukkede.map((issue, i) => (
+                <IssueRad key={issue.number} issue={issue} i={i} erLukket />
+              ))}
+            </div>
+            {harFlere && (
+              <button
+                onClick={() => hentLukkede(side + 1)}
+                disabled={laster}
+                className="text-xs font-medium mt-2 block"
+                style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                {laster ? 'Laster…' : 'Vis flere'}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }
