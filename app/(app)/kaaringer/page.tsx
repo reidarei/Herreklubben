@@ -45,12 +45,14 @@ export default async function Kaaringer() {
     vinnerePrMal[key][v.aar] = v
   }
 
-  // Get all years that have vinnere or are current year
+  // Vis alle år fra 2015 til gjeldende, samt eldre år som har vinnere
   const aar_set = new Set<number>()
   for (const v of vinnere ?? []) {
     aar_set.add(v.aar)
   }
-  aar_set.add(gjeldende_aar)
+  for (let y = 2015; y <= gjeldende_aar; y++) {
+    aar_set.add(y)
+  }
   const aar = Array.from(aar_set).sort((a, b) => b - a)
 
   return (
