@@ -3,6 +3,9 @@ import { nb } from 'date-fns/locale'
 
 export const TIDSSONE = 'Europe/Oslo'
 
+// Felles format-strenger brukt flere steder i appen.
+export const FORMAT_DATO_KLOKKE = "d. MMMM 'kl.' HH:mm"
+
 /**
  * Formater en ISO-dato i norsk tidssone (Europe/Oslo).
  * Håndterer sommer/vintertid automatisk.

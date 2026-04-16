@@ -47,6 +47,7 @@ export default function Chat({
 
   const profilMap = useRef(new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent']))).current
   const andreProfiler = useRef(profiler.filter(p => p.id !== brukerId && p.navn)).current
+  const supabase = useRef(createClient()).current
 
   // Finn @mention-forslag basert på tekst etter siste @
   const mentionForslag = mentionSøk !== null
@@ -109,7 +110,6 @@ export default function Chat({
   // Realtime-subscription
   useEffect(() => {
     let cancelled = false
-    const supabase = createClient()
 
     async function startSubscription() {
       const { data: { session } } = await supabase.auth.getSession()
@@ -154,13 +154,12 @@ export default function Chat({
       cancelled = true
       if (channelRef) supabase.removeChannel(channelRef)
     }
-  }, [arrangementId])
+  }, [arrangementId, supabase])
 
   // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen)
   useEffect(() => {
     async function reFetch() {
       if (document.visibilityState !== 'visible') return
-      const supabase = createClient()
       const { data } = await supabase
         .from('arrangement_chat')
         .select('id, profil_id, innhold, opprettet')
@@ -172,7 +171,7 @@ export default function Chat({
 
     document.addEventListener('visibilitychange', reFetch)
     return () => document.removeEventListener('visibilitychange', reFetch)
-  }, [arrangementId])
+  }, [arrangementId, supabase])
 
   async function handleSend() {
     const melding = tekst.trim()
@@ -205,7 +204,6 @@ export default function Chat({
     try {
       await slettMelding(id)
     } catch {
-      const supabase = createClient()
       const { data } = await supabase
         .from('arrangement_chat')
         .select('id, profil_id, innhold, opprettet')

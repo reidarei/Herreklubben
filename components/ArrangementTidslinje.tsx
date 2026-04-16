@@ -141,6 +141,8 @@ export default function ArrangementTidslinje({
     ...ikkePlanlagt.map(p => ({ type: 'ikke-planlagt' as const, data: p })),
   ]
 
+  const iAar = formaterDato(new Date().toISOString(), 'yyyy')
+
   const tidligereItems = alleItems
     .filter(item => erItemPast(item))
     .sort((a, b) => itemDag(b).getTime() - itemDag(a).getTime())
@@ -209,7 +211,7 @@ export default function ArrangementTidslinje({
             <Badge variant="accent">{erTur ? 'Tur' : 'Møte'}</Badge>
             <span>
               {formaterDato(iso, 'd. MMM')}
-              {formaterDato(iso, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(iso, 'yyyy')}`}
+              {formaterDato(iso, 'yyyy') !== iAar && ` ${formaterDato(iso, 'yyyy')}`}
               {' kl. '}
               {formaterDato(iso, 'HH:mm')}
             </span>
@@ -299,7 +301,7 @@ export default function ArrangementTidslinje({
           </p>
           <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
             {formaterDato(bursdag.dato, 'd. MMMM')}
-            {formaterDato(bursdag.dato, 'yyyy') !== formaterDato(new Date().toISOString(), 'yyyy') && ` ${formaterDato(bursdag.dato, 'yyyy')}`}
+            {formaterDato(bursdag.dato, 'yyyy') !== iAar && ` ${formaterDato(bursdag.dato, 'yyyy')}`}
           </p>
         </div>
       </div>
