@@ -104,14 +104,14 @@ export default function LoginSide() {
             <form onSubmit={sendTilbakestilling} className="space-y-4">
               <h2 className="text-lg font-semibold mb-4">Glemt passord</h2>
               <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Skriv inn e-posten din, så sender vi deg en lenke for å sette nytt passord.
+                Skriv inn e-posten din, så sender vi deg en kode for å sette nytt passord.
               </p>
               <div>
                 <label htmlFor="epost" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>
                 <input id="epost" type="email" value={epost} onChange={(e) => setEpost(e.target.value)} required autoComplete="email" style={inputStil} />
               </div>
               {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
-              <Button type="submit" fullWidth disabled={laster}>{laster ? 'Sender...' : 'Send lenke'}</Button>
+              <Button type="submit" fullWidth disabled={laster}>{laster ? 'Sender...' : 'Send kode'}</Button>
               <button type="button" onClick={() => setGlemtPassord(false)} className="w-full text-sm underline pt-1"
                 style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Tilbake til innlogging
