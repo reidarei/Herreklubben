@@ -82,7 +82,7 @@ All utgående kommunikasjon (push, epost) skal gå gjennom `sendVarsel()` i `lib
 
 **Tabell:** `varsel_logg` (tidligere `personlige_varsler` + `varsler_logg` slått sammen). Kolonner: profil_id, tittel, melding, type, kanal, url, arrangement_id, lest, opprettet.
 
-**Cron:** Vercel cron `0 6 * * *` (08:00 norsk sommertid) kaller `/api/cron/paaminne`. Datobasert sjekk — arrangementets dato sammenlignes med norsk dato, ikke tidspunkt.
+**Cron:** GitHub Actions (`.github/workflows/paaminne.yml`) kaller `/api/cron/paaminne` via POST kl 06:00 UTC (08:00 norsk sommertid) med `CRON_SECRET`-auth. Valgt foran Vercel cron for bedre logging og synlig feilrapportering. Datobasert sjekk — arrangementets dato sammenlignes med norsk dato, ikke tidspunkt.
 
 **Viktig:** Bruk aldri `after()` fra `next/server` for varsler — det kjører ikke pålitelig på Vercel Hobby. Bruk `await` direkte.
 

@@ -2,8 +2,8 @@ name: Daglig påminnelse
 
 on:
   schedule:
-    # Kjører kl. 09:00 Oslo-tid (UTC+2 sommer = 07:00 UTC)
-    - cron: '0 7 * * *'
+    # Kjører kl. 08:00 norsk sommertid (UTC+2 = 06:00 UTC, vinter: 07:00 norsk)
+    - cron: '0 6 * * *'
   workflow_dispatch: # Kan kjøres manuelt fra GitHub
 
 jobs:
