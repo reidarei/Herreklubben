@@ -33,8 +33,10 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   const erPaaLogin = request.nextUrl.pathname === '/login'
+  const erPaaOppdaterPassord = request.nextUrl.pathname === '/oppdater-passord'
+  const erOffentlig = erPaaLogin || erPaaOppdaterPassord
 
-  if (!session && !erPaaLogin) {
+  if (!session && !erOffentlig) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
