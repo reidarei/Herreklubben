@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Ordsky from '@/components/Ordsky'
@@ -18,6 +18,8 @@ const inputStil: React.CSSProperties = {
 }
 
 export default function OppdaterPassordSide() {
+  const [epost, setEpost] = useState('')
+  const [kode, setKode] = useState('')
   const [passord, setPassord] = useState('')
   const [bekreft, setBekreft] = useState('')
   const [feil, setFeil] = useState('')
@@ -26,20 +28,40 @@ export default function OppdaterPassordSide() {
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const e = params.get('epost')
+    if (e) setEpost(e)
+  }, [])
+
   async function lagre(e: React.FormEvent) {
     e.preventDefault()
     setFeil('')
 
+    if (!kode.trim()) { setFeil('Skriv inn koden fra e-posten.'); return }
     if (passord.length < 6) { setFeil('Passordet må være minst 6 tegn.'); return }
     if (passord !== bekreft) { setFeil('Passordene er ikke like.'); return }
 
     setLaster(true)
-    const { error } = await supabase.auth.updateUser({ password: passord })
-    if (error) {
-      setFeil(error.message)
+
+    const { error: verifyFeil } = await supabase.auth.verifyOtp({
+      email: epost.trim(),
+      token: kode.trim(),
+      type: 'recovery',
+    })
+    if (verifyFeil) {
+      setFeil('Ugyldig eller utløpt kode. Prøv å be om en ny.')
       setLaster(false)
       return
     }
+
+    const { error: oppdaterFeil } = await supabase.auth.updateUser({ password: passord })
+    if (oppdaterFeil) {
+      setFeil(oppdaterFeil.message)
+      setLaster(false)
+      return
+    }
+
     setFerdig(true)
     setTimeout(() => {
       router.push('/')
@@ -70,7 +92,18 @@ export default function OppdaterPassordSide() {
             </div>
           ) : (
             <form onSubmit={lagre} className="space-y-4">
-              <h2 className="text-lg font-semibold mb-4">Sett nytt passord</h2>
+              <h2 className="text-lg font-semibold mb-1">Sett nytt passord</h2>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                Skriv inn koden du fikk på e-post, og velg et nytt passord.
+              </p>
+              <div>
+                <label htmlFor="epost" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>
+                <input id="epost" type="email" value={epost} onChange={(e) => setEpost(e.target.value)} required autoComplete="email" style={inputStil} />
+              </div>
+              <div>
+                <label htmlFor="kode" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Kode fra e-post</label>
+                <input id="kode" type="text" inputMode="numeric" autoComplete="one-time-code" value={kode} onChange={(e) => setKode(e.target.value)} required style={inputStil} />
+              </div>
               <div>
                 <label htmlFor="passord" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Nytt passord</label>
                 <input id="passord" type="password" value={passord} onChange={(e) => setPassord(e.target.value)} required autoComplete="new-password" style={inputStil} />
@@ -81,6 +114,10 @@ export default function OppdaterPassordSide() {
               </div>
               {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
               <Button type="submit" fullWidth disabled={laster}>{laster ? 'Lagrer…' : 'Lagre nytt passord'}</Button>
+              <button type="button" onClick={() => router.push('/login')} className="w-full text-sm underline pt-1"
+                style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Tilbake til innlogging
+              </button>
             </form>
           )}
         </div>

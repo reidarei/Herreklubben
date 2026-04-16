@@ -45,9 +45,7 @@ export default function LoginSide() {
     e.preventDefault()
     setLaster(true)
     setFeil('')
-    const { error } = await supabase.auth.resetPasswordForEmail(epost, {
-      redirectTo: `${window.location.origin}/oppdater-passord`,
-    })
+    const { error } = await supabase.auth.resetPasswordForEmail(epost)
     if (error) {
       setFeil('Klarte ikke sende e-post. Prøv igjen.')
     } else {
@@ -61,11 +59,20 @@ export default function LoginSide() {
       <div className="flex min-h-screen items-center justify-center px-5" style={{ background: 'var(--bg)' }}>
         <div className="text-center max-w-sm">
           <p className="text-lg font-semibold mb-2">Sjekk e-posten</p>
-          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Vi har sendt en lenke til {epost}.</p>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+            Vi har sendt en kode til {epost}. Skriv den inn på neste side sammen med nytt passord.
+          </p>
+          <Button
+            type="button"
+            fullWidth
+            onClick={() => router.push(`/oppdater-passord?epost=${encodeURIComponent(epost)}`)}
+          >
+            Skriv inn kode
+          </Button>
           <button
             type="button"
             onClick={() => { setTilbakestiltSendt(false); setGlemtPassord(false); setPassord('') }}
-            className="text-sm underline"
+            className="text-sm underline pt-4"
             style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Tilbake til innlogging
