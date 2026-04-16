@@ -1,11 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
-import { formaterDato as fd } from '@/lib/dato'
+import { formaterDato, FORMAT_DATO_KLOKKE } from '@/lib/dato'
 
-function formaterDato(iso: string): string {
-  return fd(iso, "d. MMMM 'kl.' HH:mm")
-}
+const formaterDatoKlokke = (iso: string) => formaterDato(iso, FORMAT_DATO_KLOKKE)
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
@@ -195,7 +193,7 @@ export async function sendNyttArrangementVarsler({
   startTidspunkt: string
 }) {
   if (!(await erVarselAktiv('nytt_arrangement'))) return
-  const dato = formaterDato(startTidspunkt)
+  const dato = formaterDatoKlokke(startTidspunkt)
   await sendVarsel({
     tittel: 'Nytt arrangement',
     melding: `${tittel} — ${dato}`,
@@ -214,7 +212,7 @@ export async function sendOppdatertVarsler({
   tittel: string
   startTidspunkt: string
 }) {
-  const dato = formaterDato(startTidspunkt)
+  const dato = formaterDatoKlokke(startTidspunkt)
   await sendVarsel({
     tittel: 'Arrangement oppdatert',
     melding: `${tittel} — ${dato}`,
@@ -238,7 +236,7 @@ export async function sendPaaminneVarsler({
 }) {
   const noekkel = type === 'paaminne_7' ? 'paaminnelse_7d' : 'paaminnelse_1d'
   if (!(await erVarselAktiv(noekkel))) return
-  const dato = formaterDato(startTidspunkt)
+  const dato = formaterDatoKlokke(startTidspunkt)
   const dager = type === 'paaminne_7' ? 7 : 1
   await sendVarsel({
     tittel: `Påminnelse: ${tittel}`,
@@ -273,7 +271,7 @@ export async function sendPurringVarsler({
   const utenSvar = profiler.filter(p => !harSvart.has(p.id))
   if (utenSvar.length === 0) return
 
-  const dato = formaterDato(startTidspunkt)
+  const dato = formaterDatoKlokke(startTidspunkt)
   await sendVarsel({
     mottakere: utenSvar.map(p => p.id),
     tittel: 'Husk å svare!',

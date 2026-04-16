@@ -35,7 +35,7 @@ export default async function Innstillinger() {
       .limit(10),
     supabase
       .from('push_subscriptions')
-      .select('*', { count: 'exact', head: true }),
+      .select('id', { count: 'exact', head: true }),
     supabase
       .from('varsel_innstillinger')
       .select('noekkel, aktiv, beskrivelse')
