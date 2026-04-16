@@ -59,9 +59,17 @@ export default function LoginSide() {
   if (tilbakestiltSendt) {
     return (
       <div className="flex min-h-screen items-center justify-center px-5" style={{ background: 'var(--bg)' }}>
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <p className="text-lg font-semibold mb-2">Sjekk e-posten</p>
-          <p style={{ color: 'var(--text-secondary)' }}>Vi har sendt en lenke til {epost}.</p>
+          <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Vi har sendt en lenke til {epost}.</p>
+          <button
+            type="button"
+            onClick={() => { setTilbakestiltSendt(false); setGlemtPassord(false); setPassord('') }}
+            className="text-sm underline"
+            style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Tilbake til innlogging
+          </button>
         </div>
       </div>
     )
