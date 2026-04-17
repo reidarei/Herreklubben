@@ -247,6 +247,27 @@ export async function sendPaaminneVarsler({
   })
 }
 
+export async function sendArrangorPurringVarsler({
+  ansvarligId,
+  arrangementNavn,
+  aar,
+}: {
+  ansvarligId: string
+  arrangementNavn: string
+  aar: number
+}) {
+  if (!(await erVarselAktiv('arrangor_purring'))) return
+  await sendVarsel({
+    mottakere: [ansvarligId],
+    tittel: 'Husk arrangøransvaret ditt!',
+    melding: `Du er ansvarlig for å arrangere ${arrangementNavn} i ${aar}. Fint om du legger inn arrangementet!`,
+    url: `${BASE_URL}/arrangementer/nytt`,
+    knappTekst: 'Opprett arrangement',
+    type: 'arrangor_purring',
+    tillatDuplikat: false,
+  })
+}
+
 export async function sendPurringVarsler({
   arrangementId,
   tittel,

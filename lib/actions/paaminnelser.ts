@@ -1,6 +1,6 @@
 import { addDays } from 'date-fns'
 import { norskDatoNaa } from '@/lib/dato'
-import { sendPaaminneVarsler, sendPurringVarsler } from '@/lib/varsler'
+import { sendPaaminneVarsler, sendPurringVarsler, sendArrangorPurringVarsler } from '@/lib/varsler'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -20,16 +20,28 @@ async function hentForDag(admin: Admin, dag: string) {
   return data ?? []
 }
 
+async function hentArrangorPurringer(admin: Admin, dag: string) {
+  const { data } = await admin
+    .from('arrangoransvar')
+    .select('id, aar, arrangement_navn, ansvarlig_id')
+    .eq('purredato', dag)
+    .is('arrangement_id', null)
+    .not('ansvarlig_id', 'is', null)
+  return data ?? []
+}
+
 export async function kjorPaaminnelser(admin: Admin) {
   const idag = norskDatoNaa()
+  const idagStr = dagStreng(idag)
   const dag7 = dagStreng(addDays(idag, 7))
   const dag3 = dagStreng(addDays(idag, 3))
   const dag1 = dagStreng(addDays(idag, 1))
 
-  const [arr_7, arr_1, arr_3] = await Promise.all([
+  const [arr_7, arr_1, arr_3, arrangorPurringer] = await Promise.all([
     hentForDag(admin, dag7),
     hentForDag(admin, dag1),
     hentForDag(admin, dag3),
+    hentArrangorPurringer(admin, idagStr),
   ])
 
   const oppgaver: Promise<{ id: string; type: string }>[] = []
@@ -50,6 +62,12 @@ export async function kjorPaaminnelser(admin: Admin) {
     oppgaver.push(
       sendPurringVarsler({ arrangementId: a.id, tittel: a.tittel, startTidspunkt: a.start_tidspunkt })
         .then(() => ({ id: a.id, type: 'purring' }))
+    )
+  }
+  for (const a of arrangorPurringer) {
+    oppgaver.push(
+      sendArrangorPurringVarsler({ ansvarligId: a.ansvarlig_id!, arrangementNavn: a.arrangement_navn, aar: a.aar })
+        .then(() => ({ id: a.id, type: 'arrangor_purring' }))
     )
   }
 

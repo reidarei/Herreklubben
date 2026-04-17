@@ -15,6 +15,7 @@ const innstillingLabels: Record<string, string> = {
   paaminnelse_7d: 'Påminnelse 7 dager før',
   paaminnelse_1d: 'Påminnelse 1 dag før',
   purring_aktiv: 'Purring til de som ikke har svart (3 dager før)',
+  arrangor_purring: 'Purring til arrangøransvarlige som ikke har opprettet arrangement',
   test_modus: 'Testmodus — varsler sendes kun til Reidar',
 }
 
