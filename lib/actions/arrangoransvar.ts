@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 async function sjekkAdmin() {
@@ -12,24 +13,17 @@ async function sjekkAdmin() {
   return supabase
 }
 
-// Beregn purredato basert på arrangement-navn og år.
-// Purredato = 1. dag i den første måneden av perioden.
-function beregnPurredato(navn: string, aar: number): string | null {
-  const lower = navn.toLowerCase()
-  const maanedMap: Record<string, number> = {
-    'januar': 1, 'februar': 2, 'mars': 3, 'april': 4,
-    'mai': 5, 'juni': 6, 'juli': 7, 'august': 8,
-    'september': 9, 'oktober': 10, 'november': 11, 'desember': 12,
-    'jule': 11, 'reise': null as unknown as number,
-  }
-
-  for (const [nøkkel, maaned] of Object.entries(maanedMap)) {
-    if (lower.includes(nøkkel) && maaned) {
-      const mm = String(maaned).padStart(2, '0')
-      return `${aar}-${mm}-01`
-    }
-  }
-  return null
+// Slå opp purre_maaned fra arrangementmaler og beregn purredato for gitt år
+async function hentPurredato(arrangementNavn: string, aar: number): Promise<string | null> {
+  const admin = createAdminClient()
+  const { data: mal } = await admin
+    .from('arrangementmaler')
+    .select('purre_maaned')
+    .eq('navn', arrangementNavn)
+    .maybeSingle()
+  if (!mal?.purre_maaned) return null
+  const mm = String(mal.purre_maaned).padStart(2, '0')
+  return `${aar}-${mm}-01`
 }
 
 export async function leggTilAnsvarlig(data: {
@@ -38,7 +32,7 @@ export async function leggTilAnsvarlig(data: {
   ansvarlig_id: string
 }) {
   const supabase = await sjekkAdmin()
-  const purredato = beregnPurredato(data.arrangement_navn, data.aar)
+  const purredato = await hentPurredato(data.arrangement_navn, data.aar)
 
   const { error } = await supabase
     .from('arrangoransvar')

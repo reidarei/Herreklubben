@@ -22,10 +22,12 @@ export async function leggTilMal(navn: string) {
   revalidatePath('/arrangoransvar')
 }
 
-export async function oppdaterMal(id: string, navn: string) {
+export async function oppdaterMal(id: string, navn: string, purre_maaned?: number | null) {
   await sjekkAdmin()
   const admin = createAdminClient()
-  const { error } = await admin.from('arrangementmaler').update({ navn: navn.trim() }).eq('id', id)
+  const oppdatering: Record<string, unknown> = { navn: navn.trim() }
+  if (purre_maaned !== undefined) oppdatering.purre_maaned = purre_maaned
+  const { error } = await admin.from('arrangementmaler').update(oppdatering).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/innstillinger')
   revalidatePath('/arrangoransvar')

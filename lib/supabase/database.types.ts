@@ -117,18 +117,21 @@ export type Database = {
           id: string
           navn: string
           opprettet: string | null
+          purre_maaned: number | null
           rekkefølge: number
         }
         Insert: {
           id?: string
           navn: string
           opprettet?: string | null
+          purre_maaned?: number | null
           rekkefølge?: number
         }
         Update: {
           id?: string
           navn?: string
           opprettet?: string | null
+          purre_maaned?: number | null
           rekkefølge?: number
         }
         Relationships: []
