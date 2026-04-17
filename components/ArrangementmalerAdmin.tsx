@@ -3,12 +3,19 @@
 import { useState, useTransition } from 'react'
 import { leggTilMal, oppdaterMal, slettMal } from '@/lib/actions/arrangementmaler'
 
-type Mal = { id: string; navn: string; rekkefølge: number; purre_maaned: number | null }
+type Mal = { id: string; navn: string; rekkefølge: number; purredato: string | null }
 
-const MAANEDER = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'Mai', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des',
-]
+// Konverter purredato (2000-MM-DD) til visningsdato med inneværende år for date-input
+function tilInputDato(purredato: string | null): string {
+  if (!purredato) return ''
+  const md = purredato.slice(5) // "MM-DD"
+  return `${new Date().getFullYear()}-${md}`
+}
+
+// Konverter date-input (YYYY-MM-DD) til lagringsdato med år 2000
+function tilLagringsdato(inputDato: string): string {
+  return `2000-${inputDato.slice(5)}`
+}
 
 const inputStil: React.CSSProperties = {
   background: 'var(--bg-elevated-2)',
@@ -22,7 +29,7 @@ const inputStil: React.CSSProperties = {
   minWidth: 0,
 }
 
-const selectStil: React.CSSProperties = {
+const datoStil: React.CSSProperties = {
   background: 'var(--bg-elevated-2)',
   border: '1px solid var(--border)',
   color: 'var(--text-primary)',
@@ -30,20 +37,20 @@ const selectStil: React.CSSProperties = {
   padding: '0.35rem 0.4rem',
   fontSize: '0.75rem',
   fontFamily: 'inherit',
-  width: '5rem',
+  width: '8.5rem',
 }
 
 function MalRad({ mal }: { mal: Mal }) {
   const [redigerer, setRedigerer] = useState(false)
   const [bekrefterSlett, setBekrefterSlett] = useState(false)
   const [navn, setNavn] = useState(mal.navn)
-  const [purreMaaned, setPurreMaaned] = useState<number | null>(mal.purre_maaned)
+  const [purredato, setPurredato] = useState(mal.purredato)
   const [isPending, startTransition] = useTransition()
 
   function handleLagre() {
     if (!navn.trim()) return
     startTransition(async () => {
-      await oppdaterMal(mal.id, navn, purreMaaned)
+      await oppdaterMal(mal.id, navn, purredato)
       setRedigerer(false)
     })
   }
@@ -54,16 +61,42 @@ function MalRad({ mal }: { mal: Mal }) {
     })
   }
 
-  function handlePurreMaanedEndring(e: React.ChangeEvent<HTMLSelectElement>) {
+  function handleDatoEndring(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value
-    const ny = val === '' ? null : parseInt(val)
-    setPurreMaaned(ny)
+    const ny = val ? tilLagringsdato(val) : null
+    setPurredato(ny)
     if (!redigerer) {
       startTransition(async () => {
         await oppdaterMal(mal.id, mal.navn, ny)
       })
     }
   }
+
+  function handleFjernDato() {
+    setPurredato(null)
+    startTransition(async () => {
+      await oppdaterMal(mal.id, redigerer ? navn : mal.navn, null)
+    })
+  }
+
+  const datoInput = (
+    <div className="flex items-center gap-1 shrink-0">
+      <input
+        type="date"
+        value={tilInputDato(purredato)}
+        onChange={handleDatoEndring}
+        disabled={isPending}
+        style={{ ...datoStil, opacity: isPending ? 0.5 : 1 }}
+      />
+      {purredato && (
+        <button onClick={handleFjernDato} disabled={isPending} className="text-xs px-1 py-0.5 rounded"
+          style={{ color: 'var(--text-secondary)', background: 'none', fontFamily: 'inherit', cursor: 'pointer', border: 'none', fontSize: '1rem', lineHeight: 1 }}
+          title="Fjern purredato">
+          ✕
+        </button>
+      )}
+    </div>
+  )
 
   if (redigerer) {
     return (
@@ -75,15 +108,12 @@ function MalRad({ mal }: { mal: Mal }) {
           autoFocus
           onKeyDown={e => { if (e.key === 'Enter') handleLagre(); if (e.key === 'Escape') setRedigerer(false) }}
         />
-        <select value={purreMaaned ?? ''} onChange={handlePurreMaanedEndring} style={selectStil}>
-          <option value="">Ingen</option>
-          {MAANEDER.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-        </select>
+        {datoInput}
         <button onClick={handleLagre} disabled={isPending} className="text-xs px-2 py-1 rounded-lg shrink-0"
           style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'inherit', cursor: 'pointer', opacity: isPending ? 0.5 : 1 }}>
           {isPending ? '…' : 'OK'}
         </button>
-        <button onClick={() => { setNavn(mal.navn); setPurreMaaned(mal.purre_maaned); setRedigerer(false) }} className="text-xs px-2 py-1 rounded-lg shrink-0"
+        <button onClick={() => { setNavn(mal.navn); setPurredato(mal.purredato); setRedigerer(false) }} className="text-xs px-2 py-1 rounded-lg shrink-0"
           style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
           ✕
         </button>
@@ -95,10 +125,7 @@ function MalRad({ mal }: { mal: Mal }) {
     <div className="flex items-center justify-between gap-2 py-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
       <p className="text-sm flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{mal.navn}</p>
       <div className="flex gap-1 items-center shrink-0">
-        <select value={purreMaaned ?? ''} onChange={handlePurreMaanedEndring} disabled={isPending} style={{ ...selectStil, opacity: isPending ? 0.5 : 1 }}>
-          <option value="">Ingen</option>
-          {MAANEDER.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-        </select>
+        {datoInput}
         {bekrefterSlett ? (
           <>
             <button onClick={handleSlett} disabled={isPending} className="text-xs px-2 py-1 rounded-lg"

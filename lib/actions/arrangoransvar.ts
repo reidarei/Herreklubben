@@ -13,17 +13,17 @@ async function sjekkAdmin() {
   return supabase
 }
 
-// Slå opp purre_maaned fra arrangementmaler og beregn purredato for gitt år
+// Slå opp purredato fra arrangementmaler og sett riktig år
 async function hentPurredato(arrangementNavn: string, aar: number): Promise<string | null> {
   const admin = createAdminClient()
   const { data: mal } = await admin
     .from('arrangementmaler')
-    .select('purre_maaned')
+    .select('purredato')
     .eq('navn', arrangementNavn)
     .maybeSingle()
-  if (!mal?.purre_maaned) return null
-  const mm = String(mal.purre_maaned).padStart(2, '0')
-  return `${aar}-${mm}-01`
+  if (!mal?.purredato) return null
+  // purredato lagres med år 2000, bytt til riktig år
+  return `${aar}-${mal.purredato.slice(5)}`
 }
 
 export async function leggTilAnsvarlig(data: {

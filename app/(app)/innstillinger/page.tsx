@@ -80,7 +80,7 @@ export default async function Innstillinger() {
       {/* Arrangementmaler */}
       <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
         <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Faste arrangementer</p>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Velg purremåned for når ansvarlig får påminnelse om å opprette arrangement</p>
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>Sett purredato for når ansvarlig får påminnelse om å opprette arrangement</p>
         <ArrangementmalerAdmin maler={maler ?? []} />
       </div>
 
