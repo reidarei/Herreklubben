@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 
@@ -7,20 +7,6 @@ const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
-})
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-instrument-serif',
-  display: 'swap',
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
 })
 
 export const viewport: Viewport = {
@@ -55,12 +41,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="nb" className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}>
+    <html lang="nb" className={inter.variable}>
       <head>
-        <meta name="theme-color" content="#060608" />
+        <meta name="theme-color" content="#0a0a0a" />
         <link rel="apple-touch-icon" href="/icon-180.png" />
       </head>
-      <body>{children}<SpeedInsights /></body>
+      <body style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>{children}<SpeedInsights /></body>
     </html>
   )
 }

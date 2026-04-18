@@ -132,7 +132,7 @@ describe('responstid – FNV-1a hashing', () => {
     }
     const elapsed = performance.now() - start
 
-    expect(elapsed).toBeLessThan(10)
+    expect(elapsed).toBeLessThan(1)
   })
 })
 

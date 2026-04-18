@@ -11,13 +11,10 @@ export default function Card({
 }) {
   return (
     <div
-      className={`${padding ? 'p-5' : ''} ${className}`}
+      className={`rounded-2xl ${padding ? 'p-5' : ''} ${className}`}
       style={{
-        background: 'var(--glass-bg)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius)',
-        backdropFilter: 'blur(var(--glass-blur))',
-        WebkitBackdropFilter: 'blur(var(--glass-blur))',
+        background: 'var(--bg-elevated)',
+        border: '1px solid var(--border)',
       }}
     >
       {children}

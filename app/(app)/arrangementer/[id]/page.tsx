@@ -15,9 +15,8 @@ import {
 } from '@heroicons/react/24/outline'
 import PaameldingKnapper from './PaameldingKnapper'
 import VarsleNuKnapp from './VarsleNuKnapp'
-import Pill from '@/components/ui/Pill'
+import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
-import SectionLabel from '@/components/ui/SectionLabel'
 import SladdetFelt from '@/components/SladdetFelt'
 import LocalTid from '@/components/LocalTid'
 import Chat from './Chat'
@@ -72,141 +71,108 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
   const grupper = [
     { key: 'ja' as const, label: 'Kommer', variant: 'success' as const, Ikon: CheckIcon },
     { key: 'kanskje' as const, label: 'Kanskje', variant: 'accent' as const, Ikon: QuestionMarkCircleIcon },
-    { key: 'nei' as const, label: 'Kommer ikke', variant: 'danger' as const, Ikon: XMarkIcon },
+    { key: 'nei' as const, label: 'Kommer ikke', variant: 'destructive' as const, Ikon: XMarkIcon },
   ]
 
   return (
     <div className="max-w-lg mx-auto pb-8">
       {/* Varslet-banner */}
       {varslet === 'true' && (
-        <div className="mx-5 mt-5 px-4 py-3 text-sm font-medium" style={{ background: 'var(--success-subtle)', color: 'var(--success)', border: '1px solid rgba(139, 196, 158, 0.2)', borderRadius: 'var(--radius-small)' }}>
+        <div className="mx-5 mt-5 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)' }}>
           Varsel er sendt 👍
         </div>
       )}
 
-      {/* Hero-bilde med glass-knapper */}
-      <div className="relative">
-        <img
-          src={arr.bilde_url || '/bakgrunn.jpg'}
-          alt=""
-          className="w-full object-cover"
-          style={{ aspectRatio: '16/9' }}
-        />
-        {/* Gradient overlay */}
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, rgba(6,6,8,0.3) 0%, transparent 40%, rgba(6,6,8,0.8) 100%)' }}
-        />
-        {/* Tilbake-knapp */}
+      {/* Tilbake + knapper */}
+      <div className="flex items-center justify-between px-5 pt-6 mb-4 gap-2">
         <Link
           href="/"
-          className="absolute top-4 left-4 flex items-center gap-1 text-sm px-3 py-1.5"
-          style={{
-            background: 'rgba(6, 6, 8, 0.5)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '0.5px solid rgba(255,255,255,0.1)',
-            borderRadius: 'var(--radius-pill)',
-            color: 'var(--text-primary)',
-            textDecoration: 'none',
-          }}
+          className="flex items-center gap-1 text-sm"
+          style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
         >
           <ChevronLeftIcon className="w-4 h-4" />
           Tilbake
         </Link>
-        {/* Rediger-knapp */}
-        {kanRedigere && (
-          <div className="absolute top-4 right-4 flex gap-2">
-            <VarsleNuKnapp arrangementId={id} />
+        <div className="flex gap-2">
+          {kanRedigere && <VarsleNuKnapp arrangementId={id} />}
+          {kanRedigere && (
             <Link
               href={`/arrangementer/${id}/rediger`}
-              className="text-sm font-medium px-3 py-1.5"
+              className="text-sm font-medium px-3 py-1.5 rounded-xl inline-flex items-center"
               style={{
-                background: 'rgba(6, 6, 8, 0.5)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '0.5px solid rgba(255,255,255,0.1)',
-                borderRadius: 'var(--radius-pill)',
-                color: 'var(--text-primary)',
+                background: 'var(--bg-elevated-2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
                 textDecoration: 'none',
               }}
             >
               Rediger
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
+      {/* Hero-bilde */}
+      <img
+        src={arr.bilde_url || '/bakgrunn.jpg'}
+        alt=""
+        className="w-full object-cover"
+        style={{ aspectRatio: '16/9' }}
+      />
+
       <div className="px-5">
-        {/* Type + dato-meta */}
-        <div className="flex items-center gap-2 mt-4 mb-2">
-          <Pill variant="muted">{erTur ? 'Tur' : 'Møte'}</Pill>
-          <span className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
-            <LocalTid iso={arr.start_tidspunkt} formatStr="d. MMMM yyyy" />
-          </span>
+        {/* Type-etikett */}
+        <div className="mt-4 mb-2">
+          <Badge variant="accent">{erTur ? 'Tur' : 'Møte'}</Badge>
         </div>
 
         <h1
-          className="mb-5 leading-tight"
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '28px',
-            fontWeight: 400,
-            color: 'var(--text-primary)',
-          }}
+          className="font-bold mb-5"
+          style={{ fontSize: '24px', letterSpacing: '-0.4px', color: 'var(--text-primary)' }}
         >
           {arr.tittel}
         </h1>
 
-        {/* Info-kort */}
-        <Card className="mb-5">
-          <div className="space-y-0 px-5 py-2">
-            <div className="flex items-center gap-3 py-3" style={{ borderBottom: '0.5px solid var(--border-subtle)' }}>
-              <CalendarIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                <LocalTid iso={arr.start_tidspunkt} formatStr="EEEE d. MMMM yyyy 'kl.' HH:mm" />
-                {erTur && arr.slutt_tidspunkt && (
-                  <> – <LocalTid iso={arr.slutt_tidspunkt} formatStr="d. MMMM" /></>
-                )}
-              </span>
-            </div>
-            {arr.oppmoetested && (
-              <div className="flex items-center gap-3 py-3" style={{ borderBottom: '0.5px solid var(--border-subtle)' }}>
-                <MapPinIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{arr.oppmoetested}</span>
-              </div>
-            )}
-            {erTur && (
-              <>
-                <div className="flex items-center gap-3 py-3" style={{ borderBottom: '0.5px solid var(--border-subtle)' }}>
-                  <PaperAirplaneIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon ?? '–'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 py-3">
-                  <BanknotesIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {erSensurert('pris_per_person')
-                      ? <SladdetFelt />
-                      : arr.pris_per_person
-                        ? `${arr.pris_per_person.toLocaleString('nb')} kr`
-                        : '–'}
-                  </span>
-                </div>
-              </>
+        {/* Info-rader */}
+        <div className="space-y-2.5 mb-5">
+          <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <CalendarIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+            <LocalTid iso={arr.start_tidspunkt} formatStr="EEEE d. MMMM yyyy 'kl.' HH:mm" />
+            {erTur && arr.slutt_tidspunkt && (
+              <> – <LocalTid iso={arr.slutt_tidspunkt} formatStr="d. MMMM" /></>
             )}
           </div>
-        </Card>
+          {arr.oppmoetested && (
+            <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <MapPinIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+              {arr.oppmoetested}
+            </div>
+          )}
+          {erTur && (
+            <>
+              <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <PaperAirplaneIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon ?? '–'}
+              </div>
+              <div className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <BanknotesIcon className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                {erSensurert('pris_per_person')
+                  ? <SladdetFelt />
+                  : arr.pris_per_person
+                    ? `${arr.pris_per_person.toLocaleString('nb')} kr`
+                    : '–'}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Legg til i kalender */}
         <a
           href={`/api/arrangementer/${id}/ics`}
-          className="inline-flex items-center gap-2 text-sm px-4 py-2 mb-5"
+          className="inline-flex items-center gap-2 text-sm px-3.5 py-2 rounded-xl mb-5"
           style={{
-            background: 'var(--glass-bg)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 'var(--radius-pill)',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border)',
             color: 'var(--text-primary)',
             textDecoration: 'none',
           }}
@@ -235,31 +201,26 @@ export default async function ArrangementDetaljer({ params, searchParams }: { pa
             if (liste.length === 0) return null
             return (
               <div key={key}>
-                <SectionLabel>{label} ({liste.length})</SectionLabel>
+                <p
+                  className="text-xs font-semibold mb-2 flex items-center gap-1"
+                  style={{ color: `var(--${variant === 'accent' ? 'accent' : variant})` }}
+                >
+                  <Ikon className="w-3.5 h-3.5" />
+                  {label} ({liste.length})
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {liste.map((p) => (
                     <Link
                       key={p.profil_id}
                       href={`/klubbinfo/medlemmer/${p.profil_id}`}
-                      className="text-[13px] px-3 py-1.5 flex items-center gap-1.5"
+                      className="text-[13px] px-3 py-1.5 rounded-[10px]"
                       style={{
-                        background: 'var(--glass-bg)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: 'var(--radius-pill)',
+                        background: 'var(--bg-elevated)',
+                        border: '1px solid var(--border)',
                         color: 'var(--text-primary)',
                         textDecoration: 'none',
                       }}
                     >
-                      <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
-                        style={{
-                          background: 'var(--bg-elevated-2)',
-                          fontFamily: 'var(--font-display)',
-                          color: 'var(--accent-muted)',
-                        }}
-                      >
-                        {(p.profiles?.navn ?? '?').charAt(0)}
-                      </span>
                       {p.profiles?.navn ?? '–'}
                     </Link>
                   ))}

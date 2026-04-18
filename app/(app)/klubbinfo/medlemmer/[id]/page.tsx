@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeftIcon, PhoneIcon, EnvelopeIcon, CakeIcon, TrophyIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
-import Pill from '@/components/ui/Pill'
+import Badge from '@/components/ui/Badge'
 import { formaterDato } from '@/lib/dato'
 
 export default async function MedlemProfil({ params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +43,7 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
         <h1 className="text-xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
           {medlem.navn}
           {medlem.rolle === 'admin' && (
-            <span className="ml-2"><Pill variant="accent">admin</Pill></span>
+            <span className="ml-2"><Badge variant="accent">admin</Badge></span>
           )}
         </h1>
         {medlem.visningsnavn && medlem.visningsnavn !== medlem.navn && (

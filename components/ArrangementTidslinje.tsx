@@ -7,8 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formaterDato, norskDag, norskDatoNaa } from '@/lib/dato'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
-import Pill from './ui/Pill'
-import SectionLabel from './ui/SectionLabel'
+import Badge from './ui/Badge'
 import type { Json } from '@/lib/supabase/database.types'
 
 type Paamelding = { profil_id: string; status: string; profiles?: { visningsnavn: string | null } | null }
@@ -33,7 +32,7 @@ type Bursdag = {
   id: string
   profilId: string
   visningsnavn: string
-  dato: string
+  dato: string   // YYYY-MM-DD for the occurrence year
   alder: number
 }
 
@@ -49,11 +48,11 @@ type TidslinjeItem =
   | { type: 'bursdag'; data: Bursdag }
   | { type: 'ikke-planlagt'; data: IkkePlanlagt }
 
-function statusPill(status: string | undefined, fortid?: boolean) {
-  if (status === 'ja') return { label: fortid ? 'Var med' : 'Påmeldt', variant: 'success' as const }
-  if (status === 'kanskje') return { label: 'Kanskje', variant: 'accent' as const }
-  if (status === 'nei') return { label: fortid ? 'Nei' : 'Avmeldt', variant: 'danger' as const }
-  return { label: 'Ikke svart', variant: 'muted' as const }
+function statusBadge(status: string | undefined, fortid?: boolean) {
+  if (status === 'ja') return { label: fortid ? 'Du svarte ja' : 'Påmeldt', variant: 'success' as const }
+  if (status === 'kanskje') return { label: fortid ? 'Du svarte kanskje' : 'Kanskje', variant: 'accent' as const }
+  if (status === 'nei') return { label: fortid ? 'Du svarte nei' : 'Avmeldt', variant: 'destructive' as const }
+  return { label: fortid ? 'Du svarte ikke' : 'Ikke svart', variant: 'neutral' as const }
 }
 
 function itemDag(item: TidslinjeItem): Date {
@@ -64,6 +63,7 @@ function itemDag(item: TidslinjeItem): Date {
 }
 
 function erItemPast(item: TidslinjeItem): boolean {
+  // Både arrangementer og bursdager: "past" bare hvis dagen er strengt før i dag (norsk tid).
   return isBefore(itemDag(item), norskDatoNaa())
 }
 
@@ -71,49 +71,54 @@ function erItemIdag(item: TidslinjeItem): boolean {
   return itemDag(item).getTime() === norskDatoNaa().getTime()
 }
 
-function AvatarSirkel({ navn, size = 22 }: { navn: string; size?: number }) {
-  const initial = navn.charAt(0).toUpperCase()
+function DeltakerLinje({ navnliste, fortid }: { navnliste: string[]; fortid?: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [visAntall, setVisAntall] = useState(navnliste.length)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    function beregn() {
+      const tilgjengelig = el!.clientWidth
+      if (tilgjengelig === 0) return
+
+      const m = document.createElement('span')
+      const cs = getComputedStyle(el!)
+      m.style.cssText = `visibility:hidden;position:absolute;white-space:nowrap;font:${cs.font}`
+      document.body.appendChild(m)
+
+      let best = 1
+      for (let i = navnliste.length; i >= 1; i--) {
+        const tekst = navnliste.slice(0, i).join(', ')
+        const rest = navnliste.length - i
+        m.textContent = rest > 0
+          ? `${tekst} + ${rest} til${fortid ? ' deltok' : ''}`
+          : `${tekst}${fortid ? ' deltok' : ''}`
+        if (m.offsetWidth <= tilgjengelig) {
+          best = i
+          break
+        }
+      }
+      document.body.removeChild(m)
+      setVisAntall(best)
+    }
+
+    beregn()
+    const ro = new ResizeObserver(beregn)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [navnliste, fortid])
+
+  const visNavn = navnliste.slice(0, visAntall)
+  const resten = navnliste.length - visAntall
+
   return (
-    <span
-      className="inline-flex items-center justify-center rounded-full shrink-0"
-      style={{
-        width: size,
-        height: size,
-        background: 'var(--bg-elevated-2)',
-        border: '1px solid var(--glass-border)',
-        fontFamily: 'var(--font-display)',
-        fontSize: size * 0.45,
-        color: 'var(--accent-muted)',
-      }}
-    >
-      {initial}
+    <span ref={ref} style={{ flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', display: 'block' }}>
+      {visNavn.join(', ')}
+      {resten > 0 && ` + ${resten} til`}
+      {fortid && ' deltok'}
     </span>
-  )
-}
-
-function DeltakerAvatarer({ navnliste, maks = 5 }: { navnliste: string[]; maks?: number }) {
-  const vis = navnliste.slice(0, maks)
-  const resten = navnliste.length - maks
-
-  return (
-    <div className="flex items-center" style={{ gap: '2px' }}>
-      {vis.map((navn, i) => (
-        <AvatarSirkel key={i} navn={navn} />
-      ))}
-      {resten > 0 && (
-        <span
-          className="inline-flex items-center justify-center rounded-full shrink-0 text-[10px] font-medium"
-          style={{
-            width: 22,
-            height: 22,
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          +{resten}
-        </span>
-      )}
-    </div>
   )
 }
 
@@ -154,119 +159,105 @@ export default function ArrangementTidslinje({
     const iso = arr.start_tidspunkt
     const minPaamelding = arr.paameldinger.find(p => p.profil_id === innloggetBrukerId)
     const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
+    const antallJa = jaListe.length
     const jaNavnListe = jaListe.map(p => p.profiles?.visningsnavn).filter(Boolean) as string[]
     const erTur = arr.type === 'tur'
     const erSensurert = (felt: string) =>
       (arr.sensurerte_felt as Record<string, boolean> | null)?.[felt] === true
-    const status = statusPill(minPaamelding?.status, fortid)
+    const status = statusBadge(minPaamelding?.status, fortid)
 
     return (
       <Link
         href={`/arrangementer/${arr.id}`}
-        className="block overflow-hidden transition-transform duration-100 active:scale-[0.98] relative"
+        className="block rounded-2xl overflow-hidden transition-transform duration-100 active:scale-[0.98] relative"
         style={{
-          background: 'var(--glass-bg)',
-          border: idag ? '1px solid var(--accent)' : '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius)',
-          backdropFilter: 'blur(var(--glass-blur))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur))',
+          background: 'var(--bg-elevated)',
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
+          boxShadow: idag ? '0 0 0 4px var(--accent-subtle), 0 12px 32px rgba(212, 168, 83, 0.22)' : undefined,
           opacity: fortid ? 0.5 : 1,
           textDecoration: 'none',
           color: 'inherit',
         }}
       >
         {idag && (
-          <Pill variant="accent" className="absolute top-3 right-3 z-10">
-            I kveld
-          </Pill>
+          <span
+            className="absolute top-3 right-3 z-10 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full"
+            style={{
+              background: 'var(--accent)',
+              color: '#0a0a0a',
+              letterSpacing: '0.6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+            }}
+          >
+            I dag!
+          </span>
         )}
-
         {/* Hero-bilde */}
-        {arr.bilde_url && (
-          <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-            <Image
-              src={arr.bilde_url}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 512px) 100vw, 512px"
-              priority={prioritert}
-            />
-          </div>
-        )}
+        <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+          <Image
+            src={arr.bilde_url || '/bakgrunn.jpg'}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 512px) 100vw, 512px"
+            priority={prioritert}
+          />
+        </div>
 
         {/* Innhold */}
-        <div className="flex gap-4 p-4">
-          {/* Dato-blokk */}
-          <div className="flex flex-col items-center shrink-0" style={{ minWidth: '44px' }}>
-            <span
-              className="text-[11px] uppercase font-medium"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                color: idag ? 'var(--accent)' : 'var(--text-tertiary)',
-                letterSpacing: '0.05em',
-              }}
-            >
-              {formaterDato(iso, 'MMM')}
-            </span>
-            <span
-              className="leading-none"
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '28px',
-                color: idag ? 'var(--accent)' : 'var(--text-primary)',
-              }}
-            >
-              {formaterDato(iso, 'd')}
+        <div className="p-5">
+          {/* Meta: type + dato */}
+          <div className="flex items-center gap-2 mb-1.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <Badge variant="accent">{erTur ? 'Tur' : 'Møte'}</Badge>
+            <span>
+              {formaterDato(iso, 'd. MMM')}
+              {formaterDato(iso, 'yyyy') !== iAar && ` ${formaterDato(iso, 'yyyy')}`}
+              {' kl. '}
+              {formaterDato(iso, 'HH:mm')}
             </span>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Pill variant="muted" size="small">{erTur ? 'Tur' : 'Møte'}</Pill>
-              <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                kl. {formaterDato(iso, 'HH:mm')}
-              </span>
+          {/* Tittel */}
+          <h2
+            className="font-semibold mb-1"
+            style={{ fontSize: '17px', letterSpacing: '-0.2px', color: 'var(--text-primary)' }}
+          >
+            {arr.tittel}
+          </h2>
+
+          {/* Sted */}
+          {arr.oppmoetested && (
+            <div className="flex items-center gap-1.5" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              <MapPinIcon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+              {arr.oppmoetested}
             </div>
+          )}
 
-            <h2
-              className="mb-1 leading-snug"
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '18px',
-                fontWeight: 400,
-                color: 'var(--text-primary)',
-              }}
-            >
-              {arr.tittel}
-            </h2>
+          {/* Destinasjon (kun tur) */}
+          {erTur && arr.destinasjon && (
+            <div className="flex items-center gap-1.5 mt-0.5" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              <PaperAirplaneIcon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+              {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon}
+            </div>
+          )}
 
-            {arr.oppmoetested && (
-              <div className="flex items-center gap-1.5 mb-0.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <MapPinIcon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                {arr.oppmoetested}
-              </div>
-            )}
-
-            {erTur && arr.destinasjon && (
-              <div className="flex items-center gap-1.5" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <PaperAirplaneIcon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                {erSensurert('destinasjon') ? <SladdetFelt /> : arr.destinasjon}
-              </div>
-            )}
-
-            {/* Deltakere + status */}
-            <div className="flex items-center justify-between mt-3">
-              {jaNavnListe.length > 0 ? (
-                <DeltakerAvatarer navnliste={jaNavnListe} />
+          {/* Footer */}
+          <div
+            className="flex items-center justify-between mt-3.5 pt-3"
+            style={{ borderTop: '1px solid var(--border-subtle)' }}
+          >
+            <div className="flex items-center gap-1.5 flex-1 min-w-0" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: 'var(--success)' }}
+              />
+              {antallJa === 0 ? (
+                <span>{fortid ? 'Ingen deltok' : 'Ingen påmeldt ennå'}</span>
               ) : (
-                <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
-                  {fortid ? 'Ingen deltok' : 'Ingen påmeldt'}
-                </span>
+                <DeltakerLinje navnliste={jaNavnListe} fortid={fortid} />
               )}
-              <Pill variant={status.variant} size="small">{status.label}</Pill>
             </div>
+            <Badge variant={status.variant}>{status.label}</Badge>
           </div>
         </div>
       </Link>
@@ -275,6 +266,7 @@ export default function ArrangementTidslinje({
 
   function bursdagEmojier(navn: string): string {
     const emojier = ['🎂', '🎁', '🎉', '🥳', '🍾', '🎊', '🌟', '🥂', '🍻', '🍸', '💎', '🍺', '👏', '🎈', '🪅', '🎆', '🎇', '🧁', '🎀', '💐', '🪩', '🎶']
+    // FNV-1a hash for bedre spredning
     let h = 0x811c9dc5
     for (let i = 0; i < navn.length; i++) { h ^= navn.charCodeAt(i); h = Math.imul(h, 0x01000193) }
     const a = (h >>> 0) % emojier.length
@@ -292,11 +284,10 @@ export default function ArrangementTidslinje({
     const verb = erPast ? 'fylte' : 'fyller'
     return (
       <div
-        className="flex items-center gap-3 px-4 py-3"
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
         style={{
-          background: 'var(--glass-bg)',
-          border: idag ? '1px solid var(--accent)' : '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius)',
+          background: 'var(--bg-elevated)',
+          border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
           opacity: fortid ? 0.5 : 1,
         }}
       >
@@ -321,27 +312,26 @@ export default function ArrangementTidslinje({
     return (
       <Link
         href="/arrangoransvar"
-        className="block overflow-hidden"
+        className="block rounded-2xl overflow-hidden"
         style={{
-          background: 'transparent',
-          border: '1.5px dashed var(--border)',
-          borderRadius: 'var(--radius)',
+          background: 'var(--bg)',
+          border: '2px dashed var(--border)',
           opacity: fortid ? 0.4 : 0.7,
           textDecoration: 'none',
           color: 'inherit',
         }}
       >
-        <div className="px-5 py-5 flex items-center gap-4">
+        <div className="px-5 py-6 flex items-center gap-4">
           <span
             className="flex items-center justify-center rounded-full shrink-0"
             style={{
-              width: '44px',
-              height: '44px',
-              background: 'var(--glass-bg)',
-              border: '1.5px dashed var(--border)',
-              fontFamily: 'var(--font-display)',
+              width: '48px',
+              height: '48px',
+              background: 'var(--bg-elevated)',
+              border: '2px dashed var(--border)',
               color: 'var(--text-tertiary)',
-              fontSize: '22px',
+              fontSize: '24px',
+              fontWeight: 700,
             }}
           >
             ?
@@ -375,7 +365,12 @@ export default function ArrangementTidslinje({
       {/* I dag */}
       {idagItems.length > 0 && (
         <>
-          <SectionLabel>I kveld</SectionLabel>
+          <p
+            className="font-bold uppercase mb-3 flex items-center gap-2"
+            style={{ color: 'var(--accent)', letterSpacing: '1px', fontSize: '13px' }}
+          >
+            <span>🎉</span> I dag <span>🎉</span>
+          </p>
           <div className="space-y-4">
             {idagItems.map((item, i) => (
               <RenderItem key={item.data.id} item={item} prioritert={i === 0} idag />
@@ -392,7 +387,12 @@ export default function ArrangementTidslinje({
       {/* Kommende */}
       {kommendeItems.length > 0 && (
         <>
-          <SectionLabel>Kommende</SectionLabel>
+          <p
+            className="text-xs font-semibold uppercase mb-3"
+            style={{ color: 'var(--text-secondary)', letterSpacing: '0.5px' }}
+          >
+            Kommende
+          </p>
           <div className="space-y-4">
             {kommendeItems.map((item, i) => (
               <RenderItem key={item.data.id} item={item} prioritert={idagItems.length === 0 && i === 0} />
@@ -401,6 +401,7 @@ export default function ArrangementTidslinje({
         </>
       )}
 
+      {/* Last mer-knapp (mellom kommende og tidligere) */}
       {lastMerKnapp && (
         <div className="mt-8">{lastMerKnapp}</div>
       )}
@@ -412,13 +413,13 @@ export default function ArrangementTidslinje({
         </p>
         <Link
           href="/bli-utvikler"
-          className="inline-flex items-center gap-2 text-sm px-4 py-2.5 font-semibold"
+          className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl"
           style={{
-            background: 'var(--glass-bg)',
+            background: 'var(--bg-elevated)',
             border: '1px solid var(--accent)',
             color: 'var(--accent)',
             textDecoration: 'none',
-            borderRadius: 'var(--radius-pill)',
+            fontWeight: 600,
           }}
         >
           Send inn forslag
@@ -433,7 +434,12 @@ export default function ArrangementTidslinje({
       {/* Tidligere */}
       {tidligereItems.length > 0 && (
         <>
-          <SectionLabel>Tidligere</SectionLabel>
+          <p
+            className="text-xs font-semibold uppercase mb-3"
+            style={{ color: 'var(--text-secondary)', letterSpacing: '0.5px' }}
+          >
+            Tidligere
+          </p>
           <div className="space-y-4">
             {tidligereItems.map(item => (
               <RenderItem key={item.data.id} item={item} fortid />
@@ -447,6 +453,7 @@ export default function ArrangementTidslinje({
           Ingen arrangementer
         </p>
       )}
+
     </div>
   )
 }
