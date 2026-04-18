@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
 import { ChevronLeftIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
-import Badge from '@/components/ui/Badge'
+import Pill from '@/components/ui/Pill'
 
 export default async function Medlemmer() {
   const supabase = await createServerClient()
@@ -62,7 +62,7 @@ export default async function Medlemmer() {
               <Link href={`/klubbinfo/medlemmer/${m.id}`} className="font-semibold" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
                 {m.navn}
                 {m.rolle === 'admin' && (
-                  <span className="ml-2"><Badge variant="accent">admin</Badge></span>
+                  <span className="ml-2"><Pill variant="accent">admin</Pill></span>
                 )}
               </Link>
               {erAdmin && (

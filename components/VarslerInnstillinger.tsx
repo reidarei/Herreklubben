@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import Card from '@/components/ui/Card'
+import SectionLabel from '@/components/ui/SectionLabel'
+import ToggleSwitch from '@/components/ui/ToggleSwitch'
 
 type PushStatus = 'laster' | 'aktiv' | 'inaktiv' | 'avslatt' | 'ikke-stottet'
 
@@ -43,7 +46,6 @@ export default function VarslerInnstillinger({
 
   async function togglePush() {
     if (pushStatus === 'aktiv') {
-      // Skru av push
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
@@ -58,7 +60,6 @@ export default function VarslerInnstillinger({
       setPushAktiv(false)
       setPushStatus('inaktiv')
     } else {
-      // Skru på push
       const reg = await navigator.serviceWorker.ready
       const perm = await Notification.requestPermission()
       if (perm !== 'granted') { setPushStatus('avslatt'); return }
@@ -90,60 +91,47 @@ export default function VarslerInnstillinger({
   const pushStottet = pushStatus !== 'ikke-stottet'
 
   return (
-    <div className="rounded-2xl p-4 mt-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Varsler</p>
-
-      <div className="space-y-3">
-        {/* E-post toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>E-postvarsler</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {epostAktiv ? 'Du får varsler på e-post' : 'E-postvarsler er av'}
-            </p>
-          </div>
-          <button
-            onClick={toggleEpost}
-            disabled={isPending}
-            className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: epostAktiv ? 'var(--accent)' : 'var(--border)' }}
-            aria-label={epostAktiv ? 'Slå av e-postvarsler' : 'Slå på e-postvarsler'}
-          >
-            <span
-              className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-              style={{ transform: epostAktiv ? 'translateX(20px)' : 'translateX(0)' }}
-            />
-          </button>
-        </div>
-
-        {/* Push toggle */}
-        {pushStottet && (
+    <div className="mt-6">
+      <SectionLabel>Varsler</SectionLabel>
+      <Card>
+        <div className="space-y-4 p-1">
+          {/* E-post toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Push-varsler</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>E-postvarsler</p>
               <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {pushStatus === 'laster' ? 'Sjekker...'
-                  : pushStatus === 'avslatt' ? 'Blokkert i nettleseren'
-                  : pushStatus === 'aktiv' ? 'Du får push-varsler på denne enheten'
-                  : 'Push-varsler er av'}
+                {epostAktiv ? 'Du får varsler på e-post' : 'E-postvarsler er av'}
               </p>
             </div>
-            {pushStatus !== 'avslatt' && pushStatus !== 'laster' && (
-              <button
-                onClick={togglePush}
-                className="relative w-11 h-6 rounded-full transition-colors"
-                style={{ background: pushStatus === 'aktiv' ? 'var(--accent)' : 'var(--border)' }}
-                aria-label={pushStatus === 'aktiv' ? 'Slå av push-varsler' : 'Slå på push-varsler'}
-              >
-                <span
-                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-                  style={{ transform: pushStatus === 'aktiv' ? 'translateX(20px)' : 'translateX(0)' }}
-                />
-              </button>
-            )}
+            <ToggleSwitch
+              checked={epostAktiv}
+              onChange={toggleEpost}
+              disabled={isPending}
+            />
           </div>
-        )}
-      </div>
+
+          {/* Push toggle */}
+          {pushStottet && (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Push-varsler</p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {pushStatus === 'laster' ? 'Sjekker...'
+                    : pushStatus === 'avslatt' ? 'Blokkert i nettleseren'
+                    : pushStatus === 'aktiv' ? 'Du får push-varsler på denne enheten'
+                    : 'Push-varsler er av'}
+                </p>
+              </div>
+              {pushStatus !== 'avslatt' && pushStatus !== 'laster' && (
+                <ToggleSwitch
+                  checked={pushStatus === 'aktiv'}
+                  onChange={togglePush}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   )
 }

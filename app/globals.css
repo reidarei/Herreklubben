@@ -1,46 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  /* Bakgrunner */
-  --bg: #0a0a0a;
-  --bg-elevated: #161616;
-  --bg-elevated-2: #1c1c1e;
-  --bg-tertiary: #2c2c2e;
+  /* Bakgrunner – Obsidian */
+  --bg: #060608;
+  --bg-elevated: rgba(255, 255, 255, 0.03);
+  --bg-elevated-2: rgba(255, 255, 255, 0.06);
+  --bg-tertiary: rgba(255, 255, 255, 0.08);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
 
   /* Borders */
-  --border: #38383a;
-  --border-subtle: #2c2c2e;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.15);
 
   /* Tekst */
-  --text-primary: #f5f5f7;
-  --text-secondary: #8e8e93;
-  --text-tertiary: #636366;
+  --text-primary: #f0ece4;
+  --text-secondary: rgba(240, 236, 228, 0.55);
+  --text-tertiary: rgba(240, 236, 228, 0.35);
 
-  /* Aksent */
-  --accent: #d4a853;
-  --accent-subtle: rgba(212, 168, 83, 0.12);
+  /* Aksent – varm krem */
+  --accent: #e8d9b5;
+  --accent-subtle: rgba(232, 217, 181, 0.1);
+  --accent-muted: rgba(232, 217, 181, 0.6);
 
   /* Semantiske */
-  --success: #30d158;
-  --success-subtle: rgba(48, 209, 88, 0.12);
-  --destructive: #ff453a;
-  --destructive-subtle: rgba(255, 69, 58, 0.12);
+  --success: #8bc49e;
+  --success-subtle: rgba(139, 196, 158, 0.12);
+  --danger: #e89b94;
+  --danger-subtle: rgba(232, 155, 148, 0.12);
+  --destructive: #e89b94;
+  --destructive-subtle: rgba(232, 155, 148, 0.12);
+
+  /* Radius */
+  --radius: 18px;
+  --radius-small: 12px;
+  --radius-pill: 999px;
+
+  /* Fonter */
+  --font-display: var(--font-instrument-serif), Georgia, 'Times New Roman', serif;
+  --font-mono: var(--font-jetbrains-mono), 'SF Mono', 'Fira Code', monospace;
+  --font-body: var(--font-inter), system-ui, sans-serif;
 }
 
 html {
   overflow-x: clip;
   background-color: var(--bg);
-  background-image: radial-gradient(
-    ellipse 80% 50% at 50% 0%,
-    rgba(212, 168, 83, 0.03) 0%,
-    transparent 70%
-  );
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      rgba(60, 80, 180, 0.07) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 20%,
+      rgba(100, 60, 160, 0.04) 0%,
+      transparent 60%
+    );
   background-attachment: fixed;
 }
 
 body {
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 /* Scrollbar */

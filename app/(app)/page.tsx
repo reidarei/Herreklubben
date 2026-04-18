@@ -22,7 +22,6 @@ function estimertDatoFraNavn(navn: string): [number, number] {
   }
   if (funnet.length === 0) return [6, 15]
   if (funnet.length === 1) return [funnet[0], 15]
-  // To måneder: midtpunktet er ca. 1. i den siste måneden
   return [funnet[funnet.length - 1], 1]
 }
 
@@ -35,7 +34,7 @@ export default async function Forside() {
   const toMndSiden = subMonths(new Date(), 3)
   const aar = norskAar()
 
-  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }, { count: pushCount }, { data: varselPref }] = await Promise.all([
+  const [{ data: arrangementer }, { data: profilerMedBursdag }, { data: ansvar }, { count: pushCount }, { data: varselPref }, { count: antallMedlemmer }] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(`
@@ -65,6 +64,10 @@ export default async function Forside() {
       .select('push_aktiv')
       .eq('profil_id', user!.id)
       .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('aktiv', true),
   ])
 
   // Grupper uplanlagte arrangementer etter navn
@@ -86,13 +89,39 @@ export default async function Forside() {
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-          Arrangementer
-        </h1>
+        <div>
+          <h1
+            className="leading-tight"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '38px',
+              fontWeight: 400,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.5px',
+            }}
+          >
+            Agenda
+          </h1>
+          <p
+            className="text-[13px] mt-0.5"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-tertiary)',
+              letterSpacing: '0.02em',
+            }}
+          >
+            Siden 2015 · {antallMedlemmer ?? 0} gutta
+          </p>
+        </div>
         <Link
           href="/arrangementer/ny"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold"
-          style={{ background: 'var(--accent)', color: '#fff', textDecoration: 'none' }}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold"
+          style={{
+            background: 'var(--accent)',
+            color: '#000',
+            textDecoration: 'none',
+            borderRadius: 'var(--radius-pill)',
+          }}
         >
           <span className="text-lg leading-none">+</span> Nytt
         </Link>

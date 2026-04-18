@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { TrophyIcon } from '@heroicons/react/24/outline'
 import KaaringKort from './KaaringKort'
+import SectionLabel from '@/components/ui/SectionLabel'
 import { norskAar } from '@/lib/dato'
 
 export default async function Kaaringer() {
@@ -37,7 +38,6 @@ export default async function Kaaringer() {
       .order('start_tidspunkt', { ascending: false }),
   ])
 
-  // Group vinnere by (mal_id, aar)
   const vinnerePrMal: Record<string, Record<number, any>> = {}
   for (const v of vinnere ?? []) {
     const key = `${v.mal_id}`
@@ -45,7 +45,6 @@ export default async function Kaaringer() {
     vinnerePrMal[key][v.aar] = v
   }
 
-  // Vis alle år fra 2015 til gjeldende, samt eldre år som har vinnere
   const aar_set = new Set<number>()
   for (const v of vinnere ?? []) {
     aar_set.add(v.aar)
@@ -57,7 +56,17 @@ export default async function Kaaringer() {
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <h1 className="text-[22px] font-bold mb-8" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Kåringer</h1>
+      <h1
+        className="mb-8 leading-tight"
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '38px',
+          fontWeight: 400,
+          color: 'var(--text-primary)',
+        }}
+      >
+        Hall of Fame
+      </h1>
 
       {!maler || maler.length === 0 ? (
         <div className="text-center py-16" style={{ color: 'var(--text-secondary)' }}>
@@ -66,16 +75,22 @@ export default async function Kaaringer() {
           {erAdmin && <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>Gå til Innstillinger for å legge inn</p>}
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {aar.map(a => (
             <div key={a}>
-              <h2
-                className="text-sm font-semibold mb-3 pb-2 flex items-center gap-2"
-                style={{ color: 'var(--accent)', borderBottom: '1px solid var(--border-subtle)' }}
-              >
-                <TrophyIcon className="w-4 h-4" />
-                {a}
-              </h2>
+              <div className="flex items-center gap-3 mb-4">
+                <TrophyIcon className="w-5 h-5 shrink-0" style={{ color: 'var(--accent)' }} />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '24px',
+                    color: 'var(--accent)',
+                  }}
+                >
+                  {a}
+                </span>
+                <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+              </div>
               <div className="space-y-3">
                 {maler.map(mal => (
                   <KaaringKort

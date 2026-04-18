@@ -5,7 +5,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 const styles: Record<Variant, React.CSSProperties> = {
   primary: {
     background: 'var(--accent)',
-    color: '#fff',
+    color: '#000',
     border: 'none',
   },
   secondary: {
