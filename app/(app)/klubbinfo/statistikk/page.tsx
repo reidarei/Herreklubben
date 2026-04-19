@@ -1,6 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import SectionLabel from '@/components/ui/SectionLabel'
 
 type StatRad = { id: string; navn: string; totalt: number; siste12: number; arrangert: number }
 type StatistikkData = {
@@ -20,72 +19,299 @@ export default async function Statistikk() {
 
   const sortert = stats.deltagelse ?? []
   const aarSortert = stats.per_aar ?? []
+  const maksAntall = Math.max(...aarSortert.map(a => a.antall), 1)
+  const toppArrangoerer = sortert
+    .filter(s => s.arrangert > 0)
+    .sort((a, b) => b.arrangert - a.arrangert)
+    .slice(0, 5)
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-        </Link>
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Statistikk</h1>
-      </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <header style={{ marginTop: 12, marginBottom: 26 }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+          }}
+        >
+          Klubbinfo
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 38,
+            fontWeight: 500,
+            letterSpacing: '-0.5px',
+            lineHeight: 1,
+            margin: 0,
+            color: 'var(--text-primary)',
+          }}
+        >
+          Statistikk
+        </h1>
+      </header>
 
       {/* Nøkkeltall */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
-        <div className="rounded-2xl p-5 text-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-          <p className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>{stats.totalt}</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Arrangementer totalt</p>
-        </div>
-        <div className="rounded-2xl p-5 text-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-          <p className="text-3xl font-bold" style={{ color: 'var(--accent)' }}>{stats.siste12}</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Siste 12 måneder</p>
-        </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+          marginBottom: 28,
+        }}
+      >
+        {[
+          { val: stats.totalt, lbl: 'Arrangementer totalt' },
+          { val: stats.siste12, lbl: 'Siste 12 måneder' },
+        ].map(n => (
+          <div
+            key={n.lbl}
+            style={{
+              padding: '22px 16px',
+              textAlign: 'center',
+              background:
+                'radial-gradient(ellipse at top, var(--accent-soft), transparent 70%), var(--bg-elevated)',
+              border: '0.5px solid var(--border-strong)',
+              borderRadius: 'var(--radius)',
+              backdropFilter: 'var(--blur-card)',
+              WebkitBackdropFilter: 'var(--blur-card)',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 36,
+                fontWeight: 500,
+                color: 'var(--accent)',
+                letterSpacing: '-0.5px',
+                lineHeight: 1,
+              }}
+            >
+              {n.val}
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                marginTop: 8,
+                fontWeight: 600,
+              }}
+            >
+              {n.lbl}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Deltagelse per medlem */}
-      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Deltagelse</h2>
-      <div className="rounded-2xl overflow-hidden mb-8" style={{ border: '1px solid var(--border)' }}>
-        <div className="grid grid-cols-4 px-5 py-2.5 text-xs font-semibold" style={{ background: 'var(--bg)', color: 'var(--text-secondary)' }}>
-          <span className="col-span-2">Navn</span>
-          <span className="text-right">Totalt</span>
-          <span className="text-right">12 mnd</span>
+      {/* Deltagelse */}
+      <section style={{ marginBottom: 28 }}>
+        <SectionLabel>Deltagelse</SectionLabel>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '9px 1fr auto auto',
+            columnGap: 12,
+            rowGap: 0,
+            padding: '6px 4px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.4px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            borderBottom: '0.5px solid var(--border-subtle)',
+          }}
+        >
+          <span />
+          <span>Navn</span>
+          <span style={{ textAlign: 'right', minWidth: 40 }}>Totalt</span>
+          <span style={{ textAlign: 'right', minWidth: 44 }}>12 mnd</span>
         </div>
         {sortert.map((s, i) => (
-          <div key={s.id} className="grid grid-cols-4 px-5 py-2.5 text-sm"
-            style={{ background: i % 2 === 0 ? 'var(--bg-elevated)' : 'var(--bg)', borderTop: '1px solid var(--border-subtle)' }}>
-            <span className="col-span-2 font-medium" style={{ color: 'var(--text-primary)' }}>{s.navn}</span>
-            <span className="text-right font-bold" style={{ color: 'var(--accent)' }}>{s.totalt}</span>
-            <span className="text-right" style={{ color: 'var(--text-secondary)' }}>{s.siste12}</span>
+          <div
+            key={s.id}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '9px 1fr auto auto',
+              columnGap: 12,
+              alignItems: 'center',
+              padding: '13px 4px',
+              borderBottom:
+                i < sortert.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9,
+                color: 'var(--text-tertiary)',
+                fontWeight: 600,
+              }}
+            >
+              {String(i + 1).padStart(2, '0')}
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 15,
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.1px',
+              }}
+            >
+              {s.navn}
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 18,
+                fontWeight: 500,
+                color: 'var(--accent)',
+                textAlign: 'right',
+                minWidth: 40,
+              }}
+            >
+              {s.totalt}
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                textAlign: 'right',
+                minWidth: 44,
+                fontWeight: 500,
+              }}
+            >
+              {s.siste12}
+            </div>
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* Arrangert flest */}
-      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Flest arrangementer arrangert</h2>
-      <div className="space-y-2 mb-8">
-        {sortert.filter(s => s.arrangert > 0).sort((a, b) => b.arrangert - a.arrangert).slice(0, 5).map(s => (
-          <div key={s.id} className="flex items-center justify-between rounded-2xl px-5 py-3"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{s.navn}</span>
-            <span className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{s.arrangert}</span>
-          </div>
-        ))}
-      </div>
+      {/* Arrangørtoppen */}
+      {toppArrangoerer.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <SectionLabel>Flest arrangert</SectionLabel>
+          {toppArrangoerer.map((s, i) => (
+            <div
+              key={s.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                padding: '14px 4px',
+                borderBottom:
+                  i < toppArrangoerer.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 9,
+                  color: 'var(--text-tertiary)',
+                  letterSpacing: '1.4px',
+                  fontWeight: 600,
+                  width: 16,
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                {s.navn}
+              </div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20,
+                  fontWeight: 500,
+                  color: 'var(--accent)',
+                }}
+              >
+                {s.arrangert}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Per år */}
-      <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent)' }}>Arrangementer per år</h2>
-      <div className="space-y-2">
-        {aarSortert.map(({ aar, antall }) => (
-          <div key={aar} className="flex items-center gap-3 rounded-2xl px-5 py-3"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-            <span className="text-sm font-semibold w-12" style={{ color: 'var(--accent)' }}>{aar}</span>
-            <div className="flex-1 rounded-full overflow-hidden h-2" style={{ background: 'var(--border-subtle)' }}>
-              <div className="h-full rounded-full" style={{ background: 'var(--accent)', width: `${Math.min((antall / 8) * 100, 100)}%` }} />
+      <section>
+        <SectionLabel>Per år</SectionLabel>
+        {aarSortert.map((a, i) => (
+          <div
+            key={a.aar}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              padding: '14px 4px',
+              borderBottom:
+                i < aarSortert.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                color: 'var(--accent)',
+                letterSpacing: '1.2px',
+                fontWeight: 600,
+                width: 40,
+              }}
+            >
+              {a.aar}
             </div>
-            <span className="text-sm font-bold w-6 text-right" style={{ color: 'var(--text-primary)' }}>{antall}</span>
+            <div
+              style={{
+                flex: 1,
+                height: 4,
+                background: 'var(--border-subtle)',
+                borderRadius: 999,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${(a.antall / maksAntall) * 100}%`,
+                  background: 'var(--accent)',
+                  borderRadius: 999,
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 18,
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                minWidth: 28,
+                textAlign: 'right',
+              }}
+            >
+              {a.antall}
+            </div>
           </div>
         ))}
-      </div>
+      </section>
     </div>
   )
 }
