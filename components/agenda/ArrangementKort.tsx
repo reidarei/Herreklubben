@@ -100,7 +100,7 @@ export default function ArrangementKort({ arr, tidligere = false }: Props) {
             }}
           >
             <span>
-              {mnd} {dag}
+              {dag}. {mnd}
             </span>
             <span style={{ color: 'var(--text-tertiary)', letterSpacing: '1.2px' }}>· {tid}</span>
           </div>

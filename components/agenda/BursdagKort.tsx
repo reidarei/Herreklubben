@@ -54,7 +54,7 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
           }}
         >
           <span>
-            {mnd} {dag}
+            {dag}. {mnd}
           </span>
         </div>
 
