@@ -120,8 +120,6 @@ export default async function Forside() {
     { count: aktiveMedlemmer },
     { data: profilerMedBursdag },
     { data: ansvar },
-    { count: pushCount },
-    { data: varselPref },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -142,15 +140,6 @@ export default async function Forside() {
       .select('arrangement_navn, purredato, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
-    supabase
-      .from('push_subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('profil_id', user!.id),
-    supabase
-      .from('varsel_preferanser')
-      .select('push_aktiv')
-      .eq('profil_id', user!.id)
-      .maybeSingle(),
   ])
 
   const alleArr: ArrangementRad[] = (arrangementer ?? []) as unknown as ArrangementRad[]
@@ -284,7 +273,7 @@ export default async function Forside() {
         </Link>
       </header>
 
-      {pushCount === 0 && <PushPaaminnelse pushAktiv={varselPref?.push_aktiv ?? false} />}
+      <PushPaaminnelse />
 
       {/* I kveld */}
       {idagItems.length > 0 && (

@@ -4,15 +4,16 @@ import { useState, useEffect } from 'react'
 
 type Status = 'laster' | 'vis' | 'skjul'
 
-export default function PushPaaminnelse({ pushAktiv }: { pushAktiv: boolean }) {
+/**
+ * Banner øverst på agenda som prompter brukeren til å aktivere push
+ * på *denne enheten*. Per-enhet-sjekk: spør service worker etter
+ * subscription og viser banneret kun hvis denne nettleseren/enheten
+ * ikke har registrert seg — uavhengig av om andre enheter har det.
+ */
+export default function PushPaaminnelse() {
   const [status, setStatus] = useState<Status>('laster')
 
   useEffect(() => {
-    // Ikke vis banneret hvis brukeren bevisst har skrudd av push
-    if (!pushAktiv) {
-      setStatus('skjul')
-      return
-    }
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       setStatus('skjul')
       return
@@ -25,7 +26,7 @@ export default function PushPaaminnelse({ pushAktiv }: { pushAktiv: boolean }) {
       const sub = await reg.pushManager.getSubscription()
       setStatus(sub ? 'skjul' : 'vis')
     })
-  }, [pushAktiv])
+  }, [])
 
   async function aktiverPush() {
     try {
@@ -43,7 +44,7 @@ export default function PushPaaminnelse({ pushAktiv }: { pushAktiv: boolean }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sub.toJSON()),
       })
-      // Oppdater preferanse til push_aktiv=true
+      // Setter push_aktiv=true i preferansene så sendVarsel() sender push
       await fetch('/api/varsel-preferanser', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -59,22 +60,58 @@ export default function PushPaaminnelse({ pushAktiv }: { pushAktiv: boolean }) {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-xl mb-6"
       style={{
-        background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-        border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 16px',
+        marginBottom: 24,
+        background: 'var(--bg-elevated)',
+        border: '0.5px solid var(--border-strong)',
+        borderRadius: 'var(--radius)',
+        backdropFilter: 'var(--blur-card)',
+        WebkitBackdropFilter: 'var(--blur-card)',
       }}
     >
-      <span style={{ fontSize: '18px' }}>🔔</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Skru på varsler så du ikke går glipp av noe
-        </p>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9.5,
+            color: 'var(--accent)',
+            letterSpacing: '1.8px',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            marginBottom: 4,
+          }}
+        >
+          Push
+        </div>
+        <div
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-primary)',
+            lineHeight: 1.35,
+          }}
+        >
+          Aktiver push på denne enheten
+        </div>
       </div>
       <button
         onClick={aktiverPush}
-        className="text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0"
-        style={{ background: 'var(--accent)', color: '#0a0a0a', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+        style={{
+          padding: '8px 14px',
+          background: 'var(--accent)',
+          color: '#0a0a0a',
+          border: 'none',
+          borderRadius: 999,
+          fontFamily: 'var(--font-body)',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          flexShrink: 0,
+        }}
       >
         Aktiver
       </button>
