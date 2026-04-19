@@ -1,8 +1,9 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Link from 'next/link'
-import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 import AnsvarAdmin from './AnsvarAdmin'
+import PurreKnapp from './PurreKnapp'
+import SectionLabel from '@/components/ui/SectionLabel'
 import { norskAar, norskDag, norskDatoNaa } from '@/lib/dato'
 import { isBefore } from 'date-fns'
 
@@ -27,73 +28,186 @@ export default async function Arrangoransvar() {
   const fasteArrangementer = ((maler ?? []) as { navn: string }[]).map(m => m.navn)
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-        </Link>
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Arrangøransvar</h1>
-      </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <header style={{ marginTop: 12, marginBottom: 26 }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+          }}
+        >
+          Klubbinfo / Ansvar
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 38,
+            fontWeight: 500,
+            letterSpacing: '-0.5px',
+            lineHeight: 1,
+            margin: 0,
+            color: 'var(--text-primary)',
+          }}
+        >
+          Arrangøransvar
+        </h1>
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            marginTop: 10,
+            lineHeight: 1.5,
+            maxWidth: 360,
+          }}
+        >
+          De faste arrangementene og hvem som har ansvar for å få dem inn i kalenderen. Trykk «Purre» for å minne den ansvarlige på det.
+        </p>
+      </header>
 
       {visAar.map(aar => (
-        <div key={aar} className="mb-8">
-          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--accent)' }}>{aar}</h2>
+        <section key={aar} style={{ marginBottom: 28 }}>
+          <SectionLabel>{String(aar)}</SectionLabel>
 
-          <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {fasteArrangementer.map((navn, i) => {
               const rader = (ansvar ?? []).filter(
                 a => a.aar === aar && a.arrangement_navn.trim().toLowerCase() === navn.toLowerCase()
               )
               const erMitt = rader.some(r => r.ansvarlig_id === user!.id)
               const lenketArr = rader.find(r => r.arrangementer)?.arrangementer
+              const lagtInn = !!lenketArr
+              const gjennomfoert = lenketArr
+                ? isBefore(norskDag(lenketArr.start_tidspunkt), norskDatoNaa())
+                : false
+              const statusFarge = lagtInn ? 'var(--success)' : 'var(--danger)'
+              const statusTekst = gjennomfoert ? 'Gjennomført' : lagtInn ? 'Lagt inn' : 'Ikke lagt inn'
+              const ansvarligeMedNavn = rader.filter(r => r.profiles).map(r => r.profiles!)
+              const ansvarligIder = rader.filter(r => r.ansvarlig_id).map(r => ({
+                ansvarId: r.id,
+                profilId: r.ansvarlig_id!,
+              }))
+              // Purre-knapp er synlig når det er ansvarlige, ikke lagt inn, og bruker ikke selv er ansvarlig
+              const kanPurres = !lagtInn && ansvarligIder.length > 0 && !erMitt
+              const forsteAnsvarId = ansvarligIder[0]?.ansvarId
 
               return (
                 <div
                   key={navn}
-                  className="px-4 py-3"
                   style={{
-                    borderTop: i > 0 ? '1px solid var(--border-subtle)' : undefined,
-                    background: erMitt ? 'var(--accent-subtle)' : undefined,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 14,
+                    padding: '16px 4px',
+                    borderBottom:
+                      i < fasteArrangementer.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
                   }}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm" style={{ color: erMitt ? 'var(--accent)' : 'var(--text-primary)' }}>
-                        {navn}
-                        {erMitt && <span className="ml-2 text-xs" style={{ color: 'var(--accent)' }}>← deg</span>}
-                      </p>
-                      {rader.filter(r => r.profiles).length > 0 ? (
-                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                          {rader.filter(r => r.profiles).map(r => r.profiles!.navn).join(', ')}
-                        </p>
-                      ) : (
-                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Ingen ansvarlig</p>
-                      )}
-                      {lenketArr ? (
-                        <Link href={`/arrangementer/${lenketArr.id}`} className="text-xs mt-0.5 inline-block" style={{ color: 'var(--success)' }}>
-                          {isBefore(norskDag(lenketArr.start_tidspunkt), norskDatoNaa()) ? '✓ Gjennomført' : '✓ Lagt inn'}
-                        </Link>
-                      ) : (
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--destructive)' }}>✗ Ikke lagt inn ennå</p>
-                      )}
-                      {erAdmin && (
-                        <AnsvarAdmin
-                          ansvarlige={rader.filter(r => r.ansvarlig_id).map(r => ({ ansvarId: r.id, profilId: r.ansvarlig_id! }))}
-                          arrangementNavn={navn}
-                          aar={aar}
-                          medlemmer={medlemmer ?? []}
-                        />
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: statusFarge,
+                      flexShrink: 0,
+                      marginTop: 7,
+                      boxShadow: `0 0 0 3px color-mix(in srgb, ${statusFarge} 18%, transparent)`,
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 18,
+                        fontWeight: 500,
+                        color: erMitt ? 'var(--accent)' : 'var(--text-primary)',
+                        letterSpacing: '-0.2px',
+                        lineHeight: 1.15,
+                        marginBottom: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      {navn}
+                      {erMitt && (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 9,
+                            color: 'var(--accent)',
+                            letterSpacing: '1.4px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Deg
+                        </span>
                       )}
                     </div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 13,
+                        color: 'var(--text-secondary)',
+                        letterSpacing: '0.1px',
+                      }}
+                    >
+                      {ansvarligeMedNavn.length > 0
+                        ? ansvarligeMedNavn.map(p => p.navn).join(', ')
+                        : 'Ingen ansvarlig'}
+                    </div>
+                    <div style={{ marginTop: 4 }}>
+                      {lenketArr ? (
+                        <Link
+                          href={`/arrangementer/${lenketArr.id}`}
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            color: statusFarge,
+                            letterSpacing: '1.4px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {statusTekst} →
+                        </Link>
+                      ) : (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            color: statusFarge,
+                            letterSpacing: '1.4px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {statusTekst}
+                        </span>
+                      )}
+                    </div>
+                    {erAdmin && (
+                      <AnsvarAdmin
+                        ansvarlige={ansvarligIder}
+                        arrangementNavn={navn}
+                        aar={aar}
+                        medlemmer={medlemmer ?? []}
+                      />
+                    )}
                   </div>
+                  {kanPurres && forsteAnsvarId && <PurreKnapp ansvarId={forsteAnsvarId} />}
                 </div>
               )
             })}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   )

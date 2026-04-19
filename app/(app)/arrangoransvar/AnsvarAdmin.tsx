@@ -2,17 +2,30 @@
 
 import { useState, useTransition } from 'react'
 import { leggTilAnsvarlig, fjernAnsvarlig } from '@/lib/actions/arrangoransvar'
+import Icon from '@/components/ui/Icon'
 
 const selectStil: React.CSSProperties = {
-  background: 'var(--bg-elevated-2)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-  borderRadius: '0.75rem',
-  padding: '0.35rem 0.5rem',
-  fontSize: '0.8125rem',
   flex: 1,
   minWidth: 0,
-  fontFamily: 'inherit',
+  background: 'var(--bg-elevated)',
+  border: '0.5px solid var(--border)',
+  color: 'var(--text-primary)',
+  borderRadius: 999,
+  padding: '8px 12px',
+  fontSize: 12,
+  fontFamily: 'var(--font-body)',
+  outline: 'none',
+}
+
+const pillKnapp: React.CSSProperties = {
+  padding: '8px 14px',
+  borderRadius: 999,
+  fontFamily: 'var(--font-mono)',
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: '1.4px',
+  textTransform: 'uppercase',
+  cursor: 'pointer',
 }
 
 export default function AnsvarAdmin({
@@ -52,9 +65,14 @@ export default function AnsvarAdmin({
   if (!aapen) {
     return (
       <button
+        type="button"
         onClick={() => setAapen(true)}
-        className="text-xs px-2 py-1 rounded-lg shrink-0"
-        style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontFamily: 'inherit', cursor: 'pointer' }}
+        style={{
+          ...pillKnapp,
+          background: 'transparent',
+          border: '0.5px solid var(--border)',
+          color: 'var(--text-secondary)',
+        }}
       >
         Endre
       </button>
@@ -62,40 +80,82 @@ export default function AnsvarAdmin({
   }
 
   return (
-    <div className="mt-2 space-y-2" style={{ opacity: isPending ? 0.5 : 1 }}>
-      {/* Nåværende ansvarlige med fjern-knapp */}
+    <div
+      style={{
+        marginTop: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        opacity: isPending ? 0.5 : 1,
+      }}
+    >
       {ansvarlige.map(a => {
         const navn = medlemmer.find(m => m.id === a.profilId)?.navn ?? '–'
         return (
-          <div key={a.ansvarId} className="flex items-center gap-2">
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{navn}</span>
+          <div
+            key={a.ansvarId}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <span
+              style={{
+                flex: 1,
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                color: 'var(--text-primary)',
+              }}
+            >
+              {navn}
+            </span>
             <button
               type="button"
               onClick={() => handleFjern(a.ansvarId)}
               disabled={isPending}
-              className="text-xs px-1.5 py-0.5 rounded-md"
-              style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--destructive)', fontFamily: 'inherit', cursor: 'pointer' }}
+              aria-label="Fjern ansvarlig"
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: '50%',
+                background: 'transparent',
+                border: '0.5px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--danger)',
+              }}
             >
-              ✕
+              <Icon name="x" size={12} color="var(--danger)" strokeWidth={2} />
             </button>
           </div>
         )
       })}
 
-      {/* Legg til ny */}
       {tilgjengelige.length > 0 && (
-        <form onSubmit={handleLeggTil} className="flex gap-2 items-center">
+        <form onSubmit={handleLeggTil} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <select name="ansvarlig_id" defaultValue="" style={selectStil}>
-            <option value="" disabled>Legg til…</option>
-            {tilgjengelige.map(m => <option key={m.id} value={m.id}>{m.navn}</option>)}
+            <option value="" disabled>Legg til ansvarlig…</option>
+            {tilgjengelige.map(m => (
+              <option key={m.id} value={m.id}>{m.navn}</option>
+            ))}
           </select>
           <button
             type="submit"
             disabled={isPending}
-            className="text-xs px-2 py-1 rounded-lg shrink-0"
-            style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'inherit', cursor: 'pointer' }}
+            aria-label="Legg til"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
           >
-            +
+            <Icon name="plus" size={14} color="#0a0a0a" strokeWidth={2.5} />
           </button>
         </form>
       )}
@@ -103,8 +163,13 @@ export default function AnsvarAdmin({
       <button
         type="button"
         onClick={() => setAapen(false)}
-        className="text-xs px-2 py-1 rounded-lg"
-        style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', background: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+        style={{
+          ...pillKnapp,
+          alignSelf: 'flex-start',
+          background: 'transparent',
+          border: '0.5px solid var(--border)',
+          color: 'var(--text-secondary)',
+        }}
       >
         Ferdig
       </button>
