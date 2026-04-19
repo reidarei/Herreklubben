@@ -15,7 +15,7 @@ type Melding = {
   opprettet: string
 }
 
-type Profil = { id: string; navn: string | null }
+type Profil = { id: string; navn: string | null; bilde_url: string | null }
 
 function renderMedMentions(tekst: string) {
   const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
@@ -52,6 +52,9 @@ export default function Chat({
 
   const profilMap = useRef(
     new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent'])),
+  ).current
+  const bildeMap = useRef(
+    new Map(profiler.map(p => [p.id, p.bilde_url])),
   ).current
   const andreProfiler = useRef(
     profiler.filter(p => p.id !== brukerId && p.navn),
@@ -264,6 +267,7 @@ export default function Chat({
           const erEgen = m.profil_id === brukerId
           const kanSlette = erEgen || erAdmin
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
+          const bilde = bildeMap.get(m.profil_id)
           const tid = formaterDato(m.opprettet, 'HH:mm')
           return (
             <div
@@ -275,7 +279,7 @@ export default function Chat({
               }}
             >
               <div style={{ flexShrink: 0, alignSelf: 'flex-end' }}>
-                <Avatar name={navn} size={26} />
+                <Avatar name={navn} size={26} src={bilde} />
               </div>
               <div
                 style={{

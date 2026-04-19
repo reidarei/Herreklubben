@@ -34,9 +34,10 @@ type Props = {
   /** Beholdes for bakoverkompatibilitet; kan fjernes når alle kall er oppdatert */
   erAdmin?: boolean
   brukerNavn?: string | null
+  bildeUrl?: string | null
 }
 
-export default function BottomNav({ brukerNavn }: Props) {
+export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const pathname = usePathname()
   const initial = initialAv(brukerNavn ?? undefined)
 
@@ -134,7 +135,7 @@ export default function BottomNav({ brukerNavn }: Props) {
             <Link href={tab.href} style={knappStyle} prefetch>
               {aktiv && <GlassBubble />}
               {erProfil ? (
-                <ProfilDisk aktiv={aktiv} initial={initial} />
+                <ProfilDisk aktiv={aktiv} initial={initial} bildeUrl={bildeUrl} />
               ) : (
                 <Icon
                   name={tab.ikon}
@@ -218,15 +219,43 @@ function GlassBubble() {
   )
 }
 
-function ProfilDisk({ aktiv, initial }: { aktiv: boolean; initial: string }) {
+function ProfilDisk({
+  aktiv,
+  initial,
+  bildeUrl,
+}: {
+  aktiv: boolean
+  initial: string
+  bildeUrl?: string | null
+}) {
+  const felles: CSSProperties = {
+    width: 22,
+    height: 22,
+    borderRadius: '50%',
+    border: `1px solid ${aktiv ? 'var(--accent)' : 'var(--border-strong)'}`,
+    boxShadow: aktiv
+      ? '0 0 0 2px var(--accent-soft), inset 0 1px 0 rgba(255,255,255,0.2)'
+      : 'inset 0 1px 0 rgba(255,255,255,0.08)',
+    transition: 'all 0.25s',
+    display: 'block',
+  }
+
+  if (bildeUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={bildeUrl}
+        alt=""
+        style={{ ...felles, objectFit: 'cover' }}
+      />
+    )
+  }
+
   return (
     <span
       style={{
-        width: 22,
-        height: 22,
-        borderRadius: '50%',
+        ...felles,
         background: 'linear-gradient(135deg, var(--accent-soft), var(--bg-elevated))',
-        border: `1px solid ${aktiv ? 'var(--accent)' : 'var(--border-strong)'}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -234,10 +263,6 @@ function ProfilDisk({ aktiv, initial }: { aktiv: boolean; initial: string }) {
         fontSize: 11,
         fontWeight: 500,
         color: aktiv ? 'var(--accent)' : 'var(--text-secondary)',
-        boxShadow: aktiv
-          ? '0 0 0 2px var(--accent-soft), inset 0 1px 0 rgba(255,255,255,0.2)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.08)',
-        transition: 'all 0.25s',
       }}
     >
       {initial}

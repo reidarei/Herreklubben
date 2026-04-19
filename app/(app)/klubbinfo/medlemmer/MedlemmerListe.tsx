@@ -13,6 +13,7 @@ type Medlem = {
   erNy: boolean
   erAeres: boolean
   aktiv: boolean
+  bildeUrl: string | null
 }
 
 export default function MedlemmerListe({
@@ -119,6 +120,7 @@ export default function MedlemmerListe({
             narv={m.narv}
             erNy={m.erNy}
             erAeres={m.erAeres}
+            bildeUrl={m.bildeUrl}
             last={i === aktive.length - 1}
           />
         ))}
@@ -150,6 +152,7 @@ export default function MedlemmerListe({
                 rolle={m.rolle === 'admin' ? 'Admin' : 'Medlem'}
                 medlemSiden={m.medlemSiden}
                 narv={null}
+                bildeUrl={m.bildeUrl}
                 last={i === inaktive.length - 1}
               />
             ))}

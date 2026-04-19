@@ -10,6 +10,7 @@ type Props = {
   narv: number | null
   erNy?: boolean
   erAeres?: boolean
+  bildeUrl?: string | null
   last?: boolean
 }
 
@@ -21,6 +22,7 @@ export default function MedlemRad({
   narv,
   erNy,
   erAeres,
+  bildeUrl,
   last,
 }: Props) {
   const narvColor =
@@ -45,7 +47,7 @@ export default function MedlemRad({
         color: 'inherit',
       }}
     >
-      <Avatar name={navn} size={40} />
+      <Avatar name={navn} size={40} src={bildeUrl} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
           <span

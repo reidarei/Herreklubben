@@ -15,7 +15,7 @@ import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 type PaameldingRad = {
   profil_id: string
   status: string
-  profiles: { visningsnavn: string | null } | null
+  profiles: { visningsnavn: string | null; bilde_url: string | null } | null
 }
 
 type ArrangementRad = {
@@ -57,7 +57,10 @@ function tilHighlight(arr: ArrangementRad, meg: string): HighlightKortData {
     bilde_url: arr.bilde_url,
     antallJa: jaListe.length,
     deltakereForhand: jaListe
-      .map(p => ({ navn: p.profiles?.visningsnavn ?? '' }))
+      .map(p => ({
+        navn: p.profiles?.visningsnavn ?? '',
+        src: p.profiles?.bilde_url ?? null,
+      }))
       .filter(d => d.navn)
       .slice(0, 3),
     minStatus: (min?.status as 'ja' | 'kanskje' | 'nei' | undefined) ?? null,
@@ -124,7 +127,7 @@ export default async function Forside() {
       .from('arrangementer')
       .select(
         `id, type, tittel, start_tidspunkt, oppmoetested, bilde_url,
-         paameldinger (profil_id, status, profiles (visningsnavn))`,
+         paameldinger (profil_id, status, profiles (visningsnavn, bilde_url))`,
       )
       .gte('start_tidspunkt', treMndSiden.toISOString())
       .order('start_tidspunkt', { ascending: true }),

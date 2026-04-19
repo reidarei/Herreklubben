@@ -26,7 +26,7 @@ export default async function Medlemmer() {
   const [{ data: profiler }, { data: stat }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, navn, rolle, aktiv, opprettet')
+      .select('id, navn, rolle, aktiv, opprettet, bilde_url')
       .order('navn'),
     supabase.rpc('get_statistikk'),
   ])
@@ -53,6 +53,7 @@ export default async function Medlemmer() {
       erNy: aar - medlemSiden <= 1,
       erAeres: false,
       aktiv: p.aktiv,
+      bildeUrl: p.bilde_url,
     }
   })
 

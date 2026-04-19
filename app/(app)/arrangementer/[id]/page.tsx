@@ -15,7 +15,7 @@ import { formaterDato } from '@/lib/dato'
 type Paamelding = {
   profil_id: string
   status: string
-  profiles: { navn: string | null } | null
+  profiles: { navn: string | null; bilde_url: string | null } | null
 }
 
 function sceneFor(type: string): 'tur' | 'møte' | 'event' {
@@ -46,7 +46,7 @@ export default async function ArrangementDetaljer({
          oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
          bilde_url,
          opprettet_profil:profiles!arrangementer_opprettet_av_fkey (navn),
-         paameldinger (profil_id, status, profiles (navn))`,
+         paameldinger (profil_id, status, profiles (navn, bilde_url))`,
       )
       .eq('id', id)
       .single(),
@@ -56,7 +56,7 @@ export default async function ArrangementDetaljer({
       .eq('arrangement_id', id)
       .order('opprettet')
       .limit(100),
-    supabase.from('profiles').select('id, navn').eq('aktiv', true),
+    supabase.from('profiles').select('id, navn, bilde_url').eq('aktiv', true),
   ])
 
   if (!arr) notFound()
@@ -445,7 +445,7 @@ export default async function ArrangementDetaljer({
                     textDecoration: 'none',
                   }}
                 >
-                  <Avatar name={p.profiles?.navn ?? '?'} size={32} />
+                  <Avatar name={p.profiles?.navn ?? '?'} size={32} src={p.profiles?.bilde_url} />
                 </Link>
               ))}
               {jaListe.length > 7 && (
