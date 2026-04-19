@@ -82,3 +82,75 @@ export async function slettMelding(meldingId: string) {
 
   if (error) throw new Error(error.message)
 }
+
+// ---------- Klubb-chat ----------
+// Felles kronologisk tråd for hele klubben. Samme mention-varsling
+// som arrangement-chatten, men uten arrangement-referanse.
+
+export async function sendKlubbMelding(innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { error } = await supabase
+    .from('klubb_chat')
+    .insert({ profil_id: user.id, innhold: tekst })
+
+  if (error) throw new Error(error.message)
+
+  sendKlubbMentionVarsler(tekst, user.id).catch(console.error)
+}
+
+async function sendKlubbMentionVarsler(tekst: string, avsenderId: string) {
+  const mentionPattern = /@([\wæøåÆØÅ][\w æøåÆØÅ-]*)/g
+  const mentions = [...tekst.matchAll(mentionPattern)].map(m => m[1].trim().toLowerCase())
+  if (mentions.length === 0) return
+
+  const admin = createAdminClient()
+
+  const { data: profiler } = await admin
+    .from('profiles')
+    .select('id, navn, visningsnavn, epost')
+    .eq('aktiv', true)
+
+  if (!profiler) return
+
+  const erAlle = mentions.includes('alle')
+  const nevnte = erAlle
+    ? profiler.filter(p => p.id !== avsenderId)
+    : profiler.filter(p => {
+        if (p.id === avsenderId) return false
+        return mentions.some(m =>
+          p.navn?.toLowerCase().includes(m) ||
+          p.visningsnavn?.toLowerCase().includes(m)
+        )
+      })
+
+  if (nevnte.length === 0) return
+
+  const avsender = profiler.find(p => p.id === avsenderId)
+  const avsenderNavn = avsender?.visningsnavn ?? avsender?.navn ?? 'Noen'
+
+  await sendVarsel({
+    mottakere: nevnte.map(p => p.id),
+    tittel: 'Klubbchat',
+    melding: `${avsenderNavn}: ${tekst.length > 80 ? tekst.slice(0, 77) + '...' : tekst}`,
+    url: `${BASE_URL}/chat`,
+    knappTekst: 'Åpne chatten',
+    type: 'mention',
+    tillatDuplikat: true,
+  })
+}
+
+export async function slettKlubbMelding(meldingId: string) {
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('klubb_chat')
+    .delete()
+    .eq('id', meldingId)
+
+  if (error) throw new Error(error.message)
+}

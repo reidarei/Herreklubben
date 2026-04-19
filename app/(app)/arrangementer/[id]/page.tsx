@@ -9,7 +9,7 @@ import Placeholder from '@/components/ui/Placeholder'
 import SladdetFelt from '@/components/SladdetFelt'
 import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
-import Chat from './Chat'
+import Chat from '@/components/chat/Chat'
 import { formaterDato } from '@/lib/dato'
 
 type Paamelding = {
@@ -54,8 +54,8 @@ export default async function ArrangementDetaljer({
       .from('arrangement_chat')
       .select('id, profil_id, innhold, opprettet')
       .eq('arrangement_id', id)
-      .order('opprettet')
-      .limit(100),
+      .order('opprettet', { ascending: false })
+      .limit(30),
     supabase.from('profiles').select('id, navn, bilde_url').eq('aktiv', true),
   ])
 
@@ -466,10 +466,10 @@ export default async function ArrangementDetaljer({
 
         {/* Chat */}
         <Chat
-          arrangementId={id}
+          scope={{ type: 'arrangement', arrangementId: id }}
           brukerId={user!.id}
           erAdmin={erAdmin}
-          initialMeldinger={chatMeldinger ?? []}
+          initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
           profiler={chatProfiler ?? []}
         />
       </div>

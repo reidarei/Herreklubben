@@ -2,20 +2,36 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { sendMelding, slettMelding } from '@/lib/actions/chat'
+import {
+  sendMelding,
+  slettMelding,
+  sendKlubbMelding,
+  slettKlubbMelding,
+} from '@/lib/actions/chat'
 import { formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 
-type Melding = {
+export type ChatScope =
+  | { type: 'arrangement'; arrangementId: string }
+  | { type: 'klubb' }
+
+export type ChatMelding = {
   id: string
   profil_id: string
   innhold: string
   opprettet: string
 }
 
-type Profil = { id: string; navn: string | null; bilde_url: string | null }
+export type ChatProfil = {
+  id: string
+  navn: string | null
+  bilde_url: string | null
+}
+
+// Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
+const SIDE_STORRELSE = 30
 
 function renderMedMentions(tekst: string) {
   const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
@@ -30,20 +46,29 @@ function renderMedMentions(tekst: string) {
   )
 }
 
+type Props = {
+  scope: ChatScope
+  brukerId: string
+  erAdmin: boolean
+  initialMeldinger: ChatMelding[]
+  profiler: ChatProfil[]
+  /** Hvis true: sett en overskrift ("Samtale") over chat-området */
+  visSeksjonsLabel?: boolean
+}
+
 export default function Chat({
-  arrangementId,
+  scope,
   brukerId,
   erAdmin,
   initialMeldinger,
   profiler,
-}: {
-  arrangementId: string
-  brukerId: string
-  erAdmin: boolean
-  initialMeldinger: Melding[]
-  profiler: Profil[]
-}) {
-  const [meldinger, setMeldinger] = useState<Melding[]>(initialMeldinger)
+  visSeksjonsLabel = true,
+}: Props) {
+  // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
+  const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
+  const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
+  const [henterEldre, setHenterEldre] = useState(false)
+
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
   const [mentionSøk, setMentionSøk] = useState<string | null>(null)
@@ -60,6 +85,37 @@ export default function Chat({
     profiler.filter(p => p.id !== brukerId && p.navn),
   ).current
   const supabase = useRef(createClient()).current
+
+  const tabell = scope.type === 'klubb' ? 'klubb_chat' : 'arrangement_chat'
+  const kanalNavn = scope.type === 'klubb' ? 'chat-klubb' : `chat-arr-${scope.arrangementId}`
+
+  // Helper — henter meldinger med riktig scope-filter. Returnerer i
+  // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
+  const hentMeldinger = useCallback(
+    async (forTidspunkt?: string): Promise<ChatMelding[]> => {
+      if (scope.type === 'klubb') {
+        let q = supabase
+          .from('klubb_chat')
+          .select('id, profil_id, innhold, opprettet')
+          .order('opprettet', { ascending: false })
+          .limit(SIDE_STORRELSE)
+        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+        const { data } = await q
+        return data ? [...data].reverse() : []
+      }
+      let q = supabase
+        .from('arrangement_chat')
+        .select('id, profil_id, innhold, opprettet')
+        .eq('arrangement_id', scope.arrangementId)
+        .order('opprettet', { ascending: false })
+        .limit(SIDE_STORRELSE)
+      if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+      const { data } = await q
+      return data ? [...data].reverse() : []
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase],
+  )
 
   const mentionForslag =
     mentionSøk !== null
@@ -95,8 +151,16 @@ export default function Chat({
     bunnenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [])
 
+  // Scroll til bunn når listen endres, men ikke når vi har prependet eldre
+  // meldinger (da skal vi ikke flytte synsvinkelen).
+  const forrigeLengde = useRef(meldinger.length)
   useEffect(() => {
-    scrollTilBunn()
+    const lengdeForDenneEffekten = meldinger.length
+    const diff = lengdeForDenneEffekten - forrigeLengde.current
+    forrigeLengde.current = lengdeForDenneEffekten
+    // Bare scroll hvis nye meldinger dukker opp i bunnen (positive diff <= 3)
+    // Store differ (= paginering) scroller vi ikke for.
+    if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
   // Skjul bottom-nav når input har fokus (tastatur åpent på mobil)
@@ -118,56 +182,51 @@ export default function Chat({
     }
   }, [])
 
-  // Realtime-subscription
+  // Realtime-subscription — én kanal per scope
   useEffect(() => {
     let cancelled = false
 
     async function startSubscription() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
       if (cancelled || !session) return
 
       supabase.realtime.setAuth(session.access_token)
 
-      const channel = supabase
-        .channel(`chat-${arrangementId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
+      const channel = supabase.channel(kanalNavn)
+
+      // Filter: for arrangement, filtrer på arrangement_id. For klubb, ingen
+      // filter siden tabellen kun inneholder klubb-meldinger.
+      const insertConfig = scope.type === 'arrangement'
+        ? {
+            event: 'INSERT' as const,
             schema: 'public',
-            table: 'arrangement_chat',
-            filter: `arrangement_id=eq.${arrangementId}`,
-          },
-          payload => {
-            const ny = payload.new as Melding
-            setMeldinger(prev => {
-              if (prev.some(m => m.id === ny.id)) return prev
-              const utenTemp = prev.filter(
-                m =>
-                  !(
-                    m.id.startsWith('temp-') &&
-                    m.profil_id === ny.profil_id &&
-                    m.innhold === ny.innhold
-                  ),
-              )
-              return [...utenTemp, ny]
-            })
-          },
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'DELETE',
-            schema: 'public',
-            table: 'arrangement_chat',
-          },
-          payload => {
-            const slettetId = (payload.old as { id: string }).id
-            setMeldinger(prev => prev.filter(m => m.id !== slettetId))
-          },
-        )
+            table: tabell,
+            filter: `arrangement_id=eq.${scope.arrangementId}`,
+          }
+        : { event: 'INSERT' as const, schema: 'public', table: tabell }
+
+      const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
+
+      channel
+        .on('postgres_changes', insertConfig, payload => {
+          const ny = payload.new as ChatMelding
+          setMeldinger(prev => {
+            if (prev.some(m => m.id === ny.id)) return prev
+            const utenTemp = prev.filter(
+              m =>
+                !(
+                  m.id.startsWith('temp-') &&
+                  m.profil_id === ny.profil_id &&
+                  m.innhold === ny.innhold
+                ),
+            )
+            return [...utenTemp, ny]
+          })
+        })
+        .on('postgres_changes', deleteConfig, payload => {
+          const slettetId = (payload.old as { id: string }).id
+          setMeldinger(prev => prev.filter(m => m.id !== slettetId))
+        })
         .subscribe()
 
       return channel
@@ -182,24 +241,42 @@ export default function Chat({
       cancelled = true
       if (channelRef) supabase.removeChannel(channelRef)
     }
-  }, [arrangementId, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase])
 
-  // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen)
+  // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen).
+  // Henter de siste SIDE_STORRELSE for å fylle manglende meldinger.
   useEffect(() => {
     async function reFetch() {
       if (document.visibilityState !== 'visible') return
-      const { data } = await supabase
-        .from('arrangement_chat')
-        .select('id, profil_id, innhold, opprettet')
-        .eq('arrangement_id', arrangementId)
-        .order('opprettet')
-        .limit(100)
-      if (data) setMeldinger(data)
+      const nyeste = await hentMeldinger()
+      if (nyeste.length === 0) return
+      setMeldinger(prev => {
+        // Behold eventuelle eldre meldinger brukeren allerede har lastet
+        const eldste = nyeste[0].opprettet
+        const eldre = prev.filter(m => m.opprettet < eldste)
+        return [...eldre, ...nyeste]
+      })
     }
 
     document.addEventListener('visibilitychange', reFetch)
     return () => document.removeEventListener('visibilitychange', reFetch)
-  }, [arrangementId, supabase])
+  }, [hentMeldinger])
+
+  async function lastEldre() {
+    if (henterEldre || !harMerEldre || meldinger.length === 0) return
+    setHenterEldre(true)
+    try {
+      const eldstKjentTid = meldinger[0].opprettet
+      const eldre = await hentMeldinger(eldstKjentTid)
+      if (eldre.length > 0) {
+        setMeldinger(prev => [...eldre, ...prev])
+      }
+      if (eldre.length < SIDE_STORRELSE) setHarMerEldre(false)
+    } finally {
+      setHenterEldre(false)
+    }
+  }
 
   async function handleSend() {
     const melding = tekst.trim()
@@ -209,7 +286,7 @@ export default function Chat({
     setSender(true)
 
     const tempId = `temp-${Date.now()}`
-    const optimistisk: Melding = {
+    const optimistisk: ChatMelding = {
       id: tempId,
       profil_id: brukerId,
       innhold: melding,
@@ -218,7 +295,11 @@ export default function Chat({
     setMeldinger(prev => [...prev, optimistisk])
 
     try {
-      await sendMelding(arrangementId, melding)
+      if (scope.type === 'arrangement') {
+        await sendMelding(scope.arrangementId, melding)
+      } else {
+        await sendKlubbMelding(melding)
+      }
     } catch {
       setMeldinger(prev => prev.filter(m => m.id !== tempId))
     } finally {
@@ -230,21 +311,47 @@ export default function Chat({
   async function handleSlett(id: string) {
     setMeldinger(prev => prev.filter(m => m.id !== id))
     try {
-      await slettMelding(id)
+      if (scope.type === 'arrangement') {
+        await slettMelding(id)
+      } else {
+        await slettKlubbMelding(id)
+      }
     } catch {
-      const { data } = await supabase
-        .from('arrangement_chat')
-        .select('id, profil_id, innhold, opprettet')
-        .eq('arrangement_id', arrangementId)
-        .order('opprettet')
-        .limit(100)
-      if (data) setMeldinger(data)
+      // Ved feil: last inn de siste N på nytt
+      const nyeste = await hentMeldinger()
+      setMeldinger(nyeste)
     }
   }
 
   return (
-    <div style={{ marginTop: 28 }}>
-      <SectionLabel count={meldinger.length}>Samtale</SectionLabel>
+    <div style={{ marginTop: visSeksjonsLabel ? 28 : 0 }}>
+      {visSeksjonsLabel && <SectionLabel count={meldinger.length}>Samtale</SectionLabel>}
+
+      {/* Vis eldre-knapp */}
+      {harMerEldre && meldinger.length > 0 && (
+        <div style={{ textAlign: 'center', marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={lastEldre}
+            disabled={henterEldre}
+            style={{
+              padding: '6px 14px',
+              background: 'transparent',
+              border: '0.5px solid var(--border)',
+              borderRadius: 999,
+              color: 'var(--text-secondary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              letterSpacing: '1.4px',
+              textTransform: 'uppercase',
+              cursor: henterEldre ? 'wait' : 'pointer',
+              opacity: henterEldre ? 0.5 : 1,
+            }}
+          >
+            {henterEldre ? 'Henter…' : 'Vis eldre'}
+          </button>
+        </div>
+      )}
 
       {/* Meldingsliste */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
