@@ -302,9 +302,15 @@ export default async function Profil() {
         </section>
       )}
 
+      {/* Varsler-innstillinger */}
+      <VarslerInnstillinger
+        pushAktiv={varselPref?.push_aktiv ?? false}
+        epostAktiv={varselPref?.epost_aktiv ?? true}
+      />
+
       {/* Personlige varsler */}
       {varsler && varsler.length > 0 && (
-        <section style={{ marginBottom: 24 }}>
+        <section style={{ marginBottom: 24, marginTop: 24 }}>
           <SectionLabel count={varsler.filter(v => !v.lest).length || undefined}>
             Varsler
           </SectionLabel>
@@ -388,12 +394,6 @@ export default async function Profil() {
           </div>
         </section>
       )}
-
-      {/* Varsler-innstillinger */}
-      <VarslerInnstillinger
-        pushAktiv={varselPref?.push_aktiv ?? false}
-        epostAktiv={varselPref?.epost_aktiv ?? true}
-      />
 
       {/* Logg ut */}
       <div style={{ marginTop: 28 }}>
