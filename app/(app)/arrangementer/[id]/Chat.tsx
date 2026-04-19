@@ -4,7 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { sendMelding, slettMelding } from '@/lib/actions/chat'
 import { formaterDato } from '@/lib/dato'
-import { ChatBubbleLeftRightIcon, PaperAirplaneIcon, TrashIcon } from '@heroicons/react/24/outline'
+import Avatar from '@/components/ui/Avatar'
+import Icon from '@/components/ui/Icon'
+import SectionLabel from '@/components/ui/SectionLabel'
 
 type Melding = {
   id: string
@@ -15,12 +17,16 @@ type Melding = {
 
 type Profil = { id: string; navn: string | null }
 
-function renderMedMentions(tekst: string, erEgen: boolean) {
+function renderMedMentions(tekst: string) {
   const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
   return deler.map((del, i) =>
     del.startsWith('@') ? (
-      <span key={i} style={{ fontWeight: 600, color: erEgen ? '#0a0a0a' : 'var(--accent)' }}>{del}</span>
-    ) : del
+      <span key={i} style={{ fontWeight: 600, color: 'var(--accent)' }}>
+        {del}
+      </span>
+    ) : (
+      del
+    ),
   )
 }
 
@@ -42,25 +48,34 @@ export default function Chat({
   const [sender, setSender] = useState(false)
   const [mentionSøk, setMentionSøk] = useState<string | null>(null)
   const bunnenRef = useRef<HTMLDivElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const profilMap = useRef(new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent']))).current
-  const andreProfiler = useRef(profiler.filter(p => p.id !== brukerId && p.navn)).current
+  const profilMap = useRef(
+    new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent'])),
+  ).current
+  const andreProfiler = useRef(
+    profiler.filter(p => p.id !== brukerId && p.navn),
+  ).current
   const supabase = useRef(createClient()).current
 
-  // Finn @mention-forslag basert på tekst etter siste @
-  const mentionForslag = mentionSøk !== null
-    ? andreProfiler.filter(p =>
-        p.navn!.toLowerCase().includes(mentionSøk.toLowerCase())
-      ).slice(0, 5)
-    : []
+  const mentionForslag =
+    mentionSøk !== null
+      ? andreProfiler
+          .filter(p => p.navn!.toLowerCase().includes(mentionSøk.toLowerCase()))
+          .slice(0, 5)
+      : []
 
   function oppdaterMentionSøk(verdi: string) {
     const sisteAt = verdi.lastIndexOf('@')
-    if (sisteAt === -1) { setMentionSøk(null); return }
+    if (sisteAt === -1) {
+      setMentionSøk(null)
+      return
+    }
     const etterAt = verdi.slice(sisteAt + 1)
-    if (etterAt.endsWith('  ') || etterAt.includes('\n')) { setMentionSøk(null); return }
+    if (etterAt.endsWith('  ') || etterAt.includes('\n')) {
+      setMentionSøk(null)
+      return
+    }
     setMentionSøk(etterAt)
   }
 
@@ -74,28 +89,21 @@ export default function Chat({
   }
 
   const scrollTilBunn = useCallback(() => {
-    bunnenRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bunnenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [])
 
-  // Scroll til bunn ved nye meldinger (kun hvis allerede nær bunn)
   useEffect(() => {
-    if (!scrollRef.current) return
-    const el = scrollRef.current
-    const erNærBunn = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    if (erNærBunn) scrollTilBunn()
+    scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
-
-  // Scroll chat-boksen til bunn ved mount (uten å scrolle hele siden)
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [])
 
   // Skjul bottom-nav når input har fokus (tastatur åpent på mobil)
   useEffect(() => {
-    function handleFocus() { document.documentElement.classList.add('chat-input-fokus') }
-    function handleBlur() { document.documentElement.classList.remove('chat-input-fokus') }
+    function handleFocus() {
+      document.documentElement.classList.add('chat-input-fokus')
+    }
+    function handleBlur() {
+      document.documentElement.classList.remove('chat-input-fokus')
+    }
     const input = inputRef.current
     if (!input) return
     input.addEventListener('focus', handleFocus)
@@ -112,43 +120,60 @@ export default function Chat({
     let cancelled = false
 
     async function startSubscription() {
-      const { data: { session } } = await supabase.auth.getSession()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
       if (cancelled || !session) return
 
       supabase.realtime.setAuth(session.access_token)
 
       const channel = supabase
         .channel(`chat-${arrangementId}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'arrangement_chat',
-          filter: `arrangement_id=eq.${arrangementId}`,
-        }, (payload) => {
-          const ny = payload.new as Melding
-          setMeldinger(prev => {
-            if (prev.some(m => m.id === ny.id)) return prev
-            const utenTemp = prev.filter(m =>
-              !(m.id.startsWith('temp-') && m.profil_id === ny.profil_id && m.innhold === ny.innhold)
-            )
-            return [...utenTemp, ny]
-          })
-        })
-        .on('postgres_changes', {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'arrangement_chat',
-        }, (payload) => {
-          const slettetId = (payload.old as { id: string }).id
-          setMeldinger(prev => prev.filter(m => m.id !== slettetId))
-        })
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'arrangement_chat',
+            filter: `arrangement_id=eq.${arrangementId}`,
+          },
+          payload => {
+            const ny = payload.new as Melding
+            setMeldinger(prev => {
+              if (prev.some(m => m.id === ny.id)) return prev
+              const utenTemp = prev.filter(
+                m =>
+                  !(
+                    m.id.startsWith('temp-') &&
+                    m.profil_id === ny.profil_id &&
+                    m.innhold === ny.innhold
+                  ),
+              )
+              return [...utenTemp, ny]
+            })
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'arrangement_chat',
+          },
+          payload => {
+            const slettetId = (payload.old as { id: string }).id
+            setMeldinger(prev => prev.filter(m => m.id !== slettetId))
+          },
+        )
         .subscribe()
 
       return channel
     }
 
     let channelRef: ReturnType<typeof supabase.channel> | undefined
-    startSubscription().then(ch => { channelRef = ch })
+    startSubscription().then(ch => {
+      channelRef = ch
+    })
 
     return () => {
       cancelled = true
@@ -214,90 +239,132 @@ export default function Chat({
     }
   }
 
-  function visTid(idx: number): boolean {
-    if (idx === 0) return true
-    const forrige = new Date(meldinger[idx - 1].opprettet).getTime()
-    const denne = new Date(meldinger[idx].opprettet).getTime()
-    return denne - forrige > 5 * 60 * 1000
-  }
-
   return (
-    <div className="mt-6">
-      <p
-        className="flex items-center gap-2 text-sm font-semibold py-2"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        <ChatBubbleLeftRightIcon className="w-4 h-4" />
-        Chat {meldinger.length > 0 && `(${meldinger.length})`}
-      </p>
+    <div style={{ marginTop: 28 }}>
+      <SectionLabel count={meldinger.length}>Samtale</SectionLabel>
 
       {/* Meldingsliste */}
-      <div
-        ref={scrollRef}
-        className="space-y-1 overflow-y-auto rounded-2xl p-3"
-        style={{
-          maxHeight: '360px',
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border)',
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
         {meldinger.length === 0 && (
-          <p className="text-center text-sm py-6" style={{ color: 'var(--text-tertiary)' }}>
-            Ingen meldinger ennå. Skriv noe!
-          </p>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '24px 0',
+              fontFamily: 'var(--font-body)',
+              fontSize: 13,
+              color: 'var(--text-tertiary)',
+              fontStyle: 'italic',
+            }}
+          >
+            Ingen meldinger ennå.
+          </div>
         )}
 
-        {meldinger.map((m, idx) => {
+        {meldinger.map(m => {
           const erEgen = m.profil_id === brukerId
           const kanSlette = erEgen || erAdmin
+          const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
+          const tid = formaterDato(m.opprettet, 'HH:mm')
           return (
-            <div key={m.id}>
-              {visTid(idx) && (
-                <p className="text-center text-[11px] py-1.5" style={{ color: 'var(--text-tertiary)' }}>
-                  {formaterDato(m.opprettet, "d. MMM 'kl.' HH:mm")}
-                </p>
-              )}
-              <div style={{ display: 'flex', justifyContent: erEgen ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '80%' }}>
-                  {!erEgen && (
-                    <p className="text-[11px] mb-0.5 px-1" style={{ color: 'var(--text-tertiary)' }}>
-                      {profilMap.get(m.profil_id) ?? 'Ukjent'}
-                    </p>
-                  )}
-                  <div
-                    className="group relative rounded-2xl px-3 py-2 text-sm"
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                gap: 10,
+                flexDirection: erEgen ? 'row-reverse' : 'row',
+              }}
+            >
+              <div style={{ flexShrink: 0, alignSelf: 'flex-end' }}>
+                <Avatar name={navn} size={26} />
+              </div>
+              <div
+                style={{
+                  maxWidth: '78%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: erEgen ? 'flex-end' : 'flex-start',
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 8,
+                    marginBottom: 4,
+                    paddingLeft: erEgen ? 0 : 2,
+                    paddingRight: erEgen ? 2 : 0,
+                  }}
+                >
+                  <span
                     style={{
-                      background: erEgen ? 'var(--accent)' : 'var(--bg-elevated-2)',
-                      color: erEgen ? '#0a0a0a' : 'var(--text-primary)',
-                      borderBottomRightRadius: erEgen ? '4px' : undefined,
-                      borderBottomLeftRadius: !erEgen ? '4px' : undefined,
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 12,
+                      color: 'var(--text-secondary)',
+                      fontWeight: 500,
                     }}
                   >
-                    <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {renderMedMentions(m.innhold, erEgen)}
-                    </span>
-                    {kanSlette && !m.id.startsWith('temp-') && (
-                      <button
-                        onClick={() => handleSlett(m.id)}
-                        className="absolute -top-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{
-                          [erEgen ? 'left' : 'right']: '-8px',
-                          background: 'var(--bg-elevated)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '50%',
-                          width: '22px',
-                          height: '22px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
-                        <TrashIcon className="w-3 h-3" style={{ color: 'var(--destructive)' }} />
-                      </button>
-                    )}
+                    {navn}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 9,
+                      color: 'var(--text-tertiary)',
+                      letterSpacing: '1.2px',
+                    }}
+                  >
+                    {tid}
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }} className="chat-boble">
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: erEgen ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                      background: erEgen ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                      border: `0.5px solid ${
+                        erEgen ? 'var(--border-strong)' : 'var(--border-subtle)'
+                      }`,
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '0.1px',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {renderMedMentions(m.innhold)}
                   </div>
+                  {kanSlette && !m.id.startsWith('temp-') && (
+                    <button
+                      type="button"
+                      onClick={() => handleSlett(m.id)}
+                      className="chat-slett-knapp"
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        [erEgen ? 'left' : 'right']: -6,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        background: 'var(--bg-elevated)',
+                        border: '0.5px solid var(--border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                        color: 'var(--danger)',
+                        opacity: 0,
+                        transition: 'opacity 120ms',
+                      }}
+                      aria-label="Slett melding"
+                    >
+                      <Icon name="x" size={10} color="var(--danger)" strokeWidth={2} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -308,20 +375,22 @@ export default function Chat({
 
       {/* @mention-forslag */}
       {mentionForslag.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2 px-1">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
           {mentionForslag.map(p => (
             <button
               key={p.id}
               type="button"
               onMouseDown={e => e.preventDefault()}
               onClick={() => velgMention(p.navn!)}
-              className="text-[13px] px-3 py-1.5 rounded-[10px]"
               style={{
-                background: 'var(--bg-elevated-2)',
-                border: '1px solid var(--border)',
+                padding: '6px 12px',
+                borderRadius: 999,
+                background: 'var(--bg-elevated)',
+                border: '0.5px solid var(--border)',
                 color: 'var(--accent)',
-                fontFamily: 'inherit',
-                fontWeight: 600,
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                fontWeight: 500,
                 cursor: 'pointer',
               }}
             >
@@ -331,34 +400,68 @@ export default function Chat({
         </div>
       )}
 
-      {/* Input */}
-      <div className="flex gap-2 mt-2">
+      {/* Skriv melding — pill */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '8px 8px 8px 16px',
+          border: '0.5px solid var(--border)',
+          borderRadius: 999,
+          background: 'var(--bg-elevated)',
+          marginBottom: 4,
+        }}
+      >
         <input
           ref={inputRef}
           type="text"
           value={tekst}
-          onChange={e => { setTekst(e.target.value); oppdaterMentionSøk(e.target.value) }}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-          placeholder="Skriv en melding..."
+          onChange={e => {
+            setTekst(e.target.value)
+            oppdaterMentionSøk(e.target.value)
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              handleSend()
+            }
+          }}
+          placeholder="Skriv en melding…"
           maxLength={500}
           enterKeyHint="send"
           autoComplete="off"
-          className="flex-1 text-sm rounded-xl px-3 py-2"
           style={{
-            background: 'var(--bg-elevated-2)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-            fontFamily: 'inherit',
+            flex: 1,
+            minWidth: 0,
+            background: 'transparent',
+            border: 'none',
             outline: 'none',
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
           }}
         />
         <button
+          type="button"
           onClick={handleSend}
           disabled={!tekst.trim() || sender}
-          className="rounded-xl px-3 py-2 disabled:opacity-30"
-          style={{ background: 'var(--accent)', border: 'none', cursor: 'pointer' }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: !tekst.trim() || sender ? 'default' : 'pointer',
+            opacity: !tekst.trim() || sender ? 0.4 : 1,
+            flexShrink: 0,
+          }}
+          aria-label="Send melding"
         >
-          <PaperAirplaneIcon className="w-4 h-4" style={{ color: '#0a0a0a' }} />
+          <Icon name="arrowRight" size={14} color="#0a0a0a" strokeWidth={2.5} />
         </button>
       </div>
     </div>

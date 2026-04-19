@@ -1,119 +1,146 @@
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
-import Link from 'next/link'
-import { ChevronLeftIcon, PhoneIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
-import Badge from '@/components/ui/Badge'
+import { norskAar } from '@/lib/dato'
+import MedlemmerListe from './MedlemmerListe'
+
+type Deltagelse = {
+  id: string
+  navn: string
+  totalt: number
+  siste12: number
+  arrangert: number
+}
+
+type Statistikk = {
+  totalt: number
+  siste12: number
+  deltagelse: Deltagelse[] | null
+  per_aar: unknown
+}
 
 export default async function Medlemmer() {
-  const supabase = await createServerClient()
-
-  const profil = await getProfil()
+  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
   const erAdmin = profil?.rolle === 'admin'
 
-  const { data: medlemmer } = await supabase
-    .from('profiles')
-    .select('id, navn, epost, telefon, rolle, aktiv')
-    .order('navn')
+  const [{ data: profiler }, { data: stat }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, navn, rolle, aktiv, opprettet')
+      .order('navn'),
+    supabase.rpc('get_statistikk'),
+  ])
 
-  const aktive = medlemmer?.filter(m => m.aktiv) ?? []
-  const inaktive = medlemmer?.filter(m => !m.aktiv) ?? []
+  const statistikk = stat as unknown as Statistikk | null
+  const totalHistoriske = statistikk?.totalt ?? 0
+  const deltagelseMap = new Map<string, number>()
+  for (const d of statistikk?.deltagelse ?? []) {
+    deltagelseMap.set(d.id, d.totalt)
+  }
 
-  const alleEposter = aktive.map(m => m.epost).join(',')
+  const aar = norskAar()
+  const medlemmer = (profiler ?? []).map(p => {
+    const medlemSiden = new Date(p.opprettet).getFullYear()
+    const ja = deltagelseMap.get(p.id) ?? 0
+    const narv =
+      totalHistoriske > 0 ? Math.round((ja / totalHistoriske) * 100) : null
+    return {
+      id: p.id,
+      navn: p.navn,
+      rolle: p.rolle,
+      medlemSiden,
+      narv,
+      erNy: aar - medlemSiden <= 1,
+      erAeres: false,
+      aktiv: p.aktiv,
+    }
+  })
+
+  const antallAktive = medlemmer.filter(m => m.aktiv).length
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-            <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-          </Link>
-          <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Medlemmer</h1>
-        </div>
-        {erAdmin && (
-          <Link
-            href="/klubbinfo/medlemmer/ny"
-            className="px-3.5 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: 'var(--accent)', color: '#fff', textDecoration: 'none' }}
-          >
-            + Legg til
-          </Link>
-        )}
-      </div>
-
-      {/* Send e-post til alle */}
-      <a
-        href={`mailto:?bcc=${alleEposter}`}
-        className="flex items-center gap-2.5 w-full rounded-2xl px-5 py-3.5 mb-6 text-sm font-medium transition-colors"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--accent)', textDecoration: 'none' }}
+    <div style={{ padding: '0 20px 120px' }}>
+      {/* Header — editorial */}
+      <div
+        style={{
+          padding: '12px 4px 28px',
+          marginBottom: 8,
+          borderBottom: '0.5px solid var(--border-subtle)',
+        }}
       >
-        <EnvelopeIcon className="w-4 h-4" />
-        Send e-post til alle gutta
-      </a>
-
-      {/* Aktive medlemmer */}
-      <div className="space-y-2.5">
-        {aktive.map(m => (
-          <div
-            key={m.id}
-            className="rounded-2xl px-5 py-3.5"
-            style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '2.5px',
+            textTransform: 'uppercase',
+            marginBottom: 18,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
+          <Link
+            href="/klubbinfo"
+            style={{ color: 'inherit', textDecoration: 'none' }}
           >
-            <div className="flex items-center justify-between mb-1">
-              <Link href={`/klubbinfo/medlemmer/${m.id}`} className="font-semibold" style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
-                {m.navn}
-                {m.rolle === 'admin' && (
-                  <span className="ml-2"><Badge variant="accent">admin</Badge></span>
-                )}
-              </Link>
-              {erAdmin && (
-                <Link
-                  href={`/klubbinfo/medlemmer/${m.id}/rediger`}
-                  className="text-xs"
-                  style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
-                >
-                  Rediger
-                </Link>
-              )}
-            </div>
-            <div className="flex gap-4">
-              {m.telefon && (
-                <a href={`tel:${m.telefon}`} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-                  <PhoneIcon className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                  {m.telefon}
-                </a>
-              )}
-              <a href={`mailto:${m.epost}`} className="flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-                <EnvelopeIcon className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                {m.epost}
-              </a>
-            </div>
-          </div>
-        ))}
+            Klubbinfo
+          </Link>
+          <span>/</span>
+          <span>Medlemmer</span>
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 40,
+            fontWeight: 400,
+            color: 'var(--text-primary)',
+            letterSpacing: '-1px',
+            lineHeight: 0.98,
+            margin: 0,
+          }}
+        >
+          Herrene
+        </h2>
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.1px',
+          }}
+        >
+          {antallAktive} aktive · {totalHistoriske} sammenkomster
+        </div>
       </div>
 
-      {/* Inaktive */}
-      {erAdmin && inaktive.length > 0 && (
-        <div className="mt-8">
-          <p className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
-            Tidligere medlemmer
-          </p>
-          <div className="space-y-2.5">
-            {inaktive.map(m => (
-              <div
-                key={m.id}
-                className="rounded-2xl px-5 py-3.5 opacity-50"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>{m.navn}</p>
-                  <Link href={`/klubbinfo/medlemmer/${m.id}/rediger`} className="text-xs" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-                    Rediger
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <MedlemmerListe medlemmer={medlemmer} erAdmin={erAdmin} />
+
+      {erAdmin && (
+        <Link
+          href="/klubbinfo/medlemmer/ny"
+          style={{
+            display: 'block',
+            marginTop: 32,
+            width: '100%',
+            padding: '16px 0',
+            borderRadius: 999,
+            background: 'var(--accent)',
+            color: '#0a0a0a',
+            border: 'none',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 600,
+            letterSpacing: '0.2px',
+            textAlign: 'center',
+            textDecoration: 'none',
+          }}
+        >
+          Inviter nytt medlem
+        </Link>
       )}
     </div>
   )

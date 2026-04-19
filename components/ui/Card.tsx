@@ -1,20 +1,34 @@
-import { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+
+type Props = {
+  children: ReactNode
+  className?: string
+  style?: CSSProperties
+  /** Accent-variant: kremgul bakgrunnstone og sterkere border */
+  accent?: boolean
+  /** Legger på standard padding (20px). Default true. */
+  padding?: boolean
+}
 
 export default function Card({
   children,
   className = '',
+  style,
+  accent = false,
   padding = true,
-}: {
-  children: ReactNode
-  className?: string
-  padding?: boolean
-}) {
+}: Props) {
   return (
     <div
-      className={`rounded-2xl ${padding ? 'p-5' : ''} ${className}`}
+      className={className}
       style={{
-        background: 'var(--bg-elevated)',
-        border: '1px solid var(--border)',
+        background: accent ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+        backdropFilter: 'var(--blur-card)',
+        WebkitBackdropFilter: 'var(--blur-card)',
+        border: `1px solid ${accent ? 'var(--border-strong)' : 'var(--border)'}`,
+        borderRadius: 'var(--radius)',
+        overflow: 'hidden',
+        padding: padding ? 20 : 0,
+        ...style,
       }}
     >
       {children}

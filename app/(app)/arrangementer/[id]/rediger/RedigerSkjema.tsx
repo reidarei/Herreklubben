@@ -1,31 +1,93 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { oppdaterArrangement, slettArrangement } from '@/lib/actions/arrangementer'
-import TurFelt from '@/components/TurFelt'
+import SkjemaBar from '@/components/ui/SkjemaBar'
+import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
+import Segment from '@/components/ui/Segment'
+import { MiniToggle } from '@/components/ui/ToggleSwitch'
+import Icon from '@/components/ui/Icon'
+import Placeholder from '@/components/ui/Placeholder'
 import BildeVelger from '@/components/BildeVelger'
-import Button from '@/components/ui/Button'
 import { isoTilDatetimeLocal, datetimeLocalTilIso } from '@/lib/dato'
 
-const inputStil: React.CSSProperties = {
-  background: 'var(--bg-elevated-2)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-  borderRadius: '0.75rem',
-  padding: '0.75rem 1rem',
-  width: '100%',
-  fontSize: '1rem',
-  fontFamily: 'inherit',
+type Arrangement = {
+  id: string
+  type: 'tur' | 'moete'
+  tittel: string
+  beskrivelse: string | null
+  start_tidspunkt: string
+  slutt_tidspunkt: string | null
+  oppmoetested: string | null
+  destinasjon: string | null
+  pris_per_person: number | null
+  sensurerte_felt: Record<string, boolean> | null
+  bilde_url: string | null
 }
 
-export default function RedigerSkjema({ arrangement: arr }: { arrangement: Record<string, unknown> }) {
-  const erTur = arr.type === 'tur'
-  const [sensurert, setSensurert] = useState<Record<string, boolean>>(
-    (arr.sensurerte_felt as Record<string, boolean>) ?? {}
+const monoLabel: CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 9.5,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  letterSpacing: '1.6px',
+  textTransform: 'uppercase',
+  marginBottom: 4,
+}
+
+const inputStil: CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  color: 'var(--text-primary)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 14,
+  outline: 'none',
+  padding: 0,
+}
+
+const accentStil: CSSProperties = {
+  ...inputStil,
+  fontFamily: 'var(--font-display)',
+  fontSize: 19,
+  fontWeight: 500,
+  letterSpacing: '-0.3px',
+}
+
+function Rad({
+  last,
+  children,
+}: {
+  last?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        padding: '10px 4px',
+        borderBottom: last ? 'none' : '0.5px solid var(--border-subtle)',
+      }}
+    >
+      {children}
+    </div>
   )
-  const [bildeUrl, setBildeUrl] = useState<string | null>((arr.bilde_url as string) || null)
+}
+
+export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arrangement }) {
+  const erTur = arr.type === 'tur'
+  const [sensurert, setSensurert] = useState<Record<string, boolean>>(arr.sensurerte_felt ?? {})
+  const [bildeUrl, setBildeUrl] = useState<string | null>(arr.bilde_url)
+  const [tittel, setTittel] = useState(arr.tittel)
+  const [beskrivelse, setBeskrivelse] = useState(arr.beskrivelse ?? '')
+  const [start, setStart] = useState(isoTilDatetimeLocal(arr.start_tidspunkt))
+  const [slutt, setSlutt] = useState(isoTilDatetimeLocal(arr.slutt_tidspunkt))
+  const [oppmoetested, setOppmoetested] = useState(arr.oppmoetested ?? '')
+  const [destinasjon, setDestinasjon] = useState(arr.destinasjon ?? '')
+  const [pris, setPris] = useState<string>(arr.pris_per_person?.toString() ?? '')
   const [visSlett, setVisSlett] = useState(false)
+  const [visBildeVelger, setVisBildeVelger] = useState(false)
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -34,23 +96,18 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
     setSensurert(prev => ({ ...prev, [felt]: !prev[felt] }))
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
+  function handleLagre() {
     setFeil('')
-    const fd = new FormData(e.currentTarget)
-    const startRaw = fd.get('start_tidspunkt') as string
-    const sluttRaw = fd.get('slutt_tidspunkt') as string
-
     startTransition(async () => {
       try {
-        await oppdaterArrangement(arr.id as string, {
-          tittel: fd.get('tittel') as string,
-          beskrivelse: fd.get('beskrivelse') as string,
-          start_tidspunkt: startRaw ? datetimeLocalTilIso(startRaw) : undefined,
-          oppmoetested: fd.get('oppmoetested') as string,
-          slutt_tidspunkt: sluttRaw ? datetimeLocalTilIso(sluttRaw) : undefined,
-          destinasjon: fd.get('destinasjon') as string,
-          pris_per_person: fd.get('pris_per_person') ? parseInt(fd.get('pris_per_person') as string) : undefined,
+        await oppdaterArrangement(arr.id, {
+          tittel,
+          beskrivelse,
+          start_tidspunkt: start ? datetimeLocalTilIso(start) : undefined,
+          slutt_tidspunkt: slutt ? datetimeLocalTilIso(slutt) : undefined,
+          oppmoetested,
+          destinasjon,
+          pris_per_person: pris ? parseInt(pris) : undefined,
           sensurerte_felt: sensurert,
           bilde_url: bildeUrl || undefined,
         })
@@ -63,76 +120,317 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Recor
 
   function handleSlett() {
     startTransition(async () => {
-      await slettArrangement(arr.id as string)
+      await slettArrangement(arr.id)
     })
   }
 
+  const typeOptions = [
+    { value: 'tur' as const, label: 'Tur' },
+    { value: 'moete' as const, label: 'Møte' },
+  ]
+
   return (
-    <>
-      <form onSubmit={handleSubmit} className="space-y-5 pb-8">
-        <div>
-          <label htmlFor="tittel" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tittel</label>
-          <input id="tittel" name="tittel" type="text" required defaultValue={arr.tittel as string} style={inputStil} />
-        </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <SkjemaBar
+        overtittel="Rediger"
+        tittel={arr.tittel}
+        onAvbryt={() => router.back()}
+        onLagre={handleLagre}
+        laster={isPending}
+      />
 
-        <div>
-          <label htmlFor="beskrivelse" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Beskrivelse</label>
-          <textarea id="beskrivelse" name="beskrivelse" rows={3} defaultValue={(arr.beskrivelse as string) ?? ''} style={{ ...inputStil, resize: 'vertical' as const }} />
-        </div>
-
-        {/* Bildeopplasting */}
-        <BildeVelger bildeUrl={bildeUrl} onBildeUrl={setBildeUrl} />
-
-        <div>
-          <label htmlFor="start_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-            {erTur ? 'Avreise' : 'Dato og tid'}
-          </label>
-          <input id="start_tidspunkt" name="start_tidspunkt" type="datetime-local" required defaultValue={isoTilDatetimeLocal(arr.start_tidspunkt as string)} style={inputStil} />
-        </div>
-
-        {erTur && (
-          <div>
-            <label htmlFor="slutt_tidspunkt" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Hjemkomst</label>
-            <input id="slutt_tidspunkt" name="slutt_tidspunkt" type="datetime-local" defaultValue={isoTilDatetimeLocal(arr.slutt_tidspunkt as string)} style={inputStil} />
+      {/* Hero-bilde med bytt-knapp */}
+      <div
+        style={{
+          position: 'relative',
+          marginBottom: 20,
+          borderRadius: 'var(--radius)',
+          overflow: 'hidden',
+        }}
+      >
+        {bildeUrl ? (
+          <div style={{ position: 'relative', aspectRatio: '16/9' }}>
+            <Image
+              src={bildeUrl}
+              alt=""
+              fill
+              style={{ objectFit: 'cover' }}
+              sizes="(max-width: 512px) 100vw, 512px"
+            />
           </div>
+        ) : (
+          <Placeholder label="Arrangement bilde" aspectRatio="16/9" type={erTur ? 'tur' : 'møte'} />
         )}
+        <button
+          type="button"
+          onClick={() => setVisBildeVelger(v => !v)}
+          style={{
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            background: 'rgba(10,10,12,0.6)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            color: 'var(--text-primary)',
+            border: '0.5px solid var(--border)',
+            padding: '7px 14px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 500,
+            fontFamily: 'var(--font-body)',
+            cursor: 'pointer',
+          }}
+        >
+          Bytt bilde
+        </button>
+      </div>
 
-        <div>
-          <label htmlFor="oppmoetested" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Oppmøtested</label>
-          <input id="oppmoetested" name="oppmoetested" type="text" defaultValue={(arr.oppmoetested as string) ?? ''} style={inputStil} />
+      {visBildeVelger && (
+        <div style={{ marginBottom: 20 }}>
+          <BildeVelger bildeUrl={bildeUrl} onBildeUrl={setBildeUrl} />
         </div>
+      )}
+
+      {/* Type (read-only — type settes ved opprettelse) */}
+      <SkjemaSeksjon label="Type">
+        <Segment value={arr.type} options={typeOptions} onChange={() => {}} />
+      </SkjemaSeksjon>
+
+      {/* Detaljer */}
+      <SkjemaSeksjon label="Detaljer">
+        <Rad>
+          <div style={monoLabel}>Tittel</div>
+          <input
+            type="text"
+            value={tittel}
+            onChange={e => setTittel(e.target.value)}
+            style={accentStil}
+          />
+        </Rad>
+
+        <Rad>
+          <div style={monoLabel}>{erTur ? 'Avreise' : 'Start'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="datetime-local"
+              value={start}
+              onChange={e => setStart(e.target.value)}
+              style={{ ...inputStil, flex: 1 }}
+            />
+            <Icon name="calendar" size={15} color="var(--text-tertiary)" />
+          </div>
+        </Rad>
 
         {erTur && (
-          <>
-            <TurFelt felt="destinasjon" label="Destinasjon" hemmelig={!!sensurert['destinasjon']} onToggle={() => toggleSensurert('destinasjon')} defaultValue={(arr.destinasjon as string) ?? ''} />
-            <TurFelt felt="pris_per_person" label="Pris per person (kr)" type="number" hemmelig={!!sensurert['pris_per_person']} onToggle={() => toggleSensurert('pris_per_person')} defaultValue={(arr.pris_per_person as number) ?? ''} />
-          </>
+          <Rad>
+            <div style={monoLabel}>Hjemkomst</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="datetime-local"
+                value={slutt}
+                onChange={e => setSlutt(e.target.value)}
+                style={{ ...inputStil, flex: 1 }}
+              />
+              <Icon name="calendar" size={15} color="var(--text-tertiary)" />
+            </div>
+          </Rad>
         )}
 
-        {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
+        <Rad last={!erTur}>
+          <div style={monoLabel}>Oppmøtested</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="text"
+              value={oppmoetested}
+              onChange={e => setOppmoetested(e.target.value)}
+              style={{ ...inputStil, flex: 1 }}
+              placeholder="—"
+            />
+            <Icon name="mapPin" size={15} color="var(--text-tertiary)" />
+          </div>
+        </Rad>
 
-        <div className="flex gap-3 pt-2">
-          <Button type="button" variant="secondary" fullWidth onClick={() => router.back()}>Avbryt</Button>
-          <Button type="submit" fullWidth disabled={isPending}>{isPending ? 'Lagrer...' : 'Lagre'}</Button>
-        </div>
-      </form>
+        {erTur && (
+          <Rad last>
+            <div style={monoLabel}>Destinasjon</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="text"
+                value={destinasjon}
+                onChange={e => setDestinasjon(e.target.value)}
+                style={{ ...inputStil, flex: 1 }}
+                placeholder="—"
+              />
+              <MiniToggle
+                on={!!sensurert['destinasjon']}
+                onChange={() => toggleSensurert('destinasjon')}
+                ariaLabel="Sladd destinasjon"
+              />
+            </div>
+          </Rad>
+        )}
+      </SkjemaSeksjon>
 
-      {/* Slett-seksjon */}
-      <div className="border-t pt-6 pb-8" style={{ borderColor: 'var(--border)' }}>
+      {/* Kostnad */}
+      {erTur && (
+        <SkjemaSeksjon label="Kostnad">
+          <Rad last>
+            <div style={monoLabel}>Pris per person</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flex: 1 }}>
+                <input
+                  type="number"
+                  value={pris}
+                  onChange={e => setPris(e.target.value)}
+                  style={{ ...accentStil, flex: 1 }}
+                  placeholder="0"
+                  inputMode="numeric"
+                />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    color: 'var(--text-tertiary)',
+                    letterSpacing: '1.4px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  kr
+                </span>
+              </div>
+              <MiniToggle
+                on={!!sensurert['pris_per_person']}
+                onChange={() => toggleSensurert('pris_per_person')}
+                ariaLabel="Sladd pris"
+              />
+            </div>
+          </Rad>
+        </SkjemaSeksjon>
+      )}
+
+      {/* Beskrivelse */}
+      <SkjemaSeksjon label="Beskrivelse">
+        <textarea
+          value={beskrivelse}
+          onChange={e => setBeskrivelse(e.target.value)}
+          rows={4}
+          style={{
+            ...inputStil,
+            padding: '4px 0',
+            lineHeight: 1.6,
+            color: 'var(--text-secondary)',
+            resize: 'vertical',
+            minHeight: 88,
+            fontFamily: 'var(--font-body)',
+          }}
+          placeholder="Skriv noe om arrangementet…"
+        />
+      </SkjemaSeksjon>
+
+      {feil && (
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--danger)',
+            marginTop: -8,
+            marginBottom: 16,
+          }}
+        >
+          {feil}
+        </p>
+      )}
+
+      {/* Faresone */}
+      <SkjemaSeksjon label="Faresone">
         {!visSlett ? (
-          <Button variant="destructive" fullWidth onClick={() => setVisSlett(true)}>Slett arrangement</Button>
+          <button
+            type="button"
+            onClick={() => setVisSlett(true)}
+            style={{
+              width: '100%',
+              padding: '16px 4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#d97a6c',
+              fontFamily: 'var(--font-display)',
+              fontSize: 16,
+              fontWeight: 500,
+              letterSpacing: '-0.2px',
+              cursor: 'pointer',
+              borderBottom: '0.5px solid var(--border-subtle)',
+              background: 'transparent',
+              border: 'none',
+              borderTop: 'none',
+              borderLeft: 'none',
+              borderRight: 'none',
+            }}
+          >
+            <span>Slett arrangement</span>
+            <Icon name="chevron" size={14} color="#d97a6c" />
+          </button>
         ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>Er du sikker? Dette kan ikke angres.</p>
-            <div className="flex gap-3">
-              <Button variant="secondary" fullWidth onClick={() => setVisSlett(false)}>Avbryt</Button>
-              <Button variant="destructive" fullWidth disabled={isPending} onClick={handleSlett}>
-                {isPending ? 'Sletter...' : 'Ja, slett'}
-              </Button>
+          <div style={{ padding: '16px 4px' }}>
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                color: 'var(--text-secondary)',
+                marginBottom: 14,
+                textAlign: 'center',
+              }}
+            >
+              Er du sikker? Dette kan ikke angres.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setVisSlett(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 999,
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={handleSlett}
+                disabled={isPending}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 999,
+                  border: 'none',
+                  background: '#d97a6c',
+                  color: '#0a0a0a',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  opacity: isPending ? 0.7 : 1,
+                }}
+              >
+                {isPending ? 'Sletter…' : 'Ja, slett'}
+              </button>
             </div>
           </div>
         )}
-      </div>
-    </>
+      </SkjemaSeksjon>
+    </div>
   )
 }

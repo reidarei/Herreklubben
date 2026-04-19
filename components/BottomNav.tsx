@@ -2,65 +2,245 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  CalendarIcon,
-  InformationCircleIcon,
-  TrophyIcon,
-  UserIcon,
-} from '@heroicons/react/24/outline'
+import type { CSSProperties, ReactNode } from 'react'
+import Icon, { type IkonNavn } from '@/components/ui/Icon'
 
-const tabs = [
-  { href: '/', label: 'Hjem', ikon: CalendarIcon },
-  { href: '/klubbinfo', label: 'Klubbinfo', ikon: InformationCircleIcon },
-  { href: '/kaaringer', label: 'Kåringer', ikon: TrophyIcon },
-  { href: '/profil', label: 'Profil', ikon: UserIcon },
+type Tab = {
+  id: 'hjem' | 'klubbinfo' | 'kaaringer' | 'profil'
+  label: string
+  href: string
+  ikon: IkonNavn
+}
+
+const TABS: Tab[] = [
+  { id: 'hjem', label: 'Agenda', href: '/', ikon: 'calendar' },
+  { id: 'klubbinfo', label: 'Klubb', href: '/klubbinfo', ikon: 'building' },
+  { id: 'kaaringer', label: 'Kåringer', href: '/kaaringer', ikon: 'trophy' },
+  { id: 'profil', label: 'Profil', href: '/profil', ikon: 'user' },
 ]
 
-export default function BottomNav({ erAdmin }: { erAdmin: boolean }) {
+function erAktiv(tab: Tab, pathname: string): boolean {
+  if (tab.href === '/') return pathname === '/'
+  return pathname.startsWith(tab.href)
+}
+
+function initialAv(navn?: string): string {
+  if (!navn) return 'H'
+  const bits = navn.trim().split(/\s+/)
+  return (bits[0]?.[0] ?? 'H').toUpperCase()
+}
+
+type Props = {
+  /** Beholdes for bakoverkompatibilitet; kan fjernes når alle kall er oppdatert */
+  erAdmin?: boolean
+  brukerNavn?: string | null
+}
+
+export default function BottomNav({ brukerNavn }: Props) {
   const pathname = usePathname()
+  const initial = initialAv(brukerNavn ?? undefined)
+
+  const containerStyle: CSSProperties = {
+    position: 'fixed',
+    bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
+    left: 16,
+    right: 16,
+    zIndex: 30,
+    borderRadius: 999,
+    padding: 6,
+    display: 'flex',
+    background: `
+      linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%),
+      var(--bg-elevated-2)
+    `,
+    backdropFilter: 'var(--blur-nav)',
+    WebkitBackdropFilter: 'var(--blur-nav)',
+    border: '0.5px solid rgba(255,255,255,0.12)',
+    boxShadow: `
+      0 12px 40px rgba(0,0,0,0.55),
+      0 2px 10px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 -1px 0 rgba(255,255,255,0.03),
+      inset 0 0 20px rgba(255,255,255,0.02)
+    `,
+    overflow: 'hidden',
+    maxWidth: 'calc(min(100%, 32rem) - 32px)',
+    marginInline: 'auto',
+  }
 
   return (
-    <nav
-      className="fixed z-50"
+    <nav className="fixed" style={containerStyle} aria-label="Hovednavigasjon">
+      {/* Top glint overlay */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '10%',
+          right: '10%',
+          height: '45%',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%)',
+          borderRadius: '999px 999px 50% 50%',
+          pointerEvents: 'none',
+          filter: 'blur(2px)',
+        }}
+      />
+      {/* Chromatic sheen */}
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 999,
+          background:
+            'radial-gradient(ellipse 60% 100% at 30% 0%, var(--accent-soft) 0%, transparent 60%)',
+          opacity: 0.4,
+          pointerEvents: 'none',
+          mixBlendMode: 'screen',
+        }}
+      />
+
+      {TABS.map((tab, idx) => {
+        const aktiv = erAktiv(tab, pathname)
+        const erProfil = tab.id === 'profil'
+        const visSeparator = idx === TABS.length - 1
+
+        const knappStyle: CSSProperties = {
+          position: 'relative',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 3,
+          padding: '8px 0 6px',
+          border: 'none',
+          borderRadius: 999,
+          background: 'transparent',
+          color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 10,
+          fontWeight: 500,
+          textDecoration: 'none',
+          zIndex: 2,
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        }
+
+        return (
+          <NavElementer
+            key={tab.id}
+            visSeparator={visSeparator}
+          >
+            <Link href={tab.href} style={knappStyle} prefetch>
+              {aktiv && <GlassBubble />}
+              {erProfil ? (
+                <ProfilDisk aktiv={aktiv} initial={initial} />
+              ) : (
+                <Icon
+                  name={tab.ikon}
+                  size={20}
+                  color={aktiv ? 'var(--accent)' : 'var(--text-tertiary)'}
+                  strokeWidth={aktiv ? 1.8 : 1.4}
+                />
+              )}
+              <span style={{ position: 'relative', zIndex: 1 }}>{tab.label}</span>
+            </Link>
+          </NavElementer>
+        )
+      })}
+    </nav>
+  )
+}
+
+function NavElementer({ children, visSeparator }: { children: ReactNode; visSeparator: boolean }) {
+  return (
+    <>
+      {visSeparator && (
+        <span
+          aria-hidden="true"
+          style={{
+            width: '0.5px',
+            margin: '10px 4px',
+            background:
+              'linear-gradient(180deg, transparent 0%, var(--border-strong) 50%, transparent 100%)',
+            opacity: 0.6,
+            flexShrink: 0,
+          }}
+        />
+      )}
+      {children}
+    </>
+  )
+}
+
+function GlassBubble() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 2,
+          borderRadius: 999,
+          background: `
+            linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.12) 100%),
+            var(--accent-soft)
+          `,
+          border: '0.5px solid rgba(255,255,255,0.22)',
+          boxShadow: `
+            inset 0 1px 0 rgba(255,255,255,0.35),
+            inset 0 -1px 0 rgba(255,255,255,0.05),
+            inset 0 0 12px rgba(255,255,255,0.06),
+            0 2px 8px rgba(0,0,0,0.2)
+          `,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          zIndex: -1,
+        }}
+      />
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 3,
+          left: '15%',
+          right: '15%',
+          height: 10,
+          borderRadius: '999px 999px 50% 50%',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)',
+          pointerEvents: 'none',
+          filter: 'blur(1.5px)',
+          zIndex: -1,
+        }}
+      />
+    </>
+  )
+}
+
+function ProfilDisk({ aktiv, initial }: { aktiv: boolean; initial: string }) {
+  return (
+    <span
       style={{
-        bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(min(100%, 32rem) - 32px)',
-        background: 'rgba(30,30,30,0.88)',
-        backdropFilter: 'saturate(180%) blur(24px)',
-        WebkitBackdropFilter: 'saturate(180%) blur(24px)',
-        border: '0.5px solid rgba(255,255,255,0.1)',
-        borderRadius: '22px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 0.5px 0 rgba(255,255,255,0.05)',
+        width: 22,
+        height: 22,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, var(--accent-soft), var(--bg-elevated))',
+        border: `1px solid ${aktiv ? 'var(--accent)' : 'var(--border-strong)'}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: 'var(--font-display)',
+        fontSize: 11,
+        fontWeight: 500,
+        color: aktiv ? 'var(--accent)' : 'var(--text-secondary)',
+        boxShadow: aktiv
+          ? '0 0 0 2px var(--accent-soft), inset 0 1px 0 rgba(255,255,255,0.2)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.08)',
+        transition: 'all 0.25s',
       }}
     >
-      <div className="flex">
-        {tabs.map((tab) => {
-          const aktiv = tab.href === '/'
-            ? pathname === '/'
-            : pathname.startsWith(tab.href)
-          const Ikon = tab.ikon
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="flex-1 flex flex-col items-center gap-1 active:scale-90 transition-transform duration-75"
-              style={{
-                paddingTop: '8px',
-                paddingBottom: '8px',
-                color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
-                textDecoration: 'none',
-                fontSize: '10px',
-                fontWeight: 500,
-              }}
-            >
-              <Ikon className="w-[22px] h-[22px]" strokeWidth={1.5} />
-              {tab.label}
-            </Link>
-          )
-        })}
-      </div>
-    </nav>
+      {initial}
+    </span>
   )
 }

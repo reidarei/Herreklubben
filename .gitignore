@@ -22,3 +22,10 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/.screenshots/

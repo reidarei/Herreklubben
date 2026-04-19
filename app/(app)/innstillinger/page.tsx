@@ -3,12 +3,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import SectionLabel from '@/components/ui/SectionLabel'
 import VarselToggle from '@/components/VarselToggle'
 import IssuesListe from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
+import pkg from '../../../package.json'
 
 const innstillingLabels: Record<string, string> = {
   nytt_arrangement: 'Varsel ved nytt arrangement',
@@ -20,80 +21,237 @@ const innstillingLabels: Record<string, string> = {
 }
 
 export default async function Innstillinger() {
-  const [supabase, profil] = await Promise.all([
-    createServerClient(),
-    getProfil(),
-  ])
+  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
 
   if (profil?.rolle !== 'admin') notFound()
 
   const admin = createAdminClient()
-  const [{ data: logg, count: varselTotal }, { count: pushCount }, { data: innstillinger }] = await Promise.all([
+  const [
+    { data: logg, count: varselTotal },
+    { count: pushCount },
+    { data: innstillinger },
+  ] = await Promise.all([
     admin
       .from('varsel_logg')
       .select('id, tittel, type, kanal, opprettet, profil_id, profiles (visningsnavn)', { count: 'exact' })
       .order('opprettet', { ascending: false })
       .limit(10),
-    supabase
-      .from('push_subscriptions')
-      .select('id', { count: 'exact', head: true }),
+    supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }),
     supabase
       .from('varsel_innstillinger')
       .select('noekkel, aktiv, beskrivelse')
       .order('noekkel'),
   ])
-  const { data: maler } = await admin.from('arrangementmaler').select('*').order('rekkefølge')
-  const { data: kaaringmaler } = await admin.from('kaaringmaler').select('id, navn, rekkefolge').order('rekkefolge')
+
+  const { data: maler } = await admin
+    .from('arrangementmaler')
+    .select('*')
+    .order('rekkefølge')
+  const { data: kaaringmaler } = await admin
+    .from('kaaringmaler')
+    .select('id, navn, rekkefolge')
+    .order('rekkefolge')
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-        </Link>
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Innstillinger</h1>
+    <div style={{ padding: '0 20px 120px' }}>
+      {/* Header */}
+      <div
+        style={{
+          padding: '8px 4px 20px',
+          marginBottom: 20,
+          borderBottom: '0.5px solid var(--border-subtle)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '2.5px',
+            textTransform: 'uppercase',
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontWeight: 600,
+          }}
+        >
+          <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
+          <Link
+            href="/klubbinfo"
+            style={{ color: 'inherit', textDecoration: 'none' }}
+          >
+            Klubbinfo
+          </Link>
+          <span>/</span>
+          <span>Innstillinger</span>
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 34,
+            fontWeight: 400,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.8px',
+            lineHeight: 0.98,
+            margin: 0,
+          }}
+        >
+          Innstillinger
+        </h2>
+      </div>
+
+      {/* Admin-skille */}
+      <div
+        style={{
+          marginBottom: 22,
+          padding: '12px 14px',
+          borderRadius: 12,
+          border: '0.5px solid var(--border-strong)',
+          background: 'var(--accent-soft)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            width: 26,
+            height: 26,
+            borderRadius: '50%',
+            background: 'var(--accent)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#0a0a0a"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 9,
+              color: 'var(--text-tertiary)',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              fontWeight: 600,
+              marginBottom: 1,
+            }}
+          >
+            Kun for admin
+          </div>
+          <div
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 17,
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.2px',
+              lineHeight: 1,
+            }}
+          >
+            Administrasjon
+          </div>
+        </div>
       </div>
 
       {/* Push-status */}
-      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Push-varsler</p>
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {pushCount ?? 0} enhet{(pushCount ?? 0) !== 1 ? 'er' : ''} registrert
-        </p>
-      </div>
+      <section style={{ marginBottom: 20 }}>
+        <SectionLabel>Push-varsler</SectionLabel>
+        <div
+          style={{
+            padding: '12px 4px',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-primary)',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 18,
+              color: 'var(--accent)',
+              marginRight: 6,
+            }}
+          >
+            {pushCount ?? 0}
+          </span>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            enhet{(pushCount ?? 0) !== 1 ? 'er' : ''} registrert
+          </span>
+        </div>
+      </section>
 
-      {/* Varsler av/på */}
-      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Varsler</p>
-        <div className="space-y-1">
-          {(innstillinger ?? []).map(inn => (
+      {/* Varsler-togglere */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Varsler</SectionLabel>
+        <div>
+          {(innstillinger ?? []).map((inn, i, arr) => (
             <VarselToggle
               key={inn.noekkel}
               noekkel={inn.noekkel}
               aktiv={inn.aktiv}
               beskrivelse={innstillingLabels[inn.noekkel] ?? inn.beskrivelse ?? inn.noekkel}
+              last={i === arr.length - 1}
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Arrangementmaler */}
-      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Faste arrangementer</p>
+      {/* Faste arrangementer */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Faste arrangementer</SectionLabel>
         <ArrangementmalerAdmin maler={maler ?? []} />
-      </div>
+      </section>
 
-      {/* Kåringmaler */}
-      <div className="rounded-2xl p-4 mb-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-        <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Kåringer</p>
+      {/* Kåringer */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Kåringer</SectionLabel>
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
-      </div>
+      </section>
 
       {/* Ønsker fra brukerne */}
-      <IssuesListe />
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Ønsker fra brukerne</SectionLabel>
+        <IssuesListe />
+      </section>
 
       {/* Varselhistorikk */}
-      <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Varselhistorikk</SectionLabel>
+        <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
+      </section>
+
+      {/* Versjon */}
+      <div
+        style={{
+          textAlign: 'center',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 9,
+          color: 'var(--text-tertiary)',
+          letterSpacing: '1.8px',
+          textTransform: 'uppercase',
+          marginTop: 24,
+          marginBottom: 8,
+          fontWeight: 600,
+        }}
+      >
+        Herreklubben · v{pkg.version}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import SectionLabel from '@/components/ui/SectionLabel'
+import { ToggleRad } from '@/components/ui/ToggleSwitch'
 
 type PushStatus = 'laster' | 'aktiv' | 'inaktiv' | 'avslatt' | 'ikke-stottet'
 
@@ -25,11 +27,11 @@ export default function VarslerInnstillinger({
       setPushStatus('avslatt')
       return
     }
-    navigator.serviceWorker.ready.then(async (reg) => {
+    navigator.serviceWorker.ready.then(async reg => {
       const sub = await reg.pushManager.getSubscription()
       setPushStatus(sub && pushAktiv ? 'aktiv' : 'inaktiv')
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function oppdaterPreferanse(felt: 'push_aktiv' | 'epost_aktiv', verdi: boolean) {
@@ -43,7 +45,6 @@ export default function VarslerInnstillinger({
 
   async function togglePush() {
     if (pushStatus === 'aktiv') {
-      // Skru av push
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
@@ -58,16 +59,16 @@ export default function VarslerInnstillinger({
       setPushAktiv(false)
       setPushStatus('inaktiv')
     } else {
-      // Skru på push
       const reg = await navigator.serviceWorker.ready
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') { setPushStatus('avslatt'); return }
-
+      if (perm !== 'granted') {
+        setPushStatus('avslatt')
+        return
+      }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       })
-
       await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,62 +89,92 @@ export default function VarslerInnstillinger({
   }
 
   const pushStottet = pushStatus !== 'ikke-stottet'
+  const pushSubtekst =
+    pushStatus === 'laster'
+      ? 'Sjekker…'
+      : pushStatus === 'avslatt'
+      ? 'Blokkert i nettleseren'
+      : pushStatus === 'aktiv'
+      ? 'Du får push-varsler på denne enheten'
+      : 'Push-varsler er av'
+
+  const rader: Array<{
+    label: string
+    sub: string
+    on: boolean
+    onChange?: () => void
+    disabled?: boolean
+  }> = [
+    {
+      label: 'E-post',
+      sub: epostAktiv ? 'Du får varsler på e-post' : 'E-postvarsler er av',
+      on: epostAktiv,
+      onChange: toggleEpost,
+      disabled: isPending,
+    },
+  ]
+  if (pushStottet) {
+    rader.push({
+      label: 'Push',
+      sub: pushSubtekst,
+      on: pushStatus === 'aktiv',
+      onChange:
+        pushStatus === 'avslatt' || pushStatus === 'laster' ? undefined : togglePush,
+      disabled: pushStatus === 'avslatt' || pushStatus === 'laster',
+    })
+  }
 
   return (
-    <div className="rounded-2xl p-4 mt-6" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-      <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Varsler</p>
-
-      <div className="space-y-3">
-        {/* E-post toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>E-postvarsler</p>
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {epostAktiv ? 'Du får varsler på e-post' : 'E-postvarsler er av'}
-            </p>
-          </div>
-          <button
-            onClick={toggleEpost}
-            disabled={isPending}
-            className="relative w-11 h-6 rounded-full transition-colors"
-            style={{ background: epostAktiv ? 'var(--accent)' : 'var(--border)' }}
-            aria-label={epostAktiv ? 'Slå av e-postvarsler' : 'Slå på e-postvarsler'}
+    <section style={{ marginBottom: 20 }}>
+      <SectionLabel>Varsler</SectionLabel>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {rader.map((r, i) => (
+          <div
+            key={r.label}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 4px',
+              borderBottom:
+                i < rader.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+              gap: 16,
+            }}
           >
-            <span
-              className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-              style={{ transform: epostAktiv ? 'translateX(20px)' : 'translateX(0)' }}
-            />
-          </button>
-        </div>
-
-        {/* Push toggle */}
-        {pushStottet && (
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Push-varsler</p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                {pushStatus === 'laster' ? 'Sjekker...'
-                  : pushStatus === 'avslatt' ? 'Blokkert i nettleseren'
-                  : pushStatus === 'aktiv' ? 'Du får push-varsler på denne enheten'
-                  : 'Push-varsler er av'}
-              </p>
-            </div>
-            {pushStatus !== 'avslatt' && pushStatus !== 'laster' && (
-              <button
-                onClick={togglePush}
-                className="relative w-11 h-6 rounded-full transition-colors"
-                style={{ background: pushStatus === 'aktiv' ? 'var(--accent)' : 'var(--border)' }}
-                aria-label={pushStatus === 'aktiv' ? 'Slå av push-varsler' : 'Slå på push-varsler'}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  color: 'var(--text-primary)',
+                  letterSpacing: '-0.2px',
+                  lineHeight: 1.2,
+                  marginBottom: 2,
+                }}
               >
-                <span
-                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-                  style={{ transform: pushStatus === 'aktiv' ? 'translateX(20px)' : 'translateX(0)' }}
-                />
-              </button>
-            )}
+                {r.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 12,
+                  color: 'var(--text-tertiary)',
+                  letterSpacing: '0.1px',
+                }}
+              >
+                {r.sub}
+              </div>
+            </div>
+            <ToggleRad
+              on={r.on}
+              onChange={r.onChange ?? (() => {})}
+              disabled={r.disabled}
+              ariaLabel={r.on ? `Slå av ${r.label}` : `Slå på ${r.label}`}
+            />
           </div>
-        )}
+        ))}
       </div>
-    </div>
+    </section>
   )
 }

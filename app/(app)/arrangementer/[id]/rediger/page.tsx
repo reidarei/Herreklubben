@@ -3,7 +3,11 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
 
-export default async function RedigerArrangement({ params }: { params: Promise<{ id: string }> }) {
+export default async function RedigerArrangement({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = await params
   const [supabase, user, profil] = await Promise.all([
     createServerClient(),
@@ -25,9 +29,11 @@ export default async function RedigerArrangement({ params }: { params: Promise<{
   if (!kanRedigere) redirect(`/arrangementer/${id}`)
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6">
-      <h1 className="text-[22px] font-bold mb-6" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Rediger arrangement</h1>
-      <RedigerSkjema arrangement={arr} />
-    </div>
+    <RedigerSkjema
+      arrangement={{
+        ...arr,
+        sensurerte_felt: (arr.sensurerte_felt as Record<string, boolean> | null) ?? null,
+      }}
+    />
   )
 }

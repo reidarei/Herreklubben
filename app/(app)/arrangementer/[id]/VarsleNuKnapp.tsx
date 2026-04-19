@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { varslOmArrangement } from '@/lib/actions/arrangementer'
-import Button from '@/components/ui/Button'
 
 export default function VarsleNuKnapp({ arrangementId }: { arrangementId: string }) {
   const [status, setStatus] = useState<'idle' | 'sender' | 'ok' | 'feil'>('idle')
@@ -19,14 +18,40 @@ export default function VarsleNuKnapp({ arrangementId }: { arrangementId: string
     }
   }
 
+  const tekst =
+    status === 'sender'
+      ? 'Sender…'
+      : status === 'ok'
+      ? 'Varslet'
+      : status === 'feil'
+      ? 'Feil'
+      : 'Varsle'
+
   return (
-    <Button
+    <button
       onClick={handleVarsle}
       disabled={status === 'sender'}
-      variant={status === 'ok' ? 'primary' : status === 'feil' ? 'destructive' : 'secondary'}
-      className="!py-1.5 !px-3 !font-medium"
+      style={{
+        padding: '8px 14px',
+        borderRadius: 999,
+        background: 'rgba(10,10,12,0.6)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        border: '0.5px solid var(--border)',
+        color:
+          status === 'ok'
+            ? 'var(--success)'
+            : status === 'feil'
+            ? 'var(--danger)'
+            : 'var(--text-primary)',
+        fontFamily: 'var(--font-body)',
+        fontSize: 12,
+        fontWeight: 500,
+        cursor: status === 'sender' ? 'default' : 'pointer',
+        opacity: status === 'sender' ? 0.6 : 1,
+      }}
     >
-      {status === 'sender' ? 'Sender...' : status === 'ok' ? '✓ Varslet' : status === 'feil' ? '✗ Feil' : 'Varsle'}
-    </Button>
+      {tekst}
+    </button>
   )
 }

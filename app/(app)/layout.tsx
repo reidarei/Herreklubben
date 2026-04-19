@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation'
 
 async function NavMedRolle() {
   const profil = await getProfil()
-  return <BottomNav erAdmin={profil?.rolle === 'admin'} />
+  return <BottomNav erAdmin={profil?.rolle === 'admin'} brukerNavn={profil?.navn} />
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
