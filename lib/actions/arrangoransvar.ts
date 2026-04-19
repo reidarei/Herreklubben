@@ -97,27 +97,3 @@ export async function purreAnsvarlig(ansvarId: string) {
   })
 }
 
-// Beholdt for bakoverkompatibilitet med opprettArrangement-kobling
-export async function lagreAnsvarlig(data: {
-  id?: string
-  aar: number
-  arrangement_navn: string
-  ansvarlig_id: string | null
-}) {
-  const supabase = await sjekkAdmin()
-
-  if (data.id) {
-    const { error } = await supabase
-      .from('arrangoransvar')
-      .update({ ansvarlig_id: data.ansvarlig_id, oppdatert: new Date().toISOString() })
-      .eq('id', data.id)
-    if (error) throw new Error(error.message)
-  } else {
-    const { error } = await supabase
-      .from('arrangoransvar')
-      .insert({ aar: data.aar, arrangement_navn: data.arrangement_navn, ansvarlig_id: data.ansvarlig_id })
-    if (error) throw new Error(error.message)
-  }
-
-  revalidatePath('/arrangoransvar')
-}

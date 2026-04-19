@@ -31,8 +31,6 @@ function initialAv(navn?: string): string {
 }
 
 type Props = {
-  /** Beholdes for bakoverkompatibilitet; kan fjernes når alle kall er oppdatert */
-  erAdmin?: boolean
   brukerNavn?: string | null
   bildeUrl?: string | null
 }

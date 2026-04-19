@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
+import { formaterDato } from '@/lib/dato'
 import crypto from 'crypto'
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
@@ -95,13 +96,8 @@ export async function POST(request: Request) {
     }
 
     // Legg til info om at endringen er live om ca. 1 minutt
-    // TODO: bruk global tidsstyring når den er på plass
     const liveTid = new Date(Math.ceil((Date.now() + 60_000) / 60_000) * 60_000)
-    const liveKl = liveTid.toLocaleString('nb-NO', {
-      timeZone: 'Europe/Oslo',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const liveKl = formaterDato(liveTid.toISOString(), 'HH:mm')
     oppsummering += `\n\nEndringen er live i appen ca. kl. ${liveKl}.`
 
     await sendVarsel({
