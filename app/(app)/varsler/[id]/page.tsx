@@ -17,57 +17,103 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
 
   if (!varsel) notFound()
 
-  // Marker som lest
   if (!varsel.lest) {
     await supabase.from('varsel_logg').update({ lest: true }).eq('id', id)
   }
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <Link
-        href="/"
-        className="text-sm mb-6 inline-block"
-        style={{ color: 'var(--accent)', textDecoration: 'none' }}
-      >
-        ← Tilbake
-      </Link>
+    <div style={{ padding: '0 20px 120px' }}>
+      <div style={{ marginTop: 12, marginBottom: 20 }}>
+        <Link
+          href="/profil"
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+          }}
+        >
+          ← Profil
+        </Link>
+      </div>
 
       <div
-        className="rounded-2xl p-5"
-        style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          fontWeight: 600,
+          color: 'var(--accent)',
+          letterSpacing: '1.6px',
+          textTransform: 'uppercase',
+          marginBottom: 10,
+        }}
       >
-        <div className="flex items-center gap-2 mb-3">
-          <span style={{ fontSize: '20px' }}>✅</span>
-          <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-            {varsel.tittel}
-          </h1>
-        </div>
-
-        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
-          {varsel.melding}
-        </p>
-
-        {varsel.url && (
-          <Link
-            href={varsel.url}
-            className="inline-block text-sm px-4 py-2 rounded-xl mb-4"
-            style={{
-              background: 'var(--accent)',
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 600,
-            }}
-          >
-            Gå til saken
-          </Link>
-        )}
-
-        {varsel.opprettet && (
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-            {formaterDato(varsel.opprettet, "d. MMMM yyyy 'kl.' HH:mm")}
-          </p>
-        )}
+        Varsel
       </div>
+      <h1
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 30,
+          fontWeight: 500,
+          letterSpacing: '-0.4px',
+          lineHeight: 1.1,
+          margin: 0,
+          marginBottom: 18,
+          color: 'var(--text-primary)',
+        }}
+      >
+        {varsel.tittel}
+      </h1>
+
+      <p
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 15,
+          lineHeight: 1.6,
+          color: 'var(--text-secondary)',
+          marginBottom: 24,
+        }}
+      >
+        {varsel.melding}
+      </p>
+
+      {varsel.url && (
+        <Link
+          href={varsel.url}
+          style={{
+            display: 'inline-block',
+            padding: '11px 20px',
+            background: 'var(--accent)',
+            color: '#0a0a0a',
+            borderRadius: 999,
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+            marginBottom: 20,
+          }}
+        >
+          Gå til saken
+        </Link>
+      )}
+
+      {varsel.opprettet && (
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.4px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+          }}
+        >
+          {formaterDato(varsel.opprettet, "d. MMMM yyyy · HH:mm")}
+        </div>
+      )}
     </div>
   )
 }
