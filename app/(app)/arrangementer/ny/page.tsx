@@ -13,10 +13,5 @@ export default async function NyttArrangement() {
     .is('arrangement_id', null)
     .order('aar', { ascending: false })
 
-  return (
-    <div className="max-w-lg mx-auto px-5 pt-6">
-      <h1 className="text-[22px] font-bold mb-6" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Nytt arrangement</h1>
-      <NyttArrangementSkjema uoppfyltAnsvar={ansvar ?? []} />
-    </div>
-  )
+  return <NyttArrangementSkjema uoppfyltAnsvar={ansvar ?? []} />
 }
