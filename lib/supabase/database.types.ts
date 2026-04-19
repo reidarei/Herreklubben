@@ -14,35 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      klubb_chat: {
-        Row: {
-          id: string
-          innhold: string
-          opprettet: string
-          profil_id: string
-        }
-        Insert: {
-          id?: string
-          innhold: string
-          opprettet?: string
-          profil_id: string
-        }
-        Update: {
-          id?: string
-          innhold?: string
-          opprettet?: string
-          profil_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "klubb_chat_profil_id_fkey"
-            columns: ["profil_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       arrangement_chat: {
         Row: {
           arrangement_id: string
@@ -298,6 +269,35 @@ export type Database = {
           rekkefolge?: number
         }
         Relationships: []
+      }
+      klubb_chat: {
+        Row: {
+          id: string
+          innhold: string
+          opprettet: string
+          profil_id: string
+        }
+        Insert: {
+          id?: string
+          innhold: string
+          opprettet?: string
+          profil_id: string
+        }
+        Update: {
+          id?: string
+          innhold?: string
+          opprettet?: string
+          profil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "klubb_chat_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       paameldinger: {
         Row: {
