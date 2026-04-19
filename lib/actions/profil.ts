@@ -5,14 +5,23 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string }) {
+export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
 
+  const oppdatering: Record<string, unknown> = {
+    navn: data.navn,
+    visningsnavn: data.visningsnavn || data.navn,
+    telefon: data.telefon || null,
+    fodselsdato: data.fodselsdato || null,
+    oppdatert: new Date().toISOString(),
+  }
+  if (data.bilde_url !== undefined) oppdatering.bilde_url = data.bilde_url
+
   const { error } = await supabase
     .from('profiles')
-    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: data.telefon || null, fodselsdato: data.fodselsdato || null, oppdatert: new Date().toISOString() })
+    .update(oppdatering)
     .eq('id', user.id)
 
   if (error) throw new Error(error.message)

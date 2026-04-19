@@ -7,7 +7,7 @@ export default async function RedigerProfil() {
 
   const { data: profil } = await supabase
     .from('profiles')
-    .select('navn, visningsnavn, telefon, fodselsdato, epost, rolle')
+    .select('navn, visningsnavn, telefon, fodselsdato, epost, rolle, bilde_url')
     .eq('id', user!.id)
     .single()
 
@@ -18,6 +18,7 @@ export default async function RedigerProfil() {
       telefon={profil?.telefon ?? ''}
       fodselsdato={profil?.fodselsdato ?? ''}
       epost={profil?.epost ?? user!.email ?? ''}
+      bildeUrl={profil?.bilde_url ?? null}
     />
   )
 }

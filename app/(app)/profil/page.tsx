@@ -21,7 +21,7 @@ export default async function Profil() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('navn, visningsnavn, rolle')
+      .select('navn, visningsnavn, rolle, bilde_url')
       .eq('id', user!.id)
       .single(),
     supabase
@@ -126,7 +126,7 @@ export default async function Profil() {
         }}
       >
         <div style={{ display: 'inline-block' }}>
-          <Avatar name={navn} size={78} />
+          <Avatar name={navn} size={78} src={profil?.bilde_url ?? null} />
         </div>
         <div
           style={{

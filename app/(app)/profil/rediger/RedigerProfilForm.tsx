@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
 import { createClient } from '@/lib/supabase/client'
+import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Avatar from '@/components/ui/Avatar'
@@ -15,6 +16,7 @@ type Props = {
   telefon: string
   fodselsdato: string
   epost: string
+  bildeUrl: string | null
 }
 
 const labelStil: React.CSSProperties = {
@@ -73,19 +75,64 @@ export default function RedigerProfilForm({
   telefon: tlfInit,
   fodselsdato: fdInit,
   epost,
+  bildeUrl: bildeUrlInit,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const filInputRef = useRef<HTMLInputElement>(null)
 
   const [navn, setNavn] = useState(navnInit)
   const [visningsnavn, setVisningsnavn] = useState(visnInit)
   const [telefon, setTelefon] = useState(tlfInit)
   const [fodselsdato, setFodselsdato] = useState(fdInit)
+  const [bildeUrl, setBildeUrl] = useState<string | null>(bildeUrlInit)
+
+  const [bildeLaster, setBildeLaster] = useState(false)
+  const [bildeFeil, setBildeFeil] = useState('')
 
   const [visPassord, setVisPassord] = useState(false)
   const [passord, setPassord] = useState('')
   const [bekreft, setBekreft] = useState('')
   const [passordFeil, setPassordFeil] = useState('')
+
+  async function handleBildeVelg(e: React.ChangeEvent<HTMLInputElement>) {
+    const fil = e.target.files?.[0]
+    if (!fil) return
+    setBildeFeil('')
+    setBildeLaster(true)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Ikke innlogget')
+
+      const komprimert = await komprimer(fil)
+      const filnavn = genererFilnavn(komprimert)
+      const sti = `${user.id}/${filnavn}`
+
+      const { error } = await supabase.storage
+        .from('profil-bilder')
+        .upload(sti, komprimert, { contentType: 'image/jpeg' })
+
+      if (error) throw new Error(error.message)
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profil-bilder')
+        .getPublicUrl(sti)
+
+      setBildeUrl(publicUrl)
+    } catch (err) {
+      setBildeFeil(err instanceof Error ? err.message : 'Opplasting feilet')
+    } finally {
+      setBildeLaster(false)
+      if (filInputRef.current) filInputRef.current.value = ''
+    }
+  }
+
+  function handleFjernBilde() {
+    setBildeUrl(null)
+    setBildeFeil('')
+  }
 
   function handleLagre() {
     setPassordFeil('')
@@ -106,6 +153,7 @@ export default function RedigerProfilForm({
         visningsnavn: visningsnavn || navn,
         telefon,
         fodselsdato: fodselsdato || undefined,
+        bilde_url: bildeUrl,
       })
 
       if (visPassord && passord) {
@@ -144,8 +192,21 @@ export default function RedigerProfilForm({
           marginBottom: 20,
         }}
       >
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <Avatar name={navn} size={56} />
+        <button
+          type="button"
+          onClick={() => filInputRef.current?.click()}
+          disabled={bildeLaster}
+          aria-label={bildeUrl ? 'Bytt profilbilde' : 'Last opp profilbilde'}
+          style={{
+            position: 'relative',
+            flexShrink: 0,
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: bildeLaster ? 'wait' : 'pointer',
+          }}
+        >
+          <Avatar name={navn} size={56} src={bildeUrl} />
           <div
             style={{
               position: 'absolute',
@@ -164,7 +225,7 @@ export default function RedigerProfilForm({
           >
             <Icon name="plus" size={11} color="#0a0a0a" strokeWidth={2.5} />
           </div>
-        </div>
+        </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -178,25 +239,63 @@ export default function RedigerProfilForm({
           >
             {navn || 'Ditt navn'}
           </div>
-          <button
-            type="button"
-            disabled
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'not-allowed',
-              padding: 0,
-              color: 'var(--accent)',
-              fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              fontWeight: 500,
-              opacity: 0.5,
-            }}
-            title="Kommer senere"
-          >
-            Bytt profilbilde
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => filInputRef.current?.click()}
+              disabled={bildeLaster}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: bildeLaster ? 'wait' : 'pointer',
+                padding: 0,
+                color: 'var(--accent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                fontWeight: 500,
+              }}
+            >
+              {bildeLaster ? 'Laster opp…' : bildeUrl ? 'Bytt bilde' : 'Last opp bilde'}
+            </button>
+            {bildeUrl && !bildeLaster && (
+              <button
+                type="button"
+                onClick={handleFjernBilde}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: 'var(--text-tertiary)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                Fjern
+              </button>
+            )}
+          </div>
+          {bildeFeil && (
+            <div
+              style={{
+                marginTop: 4,
+                fontFamily: 'var(--font-body)',
+                fontSize: 11,
+                color: 'var(--danger)',
+              }}
+            >
+              {bildeFeil}
+            </div>
+          )}
         </div>
+        <input
+          ref={filInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleBildeVelg}
+        />
       </div>
 
       {/* Personalia */}
