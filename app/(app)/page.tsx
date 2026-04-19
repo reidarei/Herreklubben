@@ -181,7 +181,7 @@ export default async function Forside() {
     }),
   )
 
-  const bursdager = beregnBursdager(profilerMedBursdag ?? [], naa, 30)
+  const bursdager = beregnBursdager(profilerMedBursdag ?? [], naa, 365)
 
   // Samlet tidslinje med én sorteringsnøkkel per item
   type AgendaItem =
