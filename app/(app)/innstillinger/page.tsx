@@ -36,7 +36,7 @@ export default async function Innstillinger() {
       .select('id, tittel, type, kanal, opprettet, profil_id, profiles (visningsnavn)', { count: 'exact' })
       .order('opprettet', { ascending: false })
       .limit(10),
-    supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }),
+    admin.from('push_subscriptions').select('id', { count: 'exact', head: true }),
     supabase
       .from('varsel_innstillinger')
       .select('noekkel, aktiv, beskrivelse')
