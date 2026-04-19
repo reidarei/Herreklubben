@@ -3,17 +3,20 @@ import { execSync } from 'node:child_process'
 import pkg from './package.json' with { type: 'json' }
 
 // App-versjon beregnes ved build: major fra package.json, minor = commit-
-// count på main minus fast offset (194). Deploy-commit 208 gir v2.14,
-// påfølgende deploys inkrementeres automatisk. Historiske commits må ikke
-// rebase-es vekk ellers blir nummereringen inkonsistent. Fallback til ren
-// pkg.version hvis git ikke er tilgjengelig under bygg.
+// count på main minus fast offset (180). Redesign-commit 7b6b806 (commit
+// #181) er definert som V2.001, så offset = 180. Påfølgende deploys
+// inkrementeres automatisk. Minor padded til 3 sifre (001, 015, 123).
+// Historiske commits må ikke rebase-es vekk ellers blir nummereringen
+// inkonsistent. Fallback til ren pkg.version hvis git ikke er tilgjengelig
+// under bygg.
 function beregnVersjon(): string {
   try {
     const count = parseInt(execSync('git rev-list --count HEAD').toString().trim(), 10)
     const [major] = pkg.version.split('.')
-    return `v${major}.${count - 194}`
+    const minor = String(count - 180).padStart(3, '0')
+    return `V${major}.${minor}`
   } catch {
-    return `v${pkg.version}`
+    return `V${pkg.version}`
   }
 }
 
