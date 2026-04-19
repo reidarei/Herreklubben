@@ -2,7 +2,33 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeftIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import SkjemaBar from '@/components/ui/SkjemaBar'
+import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
+import Icon from '@/components/ui/Icon'
+
+const labelStil: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 9.5,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  textTransform: 'uppercase',
+  letterSpacing: '1.6px',
+  marginBottom: 6,
+}
+
+const textareaStil: React.CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  fontFamily: 'var(--font-body)',
+  fontSize: 15,
+  color: 'var(--text-primary)',
+  lineHeight: 1.55,
+  resize: 'vertical',
+  minHeight: 180,
+}
 
 export default function BliUtvikler() {
   const [tekst, setTekst] = useState('')
@@ -11,8 +37,7 @@ export default function BliUtvikler() {
   const [sendt, setSendt] = useState(false)
   const router = useRouter()
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSend() {
     if (tekst.trim().length < 5) {
       setFeil('Skriv litt mer — hva er det du savner?')
       return
@@ -38,24 +63,87 @@ export default function BliUtvikler() {
 
   if (sendt) {
     return (
-      <div className="max-w-lg mx-auto px-5 pt-10">
+      <div style={{ padding: '0 20px 120px' }}>
         <div
-          className="rounded-2xl p-6 text-center"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+          style={{
+            marginTop: 40,
+            padding: '32px 24px',
+            textAlign: 'center',
+            background:
+              'radial-gradient(ellipse at top, var(--accent-soft), transparent 70%), var(--bg-elevated)',
+            border: '0.5px solid var(--border-strong)',
+            borderRadius: 'var(--radius)',
+            backdropFilter: 'var(--blur-card)',
+            WebkitBackdropFilter: 'var(--blur-card)',
+          }}
         >
-          <div className="flex justify-center mb-3">
-            <SparklesIcon className="w-10 h-10" style={{ color: 'var(--accent)' }} />
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--accent-soft)',
+              marginBottom: 18,
+            }}
+          >
+            <Icon name="sparkle" size={24} color="var(--accent)" strokeWidth={1.8} />
           </div>
-          <p className="font-semibold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-            Takk, Herre!
-          </p>
-          <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)' }}>
-            Ønsket ditt lagt i ei krokke majjones. Vi ser på det så fort vi får tid.
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 600,
+              color: 'var(--accent)',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              marginBottom: 10,
+            }}
+          >
+            Mottatt
+          </div>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 28,
+              fontWeight: 500,
+              letterSpacing: '-0.4px',
+              lineHeight: 1.1,
+              margin: 0,
+              marginBottom: 10,
+              color: 'var(--text-primary)',
+            }}
+          >
+            Takk, Herre
+          </h1>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 14,
+              color: 'var(--text-secondary)',
+              lineHeight: 1.55,
+              marginBottom: 26,
+            }}
+          >
+            Ønsket ditt er lagt i ei krokke majjones. Vi ser på det så fort vi får tid.
           </p>
           <button
+            type="button"
             onClick={() => router.push('/')}
-            className="w-full py-3 rounded-xl font-semibold"
-            style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+            style={{
+              width: '100%',
+              padding: '14px 0',
+              borderRadius: 999,
+              background: 'var(--accent)',
+              color: '#0a0a0a',
+              border: 'none',
+              fontFamily: 'var(--font-body)',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
           >
             Tilbake til tidslinjen
           </button>
@@ -65,88 +153,94 @@ export default function BliUtvikler() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-        </button>
-      </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <SkjemaBar
+        overtittel="Innspill"
+        tittel="Til appen"
+        onAvbryt={() => router.back()}
+        onLagre={handleSend}
+        lagreLabel="Send"
+        laster={laster}
+      />
 
-      <h1
-        className="text-[26px] font-bold mb-2"
-        style={{ color: 'var(--text-primary)', letterSpacing: '-0.4px' }}
-      >
-        Bidra til en bedre app
-      </h1>
-      <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        Savner du noe i Herreklubb-appen? Skriv hva du ønsker deg — en ny funksjon,
-        en forbedring, en bug du har opplevd, eller bare en idé. Ønsket sendes til
-        utviklerne som ser på det ved neste anledning.
-      </p>
-      <div
-        className="rounded-xl px-4 py-3 mb-6 text-sm leading-relaxed"
+      <p
         style={{
-          background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
-          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: 'var(--text-secondary)',
+          marginBottom: 18,
         }}
       >
-        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Vær konkret</span>{' '}
-        <br />
-        Vær så konkret som mulig, så det blir enkelt å gjennomføre endringen. Beskriv hva du vil og hvorfor.
+        Savner du noe? Opplever du feil? Har du en idé? Skriv hva du ønsker
+        deg, så havner det hos utviklerne ved neste anledning.
+      </p>
+
+      <div
+        style={{
+          padding: '14px 16px',
+          borderRadius: 12,
+          background: 'color-mix(in srgb, var(--accent) 9%, transparent)',
+          border: '0.5px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9.5,
+            fontWeight: 600,
+            color: 'var(--accent)',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+          }}
+        >
+          Vær konkret
+        </div>
+        <div
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-primary)',
+            lineHeight: 1.5,
+          }}
+        >
+          Beskriv hva du vil og hvorfor — jo mer konkret, jo enklere å gjøre noe med.
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            className="block text-sm mb-1.5 font-medium"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Hva ønsker du deg?
-          </label>
-          <style>{`textarea.ønske-felt::placeholder { color: var(--text-tertiary); opacity: 1; }`}</style>
+      <SkjemaSeksjon label="Innspill">
+        <div style={{ padding: '10px 4px' }}>
+          <div style={labelStil}>Hva ønsker du deg?</div>
+          <style>{`textarea.innspill-felt::placeholder { color: var(--text-tertiary); opacity: 0.7; font-style: italic; }`}</style>
           <textarea
-            className="ønske-felt"
+            className="innspill-felt"
             value={tekst}
             onChange={e => setTekst(e.target.value)}
             required
             rows={8}
-            placeholder="F.eks. «Jeg skulle ønske det var en tilbakemeldingsknapp i appen. Når man trykker på denne, skal man komme inn i et skjema der man kan skrive inn ønsket sitt og trykke på en knapp som heter Send inn ønske. Når man trykker på knappen, skal man få en kvittering, og ønsket sendes til utviklerne.»"
-            style={{
-              background: 'var(--bg-elevated-2)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              borderRadius: '0.75rem',
-              padding: '0.875rem 1rem',
-              width: '100%',
-              fontSize: '15px',
-              lineHeight: 1.5,
-              resize: 'vertical',
-              minHeight: '160px',
-              fontFamily: 'inherit',
-            }}
+            placeholder="F.eks. «Jeg skulle ønske at varsler for nye arrangementer også kunne sendes på SMS, fordi push-varsler av og til forsvinner…»"
+            style={textareaStil}
           />
         </div>
+      </SkjemaSeksjon>
 
-        {feil && (
-          <p className="text-sm" style={{ color: 'var(--destructive)' }}>
-            {feil}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={laster}
-          className="w-full py-3 rounded-xl font-semibold disabled:opacity-50"
-          style={{ background: 'var(--accent)', color: '#0a0a0a' }}
+      {feil && (
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+            border: '0.5px solid color-mix(in srgb, var(--danger) 40%, transparent)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--danger)',
+          }}
         >
-          {laster ? 'Sender...' : 'Send inn ønske'}
-        </button>
-      </form>
+          {feil}
+        </div>
+      )}
     </div>
   )
 }
