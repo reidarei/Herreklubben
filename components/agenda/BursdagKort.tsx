@@ -21,6 +21,10 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
         display: 'flex',
         gap: 0,
         alignItems: 'stretch',
+        overflow: 'hidden',
+        borderRadius: 'var(--radius-card)',
+        border: '0.5px solid var(--border-subtle)',
+        background: 'var(--bg-elevated)',
         textDecoration: 'none',
         color: 'inherit',
       }}
@@ -74,14 +78,16 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
 
       <div
         style={{
-          width: 64,
+          width: 108,
           flexShrink: 0,
+          position: 'relative',
+          borderLeft: '0.5px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Icon name="wine" size={22} color="var(--text-tertiary)" strokeWidth={1.25} />
+        <Icon name="cake" size={28} color="var(--text-tertiary)" strokeWidth={1.25} />
       </div>
     </Link>
   )

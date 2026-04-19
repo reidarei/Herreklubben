@@ -43,8 +43,8 @@ export default function BottomNav({ brukerNavn }: Props) {
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     zIndex: 30,
     borderRadius: 999,
     padding: 6,
@@ -64,7 +64,7 @@ export default function BottomNav({ brukerNavn }: Props) {
       inset 0 0 20px rgba(255,255,255,0.02)
     `,
     overflow: 'hidden',
-    maxWidth: 'calc(min(100%, 32rem) - 32px)',
+    width: 'calc(min(100%, 480px) - 32px)',
     marginInline: 'auto',
   }
 

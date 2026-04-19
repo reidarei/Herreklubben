@@ -178,7 +178,7 @@ export default async function Forside() {
     ansvarlig: ansvarlige[0] ?? null,
   }))
 
-  const bursdager = beregnBursdager(profilerMedBursdag ?? [], naa, 7)
+  const bursdager = beregnBursdager(profilerMedBursdag ?? [], naa, 30)
 
   const antallGutta = aktiveMedlemmer ?? 0
 
@@ -208,7 +208,7 @@ export default async function Forside() {
               marginBottom: 6,
             }}
           >
-            Siden 2015 · {antallGutta} gutta
+            Siden 2015 · {antallGutta} herrer
           </div>
           <h1
             style={{
