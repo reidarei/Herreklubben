@@ -9,7 +9,6 @@ import IssuesListe from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
-import pkg from '../../../package.json'
 
 const innstillingLabels: Record<string, string> = {
   nytt_arrangement: 'Varsel ved nytt arrangement',
@@ -235,23 +234,6 @@ export default async function Innstillinger() {
         <SectionLabel>Varselhistorikk</SectionLabel>
         <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
       </section>
-
-      {/* Versjon */}
-      <div
-        style={{
-          textAlign: 'center',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9,
-          color: 'var(--text-tertiary)',
-          letterSpacing: '1.8px',
-          textTransform: 'uppercase',
-          marginTop: 24,
-          marginBottom: 8,
-          fontWeight: 600,
-        }}
-      >
-        Herreklubben · v{pkg.version}
-      </div>
     </div>
   )
 }

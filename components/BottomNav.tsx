@@ -14,8 +14,8 @@ type Tab = {
 
 const TABS: Tab[] = [
   { id: 'hjem', label: 'Agenda', href: '/', ikon: 'calendar' },
-  { id: 'klubbinfo', label: 'Klubb', href: '/klubbinfo', ikon: 'building' },
   { id: 'chat', label: 'Chat', href: '/chat', ikon: 'message' },
+  { id: 'klubbinfo', label: 'Klubb', href: '/klubbinfo', ikon: 'building' },
   { id: 'profil', label: 'Profil', href: '/profil', ikon: 'user' },
 ]
 

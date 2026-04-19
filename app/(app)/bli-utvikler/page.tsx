@@ -3,31 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import SkjemaBar from '@/components/ui/SkjemaBar'
-import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Icon from '@/components/ui/Icon'
-
-const labelStil: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 9.5,
-  fontWeight: 600,
-  color: 'var(--text-tertiary)',
-  textTransform: 'uppercase',
-  letterSpacing: '1.6px',
-  marginBottom: 6,
-}
 
 const textareaStil: React.CSSProperties = {
   width: '100%',
-  background: 'transparent',
-  border: 'none',
+  background: 'var(--bg-elevated)',
+  border: '0.5px solid var(--border-strong)',
   outline: 'none',
-  padding: 0,
+  padding: '16px 18px',
+  borderRadius: 14,
   fontFamily: 'var(--font-body)',
   fontSize: 15,
   color: 'var(--text-primary)',
   lineHeight: 1.55,
   resize: 'vertical',
-  minHeight: 180,
+  minHeight: 260,
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
 }
 
 export default function BliUtvikler() {
@@ -163,68 +154,18 @@ export default function BliUtvikler() {
         laster={laster}
       />
 
-      <p
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: 'var(--text-secondary)',
-          marginBottom: 18,
-        }}
-      >
-        Savner du noe? Opplever du feil? Har du en idé? Skriv hva du ønsker
-        deg, så havner det hos utviklerne ved neste anledning.
-      </p>
-
-      <div
-        style={{
-          padding: '14px 16px',
-          borderRadius: 12,
-          background: 'color-mix(in srgb, var(--accent) 9%, transparent)',
-          border: '0.5px solid color-mix(in srgb, var(--accent) 40%, transparent)',
-          marginBottom: 24,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9.5,
-            fontWeight: 600,
-            color: 'var(--accent)',
-            letterSpacing: '1.6px',
-            textTransform: 'uppercase',
-            marginBottom: 6,
-          }}
-        >
-          Vær konkret
-        </div>
-        <div
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: 13,
-            color: 'var(--text-primary)',
-            lineHeight: 1.5,
-          }}
-        >
-          Beskriv hva du vil og hvorfor — jo mer konkret, jo enklere å gjøre noe med.
-        </div>
-      </div>
-
-      <SkjemaSeksjon label="Innspill">
-        <div style={{ padding: '10px 4px' }}>
-          <div style={labelStil}>Hva ønsker du deg?</div>
-          <style>{`textarea.innspill-felt::placeholder { color: var(--text-tertiary); opacity: 0.7; font-style: italic; }`}</style>
-          <textarea
-            className="innspill-felt"
-            value={tekst}
-            onChange={e => setTekst(e.target.value)}
-            required
-            rows={8}
-            placeholder="F.eks. «Jeg skulle ønske at varsler for nye arrangementer også kunne sendes på SMS, fordi push-varsler av og til forsvinner…»"
-            style={textareaStil}
-          />
-        </div>
-      </SkjemaSeksjon>
+      <style>{`textarea.innspill-felt::placeholder { color: var(--text-tertiary); opacity: 0.6; }
+textarea.innspill-felt:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), inset 0 1px 0 rgba(255,255,255,0.04); }`}</style>
+      <textarea
+        className="innspill-felt"
+        value={tekst}
+        onChange={e => setTekst(e.target.value)}
+        required
+        autoFocus
+        rows={10}
+        placeholder="Skriv her — hva savner du, hva funker ikke, hva skulle du ønske appen kunne?"
+        style={textareaStil}
+      />
 
       {feil && (
         <div

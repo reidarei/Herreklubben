@@ -62,20 +62,13 @@ export default async function Klubbinfo() {
     },
     {
       nr: '05',
-      icon: 'building',
-      title: 'Historikk',
-      sub: `Klubbens krønike siden ${KLUBBEN_START_AAR}`,
-      href: '/klubbinfo/vedtekter/historikk',
-    },
-    {
-      nr: '06',
       icon: 'chart',
       title: 'Statistikk',
       sub: 'Deltakelse og rekorder',
       href: '/klubbinfo/statistikk',
     },
     {
-      nr: '07',
+      nr: '06',
       icon: 'cog',
       title: 'Innstillinger',
       sub: 'Varsler og admin',

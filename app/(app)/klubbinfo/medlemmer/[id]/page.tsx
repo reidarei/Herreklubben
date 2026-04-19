@@ -11,17 +11,32 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
   const [supabase, meg] = await Promise.all([createServerClient(), getProfil()])
   const erAdmin = meg?.rolle === 'admin'
 
-  const [{ data: medlem }, { data: kaaringer }, { data: arrangementer }] = await Promise.all([
+  const [
+    { data: medlem },
+    { data: egneKaaringer },
+    { data: arrKaaringer },
+    { data: arrangementer },
+  ] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, navn, visningsnavn, epost, telefon, rolle, fodselsdato, aktiv, bilde_url')
       .eq('id', id)
       .single(),
 
+    // Kåringer medlemmet selv har vunnet (f.eks. «Årets herre»)
     supabase
       .from('kaaring_vinnere')
       .select('id, aar, begrunnelse, kaaringmaler(navn)')
       .eq('profil_id', id)
+      .order('aar', { ascending: false }),
+
+    // Kåringer der et arrangement medlemmet arrangerte vant (f.eks.
+    // «Årets arrangement»). Inner join på arrangementer filtrerer til bare
+    // de der `opprettet_av = id`.
+    supabase
+      .from('kaaring_vinnere')
+      .select('id, aar, begrunnelse, kaaringmaler(navn), arrangementer!inner(id, tittel, opprettet_av)')
+      .eq('arrangementer.opprettet_av', id)
       .order('aar', { ascending: false }),
 
     supabase
@@ -30,6 +45,45 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
       .eq('opprettet_av', id)
       .order('start_tidspunkt', { ascending: false }),
   ])
+
+  // Slå sammen de to kåringslistene, sortert synkende på år. Hver oppføring
+  // er tagget med `kilde` slik at UI kan vise arrangement-tittelen når den
+  // finnes.
+  type KaaringVisning = {
+    id: string
+    aar: number
+    navn: string
+    begrunnelse: string | null
+    arrangementTittel: string | null
+    arrangementId: string | null
+  }
+
+  const egneListe: KaaringVisning[] = (egneKaaringer ?? []).map(k => {
+    const mal = Array.isArray(k.kaaringmaler) ? k.kaaringmaler[0] : k.kaaringmaler
+    return {
+      id: k.id,
+      aar: k.aar,
+      navn: mal?.navn ?? 'Ukjent kåring',
+      begrunnelse: k.begrunnelse,
+      arrangementTittel: null,
+      arrangementId: null,
+    }
+  })
+
+  const arrListe: KaaringVisning[] = (arrKaaringer ?? []).map(k => {
+    const mal = Array.isArray(k.kaaringmaler) ? k.kaaringmaler[0] : k.kaaringmaler
+    const arr = Array.isArray(k.arrangementer) ? k.arrangementer[0] : k.arrangementer
+    return {
+      id: k.id,
+      aar: k.aar,
+      navn: mal?.navn ?? 'Ukjent kåring',
+      begrunnelse: k.begrunnelse,
+      arrangementTittel: arr?.tittel ?? null,
+      arrangementId: arr?.id ?? null,
+    }
+  })
+
+  const kaaringer: KaaringVisning[] = [...egneListe, ...arrListe].sort((a, b) => b.aar - a.aar)
 
   if (!medlem || (!medlem.aktiv && !erAdmin)) notFound()
 
@@ -184,68 +238,81 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
       </section>
 
       {/* Kåringer */}
-      {kaaringer && kaaringer.length > 0 && (
+      {kaaringer.length > 0 && (
         <section style={{ marginBottom: 28 }}>
           <SectionLabel count={kaaringer.length}>Kåringer</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {kaaringer.map((k, i) => {
-              const mal = Array.isArray(k.kaaringmaler) ? k.kaaringmaler[0] : k.kaaringmaler
-              return (
+            {kaaringer.map((k, i) => (
+              <div
+                key={k.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 14,
+                  padding: '14px 4px',
+                  borderBottom:
+                    i < kaaringer.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+                }}
+              >
                 <div
-                  key={k.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 14,
-                    padding: '14px 4px',
-                    borderBottom:
-                      i < kaaringer.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    color: 'var(--accent)',
+                    letterSpacing: '1.2px',
+                    fontWeight: 600,
+                    width: 40,
+                    flexShrink: 0,
                   }}
                 >
+                  {k.aar}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 11,
-                      color: 'var(--accent)',
-                      letterSpacing: '1.2px',
-                      fontWeight: 600,
-                      width: 40,
-                      flexShrink: 0,
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      letterSpacing: '-0.2px',
+                      lineHeight: 1.2,
                     }}
                   >
-                    {k.aar}
+                    {k.navn}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
+                  {k.arrangementTittel && k.arrangementId && (
+                    <Link
+                      href={`/arrangementer/${k.arrangementId}`}
                       style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 16,
-                        fontWeight: 500,
-                        color: 'var(--text-primary)',
-                        letterSpacing: '-0.2px',
-                        lineHeight: 1.2,
+                        display: 'inline-block',
+                        marginTop: 3,
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 13,
+                        color: 'var(--accent)',
+                        letterSpacing: '-0.1px',
+                        textDecoration: 'none',
                       }}
                     >
-                      {mal?.navn ?? 'Ukjent kåring'}
+                      {k.arrangementTittel}
+                    </Link>
+                  )}
+                  {k.begrunnelse && (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 12,
+                        fontStyle: 'italic',
+                        color: 'var(--text-tertiary)',
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      «{k.begrunnelse}»
                     </div>
-                    {k.begrunnelse && (
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontFamily: 'var(--font-body)',
-                          fontSize: 12,
-                          fontStyle: 'italic',
-                          color: 'var(--text-tertiary)',
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        «{k.begrunnelse}»
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </section>
       )}
