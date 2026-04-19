@@ -87,7 +87,7 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
           justifyContent: 'center',
         }}
       >
-        <Icon name="cake" size={28} color="var(--text-tertiary)" strokeWidth={1.25} />
+        <Icon name="wine" size={28} color="var(--text-tertiary)" strokeWidth={1.25} />
       </div>
     </Link>
   )
