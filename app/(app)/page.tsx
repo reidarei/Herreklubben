@@ -198,11 +198,12 @@ export default async function Forside() {
       sortIso: `${b.dato}T12:00:00.000Z`,
       bursdag: b,
     })),
-    ...utkast.map<AgendaItem>(u => ({
-      kind: 'utkast',
-      sortIso: u.purredato ? `${u.purredato}T12:00:00.000Z` : null,
-      utkast: u,
-    })),
+    ...utkast.map<AgendaItem>(u => {
+      // Forbi purredato → null (faller til enden av lista, ikke til topps)
+      const iso = u.purredato ? `${u.purredato}T12:00:00.000Z` : null
+      const gyldig = iso && (iso >= nowIso || erSammeNorskeDag(iso, naa))
+      return { kind: 'utkast', sortIso: gyldig ? iso : null, utkast: u }
+    }),
   ]
 
   const idagItems = alleItems.filter(i => i.sortIso && erSammeNorskeDag(i.sortIso, naa))
