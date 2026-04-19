@@ -136,7 +136,7 @@ export default async function Forside() {
       .not('fodselsdato', 'is', null),
     supabase
       .from('arrangoransvar')
-      .select('arrangement_navn, profiles (visningsnavn)')
+      .select('arrangement_navn, purredato, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
     supabase
@@ -151,34 +151,68 @@ export default async function Forside() {
   ])
 
   const alleArr: ArrangementRad[] = (arrangementer ?? []) as unknown as ArrangementRad[]
-
-  // Del arrangementer i i kveld / kommende / tidligere
   const nowIso = new Date().toISOString()
-  const idag = alleArr.filter(a => erSammeNorskeDag(a.start_tidspunkt, naa))
-  const kommende = alleArr
-    .filter(a => !erSammeNorskeDag(a.start_tidspunkt, naa) && a.start_tidspunkt > nowIso)
-    .sort((a, b) => a.start_tidspunkt.localeCompare(b.start_tidspunkt))
+
+  // Tidligere arrangementer — uendret, bare faktiske arrangementer som har passert
   const tidligere = alleArr
     .filter(a => !erSammeNorskeDag(a.start_tidspunkt, naa) && a.start_tidspunkt < nowIso)
     .sort((a, b) => b.start_tidspunkt.localeCompare(a.start_tidspunkt))
 
-  // Utkast: arrangør-ansvar uten arrangement_id
-  const utkastMap = new Map<string, string[]>()
-  for (const rad of (ansvar ?? []) as {
+  // Utkast: arrangør-ansvar uten arrangement_id, gruppert på navn
+  type UtkastRad = {
     arrangement_navn: string
+    purredato: string | null
     profiles: { visningsnavn: string | null } | null
-  }[]) {
-    if (!utkastMap.has(rad.arrangement_navn)) utkastMap.set(rad.arrangement_navn, [])
-    const navn = rad.profiles?.visningsnavn
-    if (navn) utkastMap.get(rad.arrangement_navn)!.push(navn)
   }
-  const utkast: UtkastData[] = [...utkastMap.entries()].map(([tittel, ansvarlige]) => ({
-    id: `utkast-${aar}-${tittel}`,
-    tittel,
-    ansvarlig: ansvarlige[0] ?? null,
-  }))
+  const utkastMap = new Map<string, { ansvarlige: string[]; purredato: string | null }>()
+  for (const rad of (ansvar ?? []) as UtkastRad[]) {
+    if (!utkastMap.has(rad.arrangement_navn)) {
+      utkastMap.set(rad.arrangement_navn, { ansvarlige: [], purredato: rad.purredato })
+    }
+    const navn = rad.profiles?.visningsnavn
+    if (navn) utkastMap.get(rad.arrangement_navn)!.ansvarlige.push(navn)
+  }
+  const utkast: (UtkastData & { purredato: string | null })[] = [...utkastMap.entries()].map(
+    ([tittel, { ansvarlige, purredato }]) => ({
+      id: `utkast-${aar}-${tittel}`,
+      tittel,
+      ansvarlig: ansvarlige[0] ?? null,
+      purredato,
+    }),
+  )
 
   const bursdager = beregnBursdager(profilerMedBursdag ?? [], naa, 30)
+
+  // Samlet tidslinje med én sorteringsnøkkel per item
+  type AgendaItem =
+    | { kind: 'arr'; sortIso: string; arr: ArrangementRad }
+    | { kind: 'utkast'; sortIso: string | null; utkast: UtkastData & { purredato: string | null } }
+    | { kind: 'bursdag'; sortIso: string; bursdag: BursdagData }
+
+  const alleItems: AgendaItem[] = [
+    ...alleArr
+      .filter(a => a.start_tidspunkt >= nowIso || erSammeNorskeDag(a.start_tidspunkt, naa))
+      .map<AgendaItem>(a => ({ kind: 'arr', sortIso: a.start_tidspunkt, arr: a })),
+    ...bursdager.map<AgendaItem>(b => ({
+      kind: 'bursdag',
+      sortIso: `${b.dato}T12:00:00.000Z`,
+      bursdag: b,
+    })),
+    ...utkast.map<AgendaItem>(u => ({
+      kind: 'utkast',
+      sortIso: u.purredato ? `${u.purredato}T12:00:00.000Z` : null,
+      utkast: u,
+    })),
+  ]
+
+  const idagItems = alleItems.filter(i => i.sortIso && erSammeNorskeDag(i.sortIso, naa))
+  const kommendeItems = alleItems
+    .filter(i => !(i.sortIso && erSammeNorskeDag(i.sortIso, naa)))
+    .sort((a, b) => {
+      if (!a.sortIso) return 1
+      if (!b.sortIso) return -1
+      return a.sortIso.localeCompare(b.sortIso)
+    })
 
   const antallGutta = aktiveMedlemmer ?? 0
 
@@ -249,15 +283,17 @@ export default async function Forside() {
       {pushCount === 0 && <PushPaaminnelse pushAktiv={varselPref?.push_aktiv ?? false} />}
 
       {/* I kveld */}
-      {idag.length > 0 && (
+      {idagItems.length > 0 && (
         <section style={{ marginBottom: 28 }}>
           <SectionLabel>
-            I kveld · {formaterDato(idag[0].start_tidspunkt, 'd. MMMM').toLowerCase()}
+            I kveld · {formaterDato(idagItems[0].sortIso!, 'd. MMMM').toLowerCase()}
           </SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {idag.map(a => (
-              <HighlightKort key={a.id} arr={tilHighlight(a, meg)} />
-            ))}
+            {idagItems.map(i => {
+              if (i.kind === 'arr') return <HighlightKort key={i.arr.id} arr={tilHighlight(i.arr, meg)} />
+              if (i.kind === 'bursdag') return <BursdagKort key={i.bursdag.id} bursdag={i.bursdag} />
+              return <UtkastKort key={i.utkast.id} utkast={i.utkast} />
+            })}
           </div>
         </section>
       )}
@@ -266,16 +302,12 @@ export default async function Forside() {
       <section style={{ marginBottom: 20 }}>
         <SectionLabel>Kommende</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {utkast.map(u => (
-            <UtkastKort key={u.id} utkast={u} />
-          ))}
-          {bursdager.map(b => (
-            <BursdagKort key={b.id} bursdag={b} />
-          ))}
-          {kommende.map(a => (
-            <ArrangementKort key={a.id} arr={tilKort(a, meg)} />
-          ))}
-          {kommende.length === 0 && utkast.length === 0 && bursdager.length === 0 && (
+          {kommendeItems.map(i => {
+            if (i.kind === 'arr') return <ArrangementKort key={i.arr.id} arr={tilKort(i.arr, meg)} />
+            if (i.kind === 'bursdag') return <BursdagKort key={i.bursdag.id} bursdag={i.bursdag} />
+            return <UtkastKort key={i.utkast.id} utkast={i.utkast} />
+          })}
+          {kommendeItems.length === 0 && (
             <p
               style={{
                 fontFamily: 'var(--font-mono)',
