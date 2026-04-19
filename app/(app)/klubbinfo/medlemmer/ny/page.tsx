@@ -2,16 +2,57 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import SkjemaBar from '@/components/ui/SkjemaBar'
+import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 
-const inputStil = {
-  background: 'var(--bg-elevated-2)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-  borderRadius: '0.75rem',
-  padding: '0.75rem 1rem',
+const labelStil: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 9.5,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  textTransform: 'uppercase',
+  letterSpacing: '1.6px',
+  marginBottom: 4,
+}
+
+const inputBaseStil: React.CSSProperties = {
   width: '100%',
-  fontSize: '1rem',
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  fontFamily: 'var(--font-body)',
+  fontSize: 14,
+  color: 'var(--text-primary)',
+  lineHeight: 1.5,
+}
+
+const accentInputStil: React.CSSProperties = {
+  ...inputBaseStil,
+  fontFamily: 'var(--font-display)',
+  fontSize: 19,
+  fontWeight: 500,
+  letterSpacing: '-0.3px',
+  color: 'var(--accent)',
+}
+
+function Rad({
+  children,
+  last,
+}: {
+  children: React.ReactNode
+  last?: boolean
+}) {
+  return (
+    <div
+      style={{
+        padding: '10px 4px',
+        borderBottom: last ? 'none' : '0.5px solid var(--border-subtle)',
+      }}
+    >
+      {children}
+    </div>
+  )
 }
 
 export default function NyttMedlem() {
@@ -22,8 +63,11 @@ export default function NyttMedlem() {
   const [opprettet, setOpprettet] = useState<{ passord: string } | null>(null)
   const router = useRouter()
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleOpprett() {
+    if (!navn || !epost) {
+      setFeil('Fyll inn navn og e-post')
+      return
+    }
     setLaster(true)
     setFeil('')
 
@@ -45,61 +89,156 @@ export default function NyttMedlem() {
 
   if (opprettet) {
     return (
-      <div className="max-w-lg mx-auto px-5 pt-6">
-        <div className="rounded-2xl p-5" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-          <p className="font-semibold text-lg mb-2" style={{ color: 'var(--success)' }}>✓ Medlem opprettet</p>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            En velkomst-e-post med innloggingsinfo er sendt til {navn} på {epost}. Du trenger ikke gjøre mer.
-          </p>
-          <details className="mb-4">
-            <summary className="text-sm cursor-pointer mb-2" style={{ color: 'var(--text-secondary)' }}>
-              Vis innloggingsinfo (hvis e-posten ikke kommer fram)
-            </summary>
-            <div className="rounded-xl p-3 mt-2 space-y-1" style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>E-post: <span className="font-mono">{epost}</span></p>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>Passord: <span className="font-mono font-bold">{opprettet.passord}</span></p>
-            </div>
-          </details>
-          <button
-            onClick={() => router.push('/klubbinfo/medlemmer')}
-            className="w-full py-3 rounded-xl font-semibold text-white"
-            style={{ background: 'var(--accent)' }}
+      <div style={{ padding: '0 20px 120px' }}>
+        <header style={{ marginTop: 12, marginBottom: 24 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 600,
+              color: 'var(--success)',
+              letterSpacing: '1.6px',
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}
           >
-            Tilbake til medlemslisten
-          </button>
-        </div>
+            Medlem opprettet
+          </div>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 32,
+              fontWeight: 500,
+              letterSpacing: '-0.4px',
+              lineHeight: 1.05,
+              margin: 0,
+              color: 'var(--text-primary)',
+            }}
+          >
+            {navn} er med i klubben
+          </h1>
+        </header>
+
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            lineHeight: 1.55,
+            color: 'var(--text-secondary)',
+            marginBottom: 24,
+          }}
+        >
+          En velkomst-e-post med innloggingsinfo er sendt til {epost}. Du trenger ikke gjøre mer.
+        </p>
+
+        <SkjemaSeksjon label="Innloggingsinfo">
+          <Rad>
+            <div style={labelStil}>E-post</div>
+            <div style={{ ...inputBaseStil, fontFamily: 'var(--font-mono)' }}>{epost}</div>
+          </Rad>
+          <Rad last>
+            <div style={labelStil}>Midlertidig passord</div>
+            <div
+              style={{
+                ...inputBaseStil,
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--accent)',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+              }}
+            >
+              {opprettet.passord}
+            </div>
+          </Rad>
+        </SkjemaSeksjon>
+
+        <button
+          type="button"
+          onClick={() => router.push('/klubbinfo/medlemmer')}
+          style={{
+            marginTop: 8,
+            width: '100%',
+            padding: '14px 0',
+            borderRadius: 999,
+            background: 'var(--accent)',
+            color: '#0a0a0a',
+            border: 'none',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Tilbake til medlemslisten
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
-        </button>
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>Nytt medlem</h1>
-      </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <SkjemaBar
+        overtittel="Nytt"
+        tittel="Medlem"
+        onAvbryt={() => router.back()}
+        onLagre={handleOpprett}
+        lagreLabel="Opprett"
+        laster={laster}
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Navn</label>
-          <input type="text" value={navn} onChange={e => setNavn(e.target.value)} required style={inputStil} />
-        </div>
-        <div>
-          <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>
-          <input type="email" value={epost} onChange={e => setEpost(e.target.value)} required style={inputStil} />
-        </div>
-        {feil && <p className="text-sm" style={{ color: 'var(--destructive)' }}>{feil}</p>}
-        <button
-          type="submit"
-          disabled={laster}
-          className="w-full py-3 rounded-xl font-semibold text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}
+      <SkjemaSeksjon label="Kontaktinfo">
+        <Rad>
+          <div style={labelStil}>Navn</div>
+          <input
+            type="text"
+            value={navn}
+            onChange={e => setNavn(e.target.value)}
+            placeholder="Fornavn Etternavn"
+            style={accentInputStil}
+            required
+          />
+        </Rad>
+        <Rad last>
+          <div style={labelStil}>E-post</div>
+          <input
+            type="email"
+            value={epost}
+            onChange={e => setEpost(e.target.value)}
+            placeholder="gutt@epost.no"
+            style={inputBaseStil}
+            required
+          />
+        </Rad>
+      </SkjemaSeksjon>
+
+      {feil && (
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: 'color-mix(in srgb, var(--danger) 10%, transparent)',
+            border: '0.5px solid color-mix(in srgb, var(--danger) 40%, transparent)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--danger)',
+            marginTop: 12,
+          }}
         >
-          {laster ? 'Oppretter...' : 'Opprett medlem'}
-        </button>
-      </form>
+          {feil}
+        </div>
+      )}
+
+      <p
+        style={{
+          marginTop: 16,
+          fontFamily: 'var(--font-body)',
+          fontSize: 12,
+          color: 'var(--text-tertiary)',
+          lineHeight: 1.5,
+        }}
+      >
+        En velkomst-e-post med midlertidig passord sendes til medlemmet. Passordet kan endres under «Rediger profil».
+      </p>
     </div>
   )
 }
