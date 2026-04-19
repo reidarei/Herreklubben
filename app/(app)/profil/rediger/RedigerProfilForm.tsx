@@ -4,11 +4,12 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
 import { createClient } from '@/lib/supabase/client'
-import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { genererFilnavn } from '@/lib/bilde-utils'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
+import BildeCropper from '@/components/ui/BildeCropper'
 
 type Props = {
   navn: string
@@ -89,30 +90,39 @@ export default function RedigerProfilForm({
 
   const [bildeLaster, setBildeLaster] = useState(false)
   const [bildeFeil, setBildeFeil] = useState('')
+  const [cropFil, setCropFil] = useState<File | null>(null)
 
   const [visPassord, setVisPassord] = useState(false)
   const [passord, setPassord] = useState('')
   const [bekreft, setBekreft] = useState('')
   const [passordFeil, setPassordFeil] = useState('')
 
-  async function handleBildeVelg(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleBildeVelg(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
     if (!fil) return
     setBildeFeil('')
+    setCropFil(fil)
+    // Nullstill input så samme fil kan velges igjen senere om nødvendig
+    if (filInputRef.current) filInputRef.current.value = ''
+  }
+
+  async function handleCropFerdig(blob: Blob) {
+    setCropFil(null)
     setBildeLaster(true)
+    setBildeFeil('')
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Ikke innlogget')
 
-      const komprimert = await komprimer(fil)
-      const filnavn = genererFilnavn(komprimert)
+      const croppet = new File([blob], 'profil.jpg', { type: 'image/jpeg' })
+      const filnavn = genererFilnavn(croppet)
       const sti = `${user.id}/${filnavn}`
 
       const { error } = await supabase.storage
         .from('profil-bilder')
-        .upload(sti, komprimert, { contentType: 'image/jpeg' })
+        .upload(sti, croppet, { contentType: 'image/jpeg' })
 
       if (error) throw new Error(error.message)
 
@@ -125,7 +135,6 @@ export default function RedigerProfilForm({
       setBildeFeil(err instanceof Error ? err.message : 'Opplasting feilet')
     } finally {
       setBildeLaster(false)
-      if (filInputRef.current) filInputRef.current.value = ''
     }
   }
 
@@ -172,6 +181,14 @@ export default function RedigerProfilForm({
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
+      {cropFil && (
+        <BildeCropper
+          fil={cropFil}
+          onFerdig={handleCropFerdig}
+          onAvbryt={() => setCropFil(null)}
+        />
+      )}
+
       <SkjemaBar
         overtittel="Rediger"
         tittel="Profil"
