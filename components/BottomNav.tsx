@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
 
 type Tab = {
-  id: 'hjem' | 'klubbinfo' | 'kaaringer' | 'profil'
+  id: 'hjem' | 'klubbinfo' | 'chat' | 'profil'
   label: string
   href: string
   ikon: IkonNavn
@@ -15,7 +15,7 @@ type Tab = {
 const TABS: Tab[] = [
   { id: 'hjem', label: 'Agenda', href: '/', ikon: 'calendar' },
   { id: 'klubbinfo', label: 'Klubb', href: '/klubbinfo', ikon: 'building' },
-  { id: 'kaaringer', label: 'Kåringer', href: '/kaaringer', ikon: 'trophy' },
+  { id: 'chat', label: 'Chat', href: '/chat', ikon: 'message' },
   { id: 'profil', label: 'Profil', href: '/profil', ikon: 'user' },
 ]
 
