@@ -1,101 +1,235 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterMedlemAdmin, slettMedlem } from '@/lib/actions/profil'
+import SkjemaBar from '@/components/ui/SkjemaBar'
+import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
+import Segment from '@/components/ui/Segment'
 
-const inputStil = {
-  background: 'var(--bg-elevated-2)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-  borderRadius: '0.75rem',
-  padding: '0.75rem 1rem',
-  width: '100%',
-  fontSize: '1rem',
+type Medlem = {
+  id: string
+  navn: string
+  visningsnavn: string
+  epost: string
+  telefon: string | null
+  rolle: string
+  aktiv: boolean
+  fodselsdato: string | null
 }
 
-type Medlem = { id: string; navn: string; visningsnavn: string; epost: string; telefon: string | null; rolle: string; aktiv: boolean; fodselsdato: string | null }
+const labelStil: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 9.5,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  textTransform: 'uppercase',
+  letterSpacing: '1.6px',
+  marginBottom: 4,
+}
+
+const inputBaseStil: React.CSSProperties = {
+  width: '100%',
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  padding: 0,
+  fontFamily: 'var(--font-body)',
+  fontSize: 14,
+  color: 'var(--text-primary)',
+  lineHeight: 1.5,
+}
+
+const accentInputStil: React.CSSProperties = {
+  ...inputBaseStil,
+  fontFamily: 'var(--font-display)',
+  fontSize: 19,
+  fontWeight: 500,
+  letterSpacing: '-0.3px',
+  color: 'var(--accent)',
+}
+
+function Rad({ children, last }: { children: React.ReactNode; last?: boolean }) {
+  return (
+    <div
+      style={{
+        padding: '10px 4px',
+        borderBottom: last ? 'none' : '0.5px solid var(--border-subtle)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
 
 export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
-  const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const fd = new FormData(e.currentTarget)
+  const [navn, setNavn] = useState(medlem.navn)
+  const [visningsnavn, setVisningsnavn] = useState(medlem.visningsnavn)
+  const [telefon, setTelefon] = useState(medlem.telefon ?? '')
+  const [fodselsdato, setFodselsdato] = useState(medlem.fodselsdato ?? '')
+  const [rolle, setRolle] = useState<'medlem' | 'admin'>(
+    medlem.rolle === 'admin' ? 'admin' : 'medlem',
+  )
+  const [aktiv, setAktiv] = useState<'aktiv' | 'deaktivert'>(
+    medlem.aktiv ? 'aktiv' : 'deaktivert',
+  )
+
+  function handleLagre() {
     startTransition(async () => {
       await oppdaterMedlemAdmin(medlem.id, {
-        navn: fd.get('navn') as string,
-        visningsnavn: fd.get('visningsnavn') as string,
-        telefon: fd.get('telefon') as string,
-        rolle: fd.get('rolle') as string,
-        aktiv: fd.get('aktiv') === 'true',
-        fodselsdato: fd.get('fodselsdato') as string,
+        navn,
+        visningsnavn: visningsnavn || navn,
+        telefon,
+        rolle,
+        aktiv: aktiv === 'aktiv',
+        fodselsdato: fodselsdato || undefined,
       })
-      router.push('/klubbinfo/medlemmer')
+      router.push(`/klubbinfo/medlemmer/${medlem.id}`)
+      router.refresh()
     })
   }
 
+  function handleSlett() {
+    if (!confirm(`Slette ${medlem.navn}? Dette kan ikke angres.`)) return
+    startTransition(() => slettMedlem(medlem.id))
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pb-8">
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Navn</label>
-        <input name="navn" type="text" required defaultValue={medlem.navn} style={inputStil} />
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Visningsnavn (kallenavn)</label>
-        <input name="visningsnavn" type="text" required defaultValue={medlem.visningsnavn} style={inputStil} />
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>E-post</label>
-        <input type="text" value={medlem.epost} disabled style={{ ...inputStil, opacity: 0.5 }} />
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Telefon</label>
-        <input name="telefon" type="tel" defaultValue={medlem.telefon ?? ''} style={inputStil} />
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Fødselsdato</label>
-        <input name="fodselsdato" type="date" defaultValue={medlem.fodselsdato ?? ''} style={inputStil} />
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Rolle</label>
-        <select name="rolle" defaultValue={medlem.rolle} style={inputStil}>
-          <option value="medlem">Medlem</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>Status</label>
-        <select name="aktiv" defaultValue={String(medlem.aktiv)} style={inputStil}>
-          <option value="true">Aktiv</option>
-          <option value="false">Deaktivert</option>
-        </select>
-      </div>
+    <div style={{ padding: '0 20px 120px' }}>
+      <SkjemaBar
+        overtittel="Rediger"
+        tittel={medlem.navn}
+        onAvbryt={() => router.push(`/klubbinfo/medlemmer/${medlem.id}`)}
+        onLagre={handleLagre}
+        laster={isPending}
+      />
 
-      <div className="flex gap-3 pt-2">
-        <button type="button" onClick={() => router.back()} className="flex-1 py-3 rounded-xl font-semibold text-sm"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-          Avbryt
-        </button>
-        <button type="submit" disabled={isPending} className="flex-1 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50"
-          style={{ background: 'var(--accent)' }}>
-          {isPending ? 'Lagrer...' : 'Lagre'}
-        </button>
-      </div>
+      {/* Personalia */}
+      <SkjemaSeksjon label="Personalia">
+        <Rad>
+          <div style={labelStil}>Navn</div>
+          <input
+            type="text"
+            value={navn}
+            onChange={e => setNavn(e.target.value)}
+            style={accentInputStil}
+            required
+          />
+        </Rad>
+        <Rad>
+          <div style={labelStil}>Visningsnavn</div>
+          <input
+            type="text"
+            value={visningsnavn}
+            onChange={e => setVisningsnavn(e.target.value)}
+            style={inputBaseStil}
+            placeholder={navn}
+          />
+        </Rad>
+        <Rad last>
+          <div style={labelStil}>Fødselsdato</div>
+          <input
+            type="date"
+            value={fodselsdato}
+            onChange={e => setFodselsdato(e.target.value)}
+            style={{ ...inputBaseStil, colorScheme: 'dark' }}
+          />
+        </Rad>
+      </SkjemaSeksjon>
 
-      <button
-        type="button"
-        onClick={() => {
-          if (confirm(`Slette ${medlem.navn}? Dette kan ikke angres.`)) {
-            startTransition(() => slettMedlem(medlem.id))
-          }
-        }}
-        disabled={isPending}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold mt-2 disabled:opacity-50"
-        style={{ background: 'transparent', border: '1px solid var(--destructive-subtle)', color: 'var(--destructive)' }}>
-        Slett medlem
-      </button>
-    </form>
+      {/* Kontakt */}
+      <SkjemaSeksjon label="Kontakt">
+        <Rad>
+          <div style={labelStil}>E-post</div>
+          <div style={{ ...inputBaseStil, color: 'var(--text-secondary)' }}>
+            {medlem.epost}
+          </div>
+        </Rad>
+        <Rad last>
+          <div style={labelStil}>Telefon</div>
+          <input
+            type="tel"
+            value={telefon}
+            onChange={e => setTelefon(e.target.value)}
+            style={inputBaseStil}
+            placeholder="+47 ..."
+          />
+        </Rad>
+      </SkjemaSeksjon>
+
+      {/* Tilgang */}
+      <SkjemaSeksjon label="Tilgang">
+        <div style={{ padding: '10px 4px', borderBottom: '0.5px solid var(--border-subtle)' }}>
+          <div style={{ ...labelStil, marginBottom: 8 }}>Rolle</div>
+          <Segment
+            value={rolle}
+            onChange={setRolle}
+            options={[
+              { value: 'medlem', label: 'Medlem' },
+              { value: 'admin', label: 'Admin' },
+            ]}
+          />
+        </div>
+        <div style={{ padding: '10px 4px' }}>
+          <div style={{ ...labelStil, marginBottom: 8 }}>Status</div>
+          <Segment
+            value={aktiv}
+            onChange={setAktiv}
+            options={[
+              { value: 'aktiv', label: 'Aktiv' },
+              { value: 'deaktivert', label: 'Deaktivert' },
+            ]}
+          />
+        </div>
+      </SkjemaSeksjon>
+
+      {/* Faresone */}
+      <SkjemaSeksjon label="Faresone">
+        <button
+          type="button"
+          onClick={handleSlett}
+          disabled={isPending}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 4px',
+            cursor: isPending ? 'wait' : 'pointer',
+            background: 'none',
+            border: 'none',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 16,
+                fontWeight: 500,
+                color: 'var(--danger)',
+                letterSpacing: '-0.2px',
+                marginBottom: 2,
+              }}
+            >
+              Slett medlem
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.1px',
+              }}
+            >
+              Kan ikke angres. Arrangementer opprettet av medlemmet beholdes.
+            </div>
+          </div>
+        </button>
+      </SkjemaSeksjon>
+    </div>
   )
 }
