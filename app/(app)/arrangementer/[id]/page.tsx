@@ -45,6 +45,7 @@ export default async function ArrangementDetaljer({
         `id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
          oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
          bilde_url,
+         opprettet_profil:profiles!arrangementer_opprettet_av_fkey (navn),
          paameldinger (profil_id, status, profiles (navn))`,
       )
       .eq('id', id)
@@ -78,6 +79,11 @@ export default async function ArrangementDetaljer({
   const dag = formaterDato(arr.start_tidspunkt, 'd')
   const tid = formaterDato(arr.start_tidspunkt, 'HH:mm')
   const datoLang = formaterDato(arr.start_tidspunkt, 'd. MMMM yyyy')
+
+  const opprettetProfil = Array.isArray(arr.opprettet_profil)
+    ? arr.opprettet_profil[0]
+    : arr.opprettet_profil
+  const opprettetAvNavn = opprettetProfil?.navn ?? 'Ukjent'
 
   return (
     <div style={{ padding: '0 0 140px' }}>
@@ -281,11 +287,16 @@ export default async function ArrangementDetaljer({
                     sladd: erSensurert('pris_per_person'),
                   }
                 : null,
+              {
+                label: 'Opprettet av',
+                value: opprettetAvNavn,
+                icon: 'user' as const,
+              },
             ].filter(Boolean) as Array<{
               label: string
               value: string
               sub?: string
-              icon: 'mapPin' | 'plane' | 'wine'
+              icon: 'mapPin' | 'plane' | 'wine' | 'user'
               sladd?: boolean
             }>
           ).map((f, i, a) => (
