@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import Icon from '@/components/ui/Icon'
 import VedtektVisning from './VedtektVisning'
 
 export default async function VedtektSide({ params }: { params: Promise<{ slug: string }> }) {
@@ -26,12 +26,55 @@ export default async function VedtektSide({ params }: { params: Promise<{ slug: 
     .limit(10)
 
   return (
-    <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href="/klubbinfo" className="flex items-center gap-1 text-sm" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
-          <ChevronLeftIcon className="w-4 h-4" /> Tilbake
+    <div style={{ padding: '0 20px 120px' }}>
+      <div style={{ marginTop: 12, marginBottom: 20 }}>
+        <Link
+          href="/klubbinfo"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            color: 'var(--text-tertiary)',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            letterSpacing: '1.6px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            marginBottom: 14,
+          }}
+        >
+          <Icon name="chevron" size={12} color="var(--text-tertiary)" />
+          <span style={{ transform: 'scaleX(-1)', display: 'inline-block' }} />
+          Klubbinfo
         </Link>
-        <h1 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>{vedtekt.tittel}</h1>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.6px',
+            textTransform: 'uppercase',
+            marginBottom: 6,
+            marginTop: 12,
+          }}
+        >
+          Klubbinfo
+        </div>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 38,
+            fontWeight: 500,
+            letterSpacing: '-0.5px',
+            lineHeight: 1.05,
+            margin: 0,
+            color: 'var(--text-primary)',
+          }}
+        >
+          {vedtekt.tittel}
+        </h1>
       </div>
 
       <VedtektVisning
