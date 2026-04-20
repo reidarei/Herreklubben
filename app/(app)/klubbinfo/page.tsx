@@ -4,7 +4,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
 
-const KLUBBEN_START_AAR = 2015
+const KLUBBEN_START_AAR = 2008
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])

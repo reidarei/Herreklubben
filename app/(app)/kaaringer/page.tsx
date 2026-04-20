@@ -3,7 +3,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import KaaringerVisning from './KaaringerVisning'
 
-const KLUBBEN_START_AAR = 2015
+const KLUBBEN_START_AAR = 2008
 
 export default async function Kaaringer() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -42,7 +42,7 @@ export default async function Kaaringer() {
       .order('start_tidspunkt', { ascending: false }),
   ])
 
-  // År fra 2015 til nå, pluss evt. eldre med vinnere
+  // År fra 2008 til nå, pluss evt. eldre med vinnere
   const aarSet = new Set<number>()
   for (const v of vinnere ?? []) aarSet.add(v.aar)
   for (let y = KLUBBEN_START_AAR; y <= gjeldende_aar; y++) aarSet.add(y)
