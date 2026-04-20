@@ -15,8 +15,10 @@
 //   - bursdag     : {dato}T12:00:00.000Z (midt på dagen UTC for å unngå
 //                   tidssone-drift mellom Oslo og UTC)
 //   - utkast      : purredato + T12:00:00Z hvis purredato finnes og *ikke*
-//                   er passert. Passerte/manglende purredatoer → null
-//                   (sorteres til enden, ikke toppen)
+//                   er passert. Hvis purredato er passert eller mangler,
+//                   faller vi tilbake til 1. september i `aar` som siste
+//                   påminnelse før året er omme. Hvis 1. september også
+//                   er passert → null (enden av lista).
 //
 // «Samme norske dag»-sjekk gjøres eksplisitt via Intl.DateTimeFormat med
 // Europe/Oslo for å håndtere at et arrangement klokka 00:30 UTC fortsatt
@@ -248,14 +250,20 @@ export function byggAgenda(input: {
     data: b,
   }))
 
-  // Utkast: purredato styrer plassering. Passerte eller manglende purredato
-  // → sortIso=null, som sorteres til slutten av «Kommende» (ikke til topps).
+  // Utkast: purredato styrer plassering. Hvis purredato er passert eller
+  // mangler, bruker vi 1. september i `aar` som fallback-påminnelse slik at
+  // kortet ikke forsvinner til bunnen midt i året. Er også 1. september
+  // passert → sortIso=null, og kortet faller til enden av «Kommende».
+  const fallbackIso = `${aar}-09-01T12:00:00.000Z`
+  const fallbackGyldig = fallbackIso >= nowIso || erSammeNorskeDag(fallbackIso, naa)
   const utkastItems: AgendaItem[] = utkast.map(u => {
-    const iso = u.purredato ? `${u.purredato}T12:00:00.000Z` : null
-    const gyldig = iso && (iso >= nowIso || erSammeNorskeDag(iso, naa))
+    const opprinnelig = u.purredato ? `${u.purredato}T12:00:00.000Z` : null
+    const opprinneligGyldig =
+      opprinnelig && (opprinnelig >= nowIso || erSammeNorskeDag(opprinnelig, naa))
+    const sortIso = opprinneligGyldig ? opprinnelig : fallbackGyldig ? fallbackIso : null
     return {
       kind: 'utkast',
-      sortIso: gyldig ? iso : null,
+      sortIso,
       data: { id: u.id, tittel: u.tittel, ansvarlige: u.ansvarlige },
     }
   })
