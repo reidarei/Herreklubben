@@ -61,7 +61,16 @@
 html, body {
   background: var(--bg);
 }
+/* overflow-x: clip på html + body hindrer at iOS Safari lar sidene bli
+ * bredere enn viewporten når f.eks. backdrop-filter/shadows stikker ut —
+ * uten dette oppfører `position: fixed` seg buggy og dokken "svømmer"
+ * oppover under scroll. Returrert fra commit 9064c6d etter at den falt
+ * ut i Obsidian-redesignet. */
+html {
+  overflow-x: clip;
+}
 body {
+  overflow-x: clip;
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--text-primary);
