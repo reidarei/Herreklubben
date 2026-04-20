@@ -12,7 +12,7 @@ type Props = {
 // Bruker box-shadow lagvis (indre ring + mykt skjær) så effekten fungerer
 // både på avatar-bildet og på initial-bakgrunnen.
 const GULGLOED =
-  '0 0 0 2px #e8d9b5, 0 0 14px 2px color-mix(in srgb, #e8d9b5 65%, transparent)'
+  '0 0 0 1px #e8d9b5, 0 0 8px 1px color-mix(in srgb, #e8d9b5 35%, transparent)'
 
 function initialerAv(navn: string): string {
   return navn
