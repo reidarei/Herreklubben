@@ -50,7 +50,7 @@ export default function UtkastKort({ utkast }: { utkast: UtkastData }) {
             marginBottom: 8,
           }}
         >
-          Utkast
+          Mangler info
         </div>
 
         <h3
