@@ -55,6 +55,7 @@ export type ProfilMedBursdag = {
   id: string
   visningsnavn: string | null
   fodselsdato: string | null
+  bilde_url?: string | null
 }
 
 // === Resultat-typer ===============================================
@@ -161,6 +162,7 @@ export function beregnBursdager(
           navn: p.visningsnavn,
           dato: `${aar}-${String(mnd).padStart(2, '0')}-${String(dag).padStart(2, '0')}`,
           alder: aar - fodselsaar,
+          bildeUrl: p.bilde_url ?? null,
         })
       }
     }

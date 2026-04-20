@@ -44,7 +44,7 @@ export default async function Forside() {
     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('aktiv', true),
     supabase
       .from('profiles')
-      .select('id, visningsnavn, fodselsdato')
+      .select('id, visningsnavn, fodselsdato, bilde_url')
       .eq('aktiv', true)
       .not('fodselsdato', 'is', null),
     supabase

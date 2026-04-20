@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import Avatar from '@/components/ui/Avatar'
 import { formaterDato } from '@/lib/dato'
 
 export type BursdagData = {
@@ -8,6 +9,7 @@ export type BursdagData = {
   navn: string
   dato: string // YYYY-MM-DD
   alder: number
+  bildeUrl?: string | null
 }
 
 export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
@@ -29,6 +31,19 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
         color: 'inherit',
       }}
     >
+      <div
+        style={{
+          width: 56,
+          flexShrink: 0,
+          borderRight: '0.5px solid var(--border-subtle)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon name="wine" size={24} color="var(--text-tertiary)" strokeWidth={1.25} />
+      </div>
+
       <div
         style={{
           flex: 1,
@@ -80,14 +95,13 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
         style={{
           width: 108,
           flexShrink: 0,
-          position: 'relative',
           borderLeft: '0.5px solid var(--border-subtle)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Icon name="wine" size={28} color="var(--text-tertiary)" strokeWidth={1.25} />
+        <Avatar name={bursdag.navn} src={bursdag.bildeUrl ?? null} size={64} />
       </div>
     </Link>
   )
