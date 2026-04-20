@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import Monogram from '@/components/ui/Monogram'
 import { formaterDato } from '@/lib/dato'
 
 export type KlubbJubileumData = {
@@ -94,11 +93,22 @@ export default function KlubbJubileumKort({ jubileum }: { jubileum: KlubbJubileu
           flexShrink: 0,
           borderLeft: '0.5px solid var(--border-subtle)',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          padding: '0 10px',
+          fontFamily: 'var(--font-display)',
+          color: 'var(--accent)',
+          fontSize: 15,
+          fontWeight: 500,
+          lineHeight: 1.05,
+          letterSpacing: '-0.3px',
+          textAlign: 'center',
         }}
+        aria-hidden="true"
       >
-        <Monogram size={64} />
+        <span style={{ fontStyle: 'italic' }}>Mortensrud</span>
+        <span>Herreklubb</span>
       </div>
     </Link>
   )
