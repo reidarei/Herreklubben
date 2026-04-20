@@ -49,7 +49,7 @@ export default async function Forside() {
       .not('fodselsdato', 'is', null),
     supabase
       .from('arrangoransvar')
-      .select('arrangement_navn, purredato, profiles (visningsnavn)')
+      .select('arrangement_navn, purredato, ansvarlig_id, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
   ])
@@ -139,7 +139,7 @@ export default async function Forside() {
             {idag.map(i => {
               if (i.kind === 'highlight') return <HighlightKort key={i.data.id} arr={i.data} />
               if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
-              if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} />
+              if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
               return <ArrangementKort key={i.data.id} arr={i.data} />
             })}
           </div>
@@ -153,7 +153,7 @@ export default async function Forside() {
           {kommende.map(i => {
             if (i.kind === 'arrangement') return <ArrangementKort key={i.data.id} arr={i.data} />
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
-            if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} />
+            if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
             return <HighlightKort key={i.data.id} arr={i.data} />
           })}
           {kommende.length === 0 && (

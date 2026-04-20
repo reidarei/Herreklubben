@@ -4,6 +4,7 @@ export type UtkastData = {
   id: string
   tittel: string
   ansvarlige: string[]
+  ansvarligeIds: string[]
 }
 
 // «Reka», «Reka og Jona», «Reka, Jona og Heede»
@@ -13,10 +14,21 @@ function formaterAnsvarlige(navn: string[]): string {
   return `${navn.slice(0, -1).join(', ')} og ${navn[navn.length - 1]}`
 }
 
-export default function UtkastKort({ utkast }: { utkast: UtkastData }) {
+export default function UtkastKort({
+  utkast,
+  meg,
+}: {
+  utkast: UtkastData
+  meg: string
+}) {
+  // Er innlogget bruker blant de ansvarlige? Da leder vi rett til skjemaet
+  // for å opprette det konkrete arrangementet. Andre sendes til arrangør-
+  // oversikten der de kan purre.
+  const erAnsvarlig = utkast.ansvarligeIds.includes(meg)
+  const href = erAnsvarlig ? '/arrangementer/ny' : '/arrangoransvar'
   return (
     <Link
-      href="/arrangoransvar"
+      href={href}
       style={{
         display: 'flex',
         gap: 0,

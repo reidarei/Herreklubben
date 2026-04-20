@@ -50,6 +50,7 @@ export type ArrangementRaad = {
 export type UtkastRaad = {
   arrangement_navn: string
   purredato: string | null
+  ansvarlig_id: string | null
   profiles: { visningsnavn: string | null } | null
 }
 
@@ -179,20 +180,32 @@ function bygUtkast(
   ansvar: UtkastRaad[],
   aar: number,
 ): (UtkastData & { purredato: string | null })[] {
-  const gruppering = new Map<string, { ansvarlige: string[]; purredato: string | null }>()
+  const gruppering = new Map<
+    string,
+    { ansvarlige: string[]; ansvarligeIds: string[]; purredato: string | null }
+  >()
   for (const rad of ansvar) {
     if (!gruppering.has(rad.arrangement_navn)) {
-      gruppering.set(rad.arrangement_navn, { ansvarlige: [], purredato: rad.purredato })
+      gruppering.set(rad.arrangement_navn, {
+        ansvarlige: [],
+        ansvarligeIds: [],
+        purredato: rad.purredato,
+      })
     }
     const navn = rad.profiles?.visningsnavn
-    if (navn) gruppering.get(rad.arrangement_navn)!.ansvarlige.push(navn)
+    const gruppe = gruppering.get(rad.arrangement_navn)!
+    if (navn) gruppe.ansvarlige.push(navn)
+    if (rad.ansvarlig_id) gruppe.ansvarligeIds.push(rad.ansvarlig_id)
   }
-  return [...gruppering.entries()].map(([tittel, { ansvarlige, purredato }]) => ({
-    id: `utkast-${aar}-${tittel}`,
-    tittel,
-    ansvarlige,
-    purredato,
-  }))
+  return [...gruppering.entries()].map(
+    ([tittel, { ansvarlige, ansvarligeIds, purredato }]) => ({
+      id: `utkast-${aar}-${tittel}`,
+      tittel,
+      ansvarlige,
+      ansvarligeIds,
+      purredato,
+    }),
+  )
 }
 
 // === Hovedfunksjon ================================================
@@ -264,7 +277,12 @@ export function byggAgenda(input: {
     return {
       kind: 'utkast',
       sortIso,
-      data: { id: u.id, tittel: u.tittel, ansvarlige: u.ansvarlige },
+      data: {
+        id: u.id,
+        tittel: u.tittel,
+        ansvarlige: u.ansvarlige,
+        ansvarligeIds: u.ansvarligeIds,
+      },
     }
   })
 
