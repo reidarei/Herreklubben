@@ -121,11 +121,22 @@ export default function Chat({
     [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase],
   )
 
+  // @alle er et spesialvalg som trigger varsel til alle aktive profiler.
+  // Server-siden matcher strengen «alle» direkte og sender varsler bredt.
+  const ALLE_VALG: ChatProfil = {
+    id: '__alle__',
+    navn: 'alle',
+    bilde_url: null,
+    rolle: null,
+  }
   const mentionForslag =
     mentionSøk !== null
-      ? andreProfiler
-          .filter(p => p.navn!.toLowerCase().includes(mentionSøk.toLowerCase()))
-          .slice(0, 5)
+      ? [
+          ...('alle'.startsWith(mentionSøk.toLowerCase()) ? [ALLE_VALG] : []),
+          ...andreProfiler
+            .filter(p => p.navn!.toLowerCase().includes(mentionSøk.toLowerCase()))
+            .slice(0, 5),
+        ]
       : []
 
   function oppdaterMentionSøk(verdi: string) {
@@ -492,27 +503,44 @@ export default function Chat({
       {/* @mention-forslag */}
       {mentionForslag.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {mentionForslag.map(p => (
-            <button
-              key={p.id}
-              type="button"
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => velgMention(p.navn!)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 999,
-                background: 'var(--bg-elevated)',
-                border: '0.5px solid var(--border)',
-                color: 'var(--accent)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              @{p.navn}
-            </button>
-          ))}
+          {mentionForslag.map(p => {
+            const erAlle = p.id === '__alle__'
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => velgMention(p.navn!)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  background: erAlle ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                  border: `0.5px solid ${erAlle ? 'var(--accent)' : 'var(--border)'}`,
+                  color: 'var(--accent)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 12,
+                  fontWeight: erAlle ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                @{p.navn}
+                {erAlle && (
+                  <span
+                    style={{
+                      marginLeft: 6,
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 9,
+                      letterSpacing: '1.2px',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    varsler hele klubben
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
 
