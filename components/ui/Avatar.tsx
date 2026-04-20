@@ -35,7 +35,12 @@ function hueAv(navn: string): number {
 export default function Avatar({ name, size = 32, src, rolle }: Props) {
   const init = initialerAv(name || '?')
   const hue = hueAv(name || '')
-  const glod = harGulGloed(rolle)
+  // Midlertidig slått av for å isolere om box-shadow-gloed forårsaker
+  // PWA-dokk-bug. Re-aktiveres når vi har diagnose.
+  void rolle
+  void harGulGloed
+  void GULGLOED
+  const glod = false
 
   const felles = {
     width: size,
