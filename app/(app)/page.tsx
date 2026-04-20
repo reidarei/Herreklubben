@@ -10,6 +10,7 @@ import HighlightKort from '@/components/agenda/HighlightKort'
 import ArrangementKort from '@/components/agenda/ArrangementKort'
 import UtkastKort from '@/components/agenda/UtkastKort'
 import BursdagKort from '@/components/agenda/BursdagKort'
+import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import {
   byggAgenda,
@@ -139,6 +140,7 @@ export default async function Forside() {
             {idag.map(i => {
               if (i.kind === 'highlight') return <HighlightKort key={i.data.id} arr={i.data} />
               if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
+              if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
               return <ArrangementKort key={i.data.id} arr={i.data} />
             })}
@@ -153,6 +155,7 @@ export default async function Forside() {
           {kommende.map(i => {
             if (i.kind === 'arrangement') return <ArrangementKort key={i.data.id} arr={i.data} />
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
+            if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
             return <HighlightKort key={i.data.id} arr={i.data} />
           })}

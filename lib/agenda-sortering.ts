@@ -28,6 +28,11 @@ import type { HighlightKortData } from '@/components/agenda/HighlightKort'
 import type { ArrangementKortData } from '@/components/agenda/ArrangementKort'
 import type { UtkastData } from '@/components/agenda/UtkastKort'
 import type { BursdagData } from '@/components/agenda/BursdagKort'
+import type { KlubbJubileumData } from '@/components/agenda/KlubbJubileumKort'
+
+// Herreklubben ble stiftet 24. november 2007. Brukes til å beregne
+// neste stiftelsesdag på agendaen.
+export const STIFTET_DATO = { maaned: 11, dag: 24, aar: 2007 } as const
 
 // === Rådata-typer (speiler Supabase-queryene i forsiden) ==========
 
@@ -78,6 +83,7 @@ export type AgendaItem =
   | { kind: 'arrangement'; sortIso: string; data: ArrangementKortData }
   | { kind: 'utkast'; sortIso: string | null; data: UtkastData }
   | { kind: 'bursdag'; sortIso: string; data: BursdagData }
+  | { kind: 'klubbjubileum'; sortIso: string; data: KlubbJubileumData }
 
 export type Agenda = {
   idag: AgendaItem[]
@@ -180,6 +186,27 @@ export function beregnBursdager(
   return items
 }
 
+// Beregner neste klubbjubileum (stiftelsesdag) innenfor et vindu fra `naa`.
+// Returnerer null hvis stiftelsesdagen faller utenfor vinduet. Sjekker både
+// inneværende og neste kalenderår så nyttårsovergang håndteres riktig.
+export function beregnKlubbJubileum(
+  naa: Date,
+  dagerFremover: number,
+): KlubbJubileumData | null {
+  const slutt = new Date(naa.getFullYear(), naa.getMonth(), naa.getDate() + dagerFremover)
+  for (const aar of [naa.getFullYear(), naa.getFullYear() + 1]) {
+    const jubdag = new Date(aar, STIFTET_DATO.maaned - 1, STIFTET_DATO.dag)
+    if (jubdag >= naa && jubdag <= slutt) {
+      return {
+        id: `klubbjubileum-${aar}`,
+        dato: `${aar}-${String(STIFTET_DATO.maaned).padStart(2, '0')}-${String(STIFTET_DATO.dag).padStart(2, '0')}`,
+        alder: aar - STIFTET_DATO.aar,
+      }
+    }
+  }
+  return null
+}
+
 // Grupperer arrangoransvar-rader (uten arrangement_id) til utkast per
 // `arrangement_navn`. Alle ansvarlige for arrangementet vises på utkastet
 // i samme rekkefølge som de ligger i databasen.
@@ -270,6 +297,12 @@ export function byggAgenda(input: {
     data: b,
   }))
 
+  // Klubbjubileum: samme sortIso-mønster som bursdager. Maks én per agenda.
+  const jubileum = beregnKlubbJubileum(naa, bursdagsvinduDager)
+  const jubileumItems: AgendaItem[] = jubileum
+    ? [{ kind: 'klubbjubileum', sortIso: `${jubileum.dato}T12:00:00.000Z`, data: jubileum }]
+    : []
+
   // Utkast: purredato styrer plassering. Hvis purredato er passert eller
   // mangler, bruker vi 1. september i `aar` som fallback-påminnelse slik at
   // kortet ikke forsvinner til bunnen midt i året. Er også 1. september
@@ -293,7 +326,7 @@ export function byggAgenda(input: {
     }
   })
 
-  const alleItems: AgendaItem[] = [...arrItems, ...bursdagItems, ...utkastItems]
+  const alleItems: AgendaItem[] = [...arrItems, ...bursdagItems, ...jubileumItems, ...utkastItems]
 
   // Regel 1: I kveld = items med sortIso som ligger på samme norske dag.
   const idag = alleItems.filter(i => i.sortIso && erSammeNorskeDag(i.sortIso, naa))
