@@ -9,6 +9,16 @@ import LoggUtKnapp from './LoggUtKnapp'
 
 const KLUBBEN_START_AAR = 2007
 
+// Faktisk alder i dag — trekker fra 1 hvis bursdagen ikke har vært i år.
+function beregnAlder(fodselsdato: string): number {
+  const [faar, fmnd, fdag] = fodselsdato.split('-').map(Number)
+  const naa = new Date()
+  let alder = naa.getFullYear() - faar
+  const mndDiff = naa.getMonth() + 1 - fmnd
+  if (mndDiff < 0 || (mndDiff === 0 && naa.getDate() < fdag)) alder--
+  return alder
+}
+
 export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
@@ -22,7 +32,7 @@ export default async function Profil() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('navn, visningsnavn, rolle, bilde_url')
+      .select('navn, visningsnavn, rolle, bilde_url, fodselsdato')
       .eq('id', user!.id)
       .single(),
     supabase
@@ -53,7 +63,11 @@ export default async function Profil() {
       .limit(10),
   ])
 
-  const aar = norskAar() - KLUBBEN_START_AAR
+  // Hvis fødselsdato er satt, vises alder — ellers faller vi tilbake til
+  // antall år siden klubben ble stiftet (samme for alle).
+  const alder = profil?.fodselsdato ? beregnAlder(profil.fodselsdato) : null
+  const aarStat = alder ?? norskAar() - KLUBBEN_START_AAR
+  const aarLabel = alder !== null ? 'Alder' : 'År'
   const navn = profil?.navn ?? 'Ukjent'
   const rolle = profil?.rolle === 'admin' ? 'Admin' : 'Medlem'
 
@@ -175,7 +189,7 @@ export default async function Profil() {
           {[
             { val: oppmoeter ?? 0, lbl: 'Oppmøter' },
             { val: kaaringer ?? 0, lbl: 'Kåringer' },
-            { val: aar, lbl: 'År' },
+            { val: aarStat, lbl: aarLabel },
           ].map(s => (
             <div key={s.lbl}>
               <div
