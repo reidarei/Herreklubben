@@ -68,3 +68,14 @@ export const faarIssueVarsler = (rolle: string | null | undefined): boolean =>
 
 export const tittelFor = (rolle: string | null | undefined): string =>
   rettigheterFor(rolle).tittel
+
+// Returnerer alle roller hvor en gitt rettighet er sann. Gjør det mulig for
+// kallestedene å spørre matrisen direkte i stedet for å hardkode lister av
+// rolle-strenger som må vedlikeholdes manuelt (f.eks. i DB-filtre).
+export function rollerMed(rettighet: keyof Rettigheter): Rolle[] {
+  return (Object.keys(ROLLER) as Rolle[]).filter(r => Boolean(ROLLER[r][rettighet]))
+}
+
+// Roller som kan velges fra admin-UI (rediger medlem). Generalsekretær
+// utelates bevisst fordi den settes manuelt via SQL, ikke via skjema.
+export const VALGBARE_ROLLER: Rolle[] = ['medlem', 'admin']

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterMedlemAdmin, slettMedlem } from '@/lib/actions/profil'
+import { VALGBARE_ROLLER, tittelFor, type Rolle } from '@/lib/roller'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Segment from '@/components/ui/Segment'
@@ -72,9 +73,10 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   const [fodselsdato, setFodselsdato] = useState(medlem.fodselsdato ?? '')
   // Generalsekretær-rollen settes ikke fra UI — den bevares som er hvis
   // skjemaet åpnes for en bruker som allerede er generalsekretær.
-  const erGeneralsekretaer = medlem.rolle === 'generalsekretaer'
-  const [rolle, setRolle] = useState<'medlem' | 'admin'>(
-    medlem.rolle === 'admin' ? 'admin' : 'medlem',
+  // Valgbare roller (medlem/admin) hentes fra rolle-matrisen i lib/roller.ts.
+  const erValgbar = (VALGBARE_ROLLER as string[]).includes(medlem.rolle)
+  const [rolle, setRolle] = useState<Rolle>(
+    erValgbar ? (medlem.rolle as Rolle) : 'medlem',
   )
   const [aktiv, setAktiv] = useState<'aktiv' | 'deaktivert'>(
     medlem.aktiv ? 'aktiv' : 'deaktivert',
@@ -86,7 +88,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
         navn,
         visningsnavn: visningsnavn || navn,
         telefon,
-        rolle: erGeneralsekretaer ? 'generalsekretaer' : rolle,
+        rolle: erValgbar ? rolle : medlem.rolle,
         aktiv: aktiv === 'aktiv',
         fodselsdato: fodselsdato || undefined,
       })
@@ -167,19 +169,16 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
       <SkjemaSeksjon label="Tilgang">
         <div style={{ padding: '10px 4px', borderBottom: '0.5px solid var(--border-subtle)' }}>
           <div style={{ ...labelStil, marginBottom: 8 }}>Rolle</div>
-          {erGeneralsekretaer ? (
-            <div style={{ ...inputBaseStil, color: 'var(--accent)' }}>
-              Generalsekretær (kan ikke endres her)
-            </div>
-          ) : (
+          {erValgbar ? (
             <Segment
               value={rolle}
               onChange={setRolle}
-              options={[
-                { value: 'medlem', label: 'Medlem' },
-                { value: 'admin', label: 'Admin' },
-              ]}
+              options={VALGBARE_ROLLER.map(r => ({ value: r, label: tittelFor(r) }))}
             />
+          ) : (
+            <div style={{ ...inputBaseStil, color: 'var(--accent)' }}>
+              {tittelFor(medlem.rolle)} (kan ikke endres her)
+            </div>
           )}
         </div>
         <div style={{ padding: '10px 4px' }}>

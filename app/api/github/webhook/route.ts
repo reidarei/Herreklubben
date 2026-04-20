@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
 import { formaterDato } from '@/lib/dato'
+import { rollerMed } from '@/lib/roller'
 import crypto from 'crypto'
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
@@ -44,14 +45,13 @@ export async function POST(request: Request) {
       ?.trim()
       ?.slice(0, 200) ?? 'Nytt innspill i appen'
 
-    // Kun rollen 'admin' får issue-varsler. Generalsekretær har
-    // admin-rettigheter i RLS men er ekskludert fra issue-strømmen bevisst.
-    // Kilden til sannhet er `faarIssueVarsler` i lib/roller.ts — filteret
-    // her speiler den matrisen.
+    // Filter datadrevet fra rolle-matrisen: hent alle roller som har
+    // `faarIssueVarsler: true`. Slik følger filteret automatisk med hvis
+    // matrisen endres (f.eks. hvis generalsekretær senere skal få varsler).
     const { data: admins } = await admin
       .from('profiles')
       .select('id')
-      .eq('rolle', 'admin')
+      .in('rolle', rollerMed('faarIssueVarsler'))
       .eq('aktiv', true)
 
     const adminIder = (admins ?? []).map(a => a.id)
