@@ -3,7 +3,14 @@ import Link from 'next/link'
 export type UtkastData = {
   id: string
   tittel: string
-  ansvarlig: string | null
+  ansvarlige: string[]
+}
+
+// «Reka», «Reka og Jona», «Reka, Jona og Heede»
+function formaterAnsvarlige(navn: string[]): string {
+  if (navn.length <= 1) return navn[0] ?? ''
+  if (navn.length === 2) return `${navn[0]} og ${navn[1]}`
+  return `${navn.slice(0, -1).join(', ')} og ${navn[navn.length - 1]}`
 }
 
 export default function UtkastKort({ utkast }: { utkast: UtkastData }) {
@@ -72,9 +79,11 @@ export default function UtkastKort({ utkast }: { utkast: UtkastData }) {
             color: 'var(--text-tertiary)',
           }}
         >
-          {utkast.ansvarlig ? (
+          {utkast.ansvarlige.length > 0 ? (
             <>
-              <span style={{ color: 'var(--text-secondary)' }}>{utkast.ansvarlig}</span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                {formaterAnsvarlige(utkast.ansvarlige)}
+              </span>
               <span>skal arrangere</span>
             </>
           ) : (

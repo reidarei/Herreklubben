@@ -171,8 +171,8 @@ export function beregnBursdager(
 }
 
 // Grupperer arrangoransvar-rader (uten arrangement_id) til utkast per
-// `arrangement_navn`. Første ansvarlig vises som frontperson på utkastet —
-// resten er i databasen men brukes ikke i UI akkurat nå.
+// `arrangement_navn`. Alle ansvarlige for arrangementet vises på utkastet
+// i samme rekkefølge som de ligger i databasen.
 function bygUtkast(
   ansvar: UtkastRaad[],
   aar: number,
@@ -188,7 +188,7 @@ function bygUtkast(
   return [...gruppering.entries()].map(([tittel, { ansvarlige, purredato }]) => ({
     id: `utkast-${aar}-${tittel}`,
     tittel,
-    ansvarlig: ansvarlige[0] ?? null,
+    ansvarlige,
     purredato,
   }))
 }
@@ -256,7 +256,7 @@ export function byggAgenda(input: {
     return {
       kind: 'utkast',
       sortIso: gyldig ? iso : null,
-      data: { id: u.id, tittel: u.tittel, ansvarlig: u.ansvarlig },
+      data: { id: u.id, tittel: u.tittel, ansvarlige: u.ansvarlige },
     }
   })
 
