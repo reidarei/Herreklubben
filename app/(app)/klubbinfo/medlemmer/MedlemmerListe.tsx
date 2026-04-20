@@ -9,9 +9,7 @@ type Medlem = {
   id: string
   navn: string
   rolle: string
-  medlemSiden: number
   narv: number | null
-  erNy: boolean
   erAeres: boolean
   aktiv: boolean
   bildeUrl: string | null
@@ -118,9 +116,7 @@ export default function MedlemmerListe({
             navn={m.navn}
             rolle={m.rolle}
             rolleLabel={tittelFor(m.rolle)}
-            medlemSiden={m.medlemSiden}
             narv={m.narv}
-            erNy={m.erNy}
             erAeres={m.erAeres}
             bildeUrl={m.bildeUrl}
             last={i === aktive.length - 1}
@@ -153,7 +149,6 @@ export default function MedlemmerListe({
                 navn={m.navn}
                 rolle={m.rolle}
                 rolleLabel={tittelFor(m.rolle)}
-                medlemSiden={m.medlemSiden}
                 narv={null}
                 bildeUrl={m.bildeUrl}
                 last={i === inaktive.length - 1}

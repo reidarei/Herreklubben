@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
-import { norskAar } from '@/lib/dato'
 import MedlemmerListe from './MedlemmerListe'
 import { kanAdministrere } from '@/lib/roller'
 
@@ -27,7 +26,7 @@ export default async function Medlemmer() {
   const [{ data: profiler }, { data: stat }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, navn, rolle, aktiv, opprettet, bilde_url')
+      .select('id, navn, rolle, aktiv, bilde_url')
       .order('navn'),
     supabase.rpc('get_statistikk'),
   ])
@@ -39,9 +38,7 @@ export default async function Medlemmer() {
     deltagelseMap.set(d.id, d.totalt)
   }
 
-  const aar = norskAar()
   const medlemmer = (profiler ?? []).map(p => {
-    const medlemSiden = new Date(p.opprettet).getFullYear()
     const ja = deltagelseMap.get(p.id) ?? 0
     const narv =
       totalHistoriske > 0 ? Math.round((ja / totalHistoriske) * 100) : null
@@ -49,9 +46,7 @@ export default async function Medlemmer() {
       id: p.id,
       navn: p.navn,
       rolle: p.rolle,
-      medlemSiden,
       narv,
-      erNy: aar - medlemSiden <= 1,
       erAeres: false,
       aktiv: p.aktiv,
       bildeUrl: p.bilde_url,

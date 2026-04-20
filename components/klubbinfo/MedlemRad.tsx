@@ -9,9 +9,7 @@ type Props = {
   rolle: string
   /** Visningsetikett under navnet. Beregnes med `tittelFor(rolle)`. */
   rolleLabel?: string
-  medlemSiden: number
   narv: number | null
-  erNy?: boolean
   erAeres?: boolean
   bildeUrl?: string | null
   last?: boolean
@@ -22,9 +20,7 @@ export default function MedlemRad({
   navn,
   rolle,
   rolleLabel,
-  medlemSiden,
   narv,
-  erNy,
   erAeres,
   bildeUrl,
   last,
@@ -69,24 +65,6 @@ export default function MedlemRad({
           >
             {navn}
           </span>
-          {erNy && (
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 8,
-                color: 'var(--accent)',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                padding: '2px 6px',
-                border: '0.5px solid var(--border-strong)',
-                borderRadius: 4,
-                flexShrink: 0,
-              }}
-            >
-              Ny
-            </span>
-          )}
           {erAeres && (
             <Icon name="crown" size={11} color="var(--accent)" strokeWidth={1.5} />
           )}
@@ -99,7 +77,7 @@ export default function MedlemRad({
             letterSpacing: '0.1px',
           }}
         >
-          {rolleLabel ?? rolle} · medlem siden {medlemSiden}
+          {rolleLabel ?? rolle}
         </div>
       </div>
       {narv != null && (
