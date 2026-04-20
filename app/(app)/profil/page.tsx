@@ -7,7 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import VarslerInnstillinger from '@/components/VarslerInnstillinger'
 import LoggUtKnapp from './LoggUtKnapp'
 
-const KLUBBEN_START_AAR = 2008
+const KLUBBEN_START_AAR = 2007
 
 export default async function Profil() {
   const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])

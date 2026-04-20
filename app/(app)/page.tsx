@@ -89,7 +89,7 @@ export default async function Forside() {
               marginBottom: 6,
             }}
           >
-            Siden 2008 · {antallGutta} herrer
+            Siden 2007 · {antallGutta} herrer
           </div>
           <h1
             style={{

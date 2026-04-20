@@ -4,7 +4,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
 
-const KLUBBEN_START_AAR = 2008
+const KLUBBEN_START_AAR = 2007
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -105,7 +105,7 @@ export default async function Klubbinfo() {
           }}
         >
           <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
-          Etablert {KLUBBEN_START_AAR}
+          Stiftet 24. november {KLUBBEN_START_AAR}
         </div>
         <h2
           style={{
