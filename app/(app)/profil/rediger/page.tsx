@@ -19,6 +19,7 @@ export default async function RedigerProfil() {
       fodselsdato={profil?.fodselsdato ?? ''}
       epost={profil?.epost ?? user!.email ?? ''}
       bildeUrl={profil?.bilde_url ?? null}
+      rolle={profil?.rolle ?? null}
     />
   )
 }

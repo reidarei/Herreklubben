@@ -9,6 +9,7 @@ import IssuesListe from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
+import { kanAdministrere } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
   nytt_arrangement: 'Varsel ved nytt arrangement',
@@ -22,7 +23,7 @@ const innstillingLabels: Record<string, string> = {
 export default async function Innstillinger() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
 
-  if (profil?.rolle !== 'admin') notFound()
+  if (!kanAdministrere(profil?.rolle)) notFound()
 
   const admin = createAdminClient()
   const [

@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import MedlemmerListe from './MedlemmerListe'
+import { kanAdministrere } from '@/lib/roller'
 
 type Deltagelse = {
   id: string
@@ -21,7 +22,7 @@ type Statistikk = {
 
 export default async function Medlemmer() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
 
   const [{ data: profiler }, { data: stat }] = await Promise.all([
     supabase

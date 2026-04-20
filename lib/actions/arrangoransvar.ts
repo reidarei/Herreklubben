@@ -4,13 +4,14 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendVarsel } from '@/lib/varsler'
+import { kanAdministrere } from '@/lib/roller'
 
 async function sjekkAdmin() {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
   const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
+  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
   return supabase
 }
 

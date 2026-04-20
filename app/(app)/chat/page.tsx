@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Chat from '@/components/chat/Chat'
+import { kanAdministrere } from '@/lib/roller'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
 // Initial-last er siste 30 meldinger (i desc-rekkefølge fra DB, reversert til
@@ -18,10 +19,10 @@ export default async function KlubbChatSide() {
       .select('id, profil_id, innhold, opprettet')
       .order('opprettet', { ascending: false })
       .limit(30),
-    supabase.from('profiles').select('id, navn, bilde_url').eq('aktiv', true),
+    supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),
   ])
 
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
   const initialMeldinger = [...(siste ?? [])].reverse()
 
   return (

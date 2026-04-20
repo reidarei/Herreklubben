@@ -34,7 +34,11 @@ import type { BursdagData } from '@/components/agenda/BursdagKort'
 export type PaameldingRaad = {
   profil_id: string
   status: string
-  profiles: { visningsnavn: string | null; bilde_url: string | null } | null
+  profiles: {
+    visningsnavn: string | null
+    bilde_url: string | null
+    rolle?: string | null
+  } | null
 }
 
 export type ArrangementRaad = {
@@ -59,6 +63,7 @@ export type ProfilMedBursdag = {
   visningsnavn: string | null
   fodselsdato: string | null
   bilde_url?: string | null
+  rolle?: string | null
 }
 
 // === Resultat-typer ===============================================
@@ -118,6 +123,7 @@ export function tilHighlight(arr: ArrangementRaad, meg: string): HighlightKortDa
       .map(p => ({
         navn: p.profiles?.visningsnavn ?? '',
         src: p.profiles?.bilde_url ?? null,
+        rolle: p.profiles?.rolle ?? null,
       }))
       .filter(d => d.navn)
       .slice(0, 3),
@@ -166,6 +172,7 @@ export function beregnBursdager(
           dato: `${aar}-${String(mnd).padStart(2, '0')}-${String(dag).padStart(2, '0')}`,
           alder: aar - fodselsaar,
           bildeUrl: p.bilde_url ?? null,
+          rolle: p.rolle ?? null,
         })
       }
     }

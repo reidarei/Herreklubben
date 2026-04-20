@@ -70,6 +70,9 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   const [visningsnavn, setVisningsnavn] = useState(medlem.visningsnavn)
   const [telefon, setTelefon] = useState(medlem.telefon ?? '')
   const [fodselsdato, setFodselsdato] = useState(medlem.fodselsdato ?? '')
+  // Generalsekretær-rollen settes ikke fra UI — den bevares som er hvis
+  // skjemaet åpnes for en bruker som allerede er generalsekretær.
+  const erGeneralsekretaer = medlem.rolle === 'generalsekretaer'
   const [rolle, setRolle] = useState<'medlem' | 'admin'>(
     medlem.rolle === 'admin' ? 'admin' : 'medlem',
   )
@@ -83,7 +86,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
         navn,
         visningsnavn: visningsnavn || navn,
         telefon,
-        rolle,
+        rolle: erGeneralsekretaer ? 'generalsekretaer' : rolle,
         aktiv: aktiv === 'aktiv',
         fodselsdato: fodselsdato || undefined,
       })
@@ -164,14 +167,20 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
       <SkjemaSeksjon label="Tilgang">
         <div style={{ padding: '10px 4px', borderBottom: '0.5px solid var(--border-subtle)' }}>
           <div style={{ ...labelStil, marginBottom: 8 }}>Rolle</div>
-          <Segment
-            value={rolle}
-            onChange={setRolle}
-            options={[
-              { value: 'medlem', label: 'Medlem' },
-              { value: 'admin', label: 'Admin' },
-            ]}
-          />
+          {erGeneralsekretaer ? (
+            <div style={{ ...inputBaseStil, color: 'var(--accent)' }}>
+              Generalsekretær (kan ikke endres her)
+            </div>
+          ) : (
+            <Segment
+              value={rolle}
+              onChange={setRolle}
+              options={[
+                { value: 'medlem', label: 'Medlem' },
+                { value: 'admin', label: 'Admin' },
+              ]}
+            />
+          )}
         </div>
         <div style={{ padding: '10px 4px' }}>
           <div style={{ ...labelStil, marginBottom: 8 }}>Status</div>

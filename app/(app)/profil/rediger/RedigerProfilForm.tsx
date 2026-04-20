@@ -18,6 +18,7 @@ type Props = {
   fodselsdato: string
   epost: string
   bildeUrl: string | null
+  rolle?: string | null
 }
 
 const labelStil: React.CSSProperties = {
@@ -77,6 +78,7 @@ export default function RedigerProfilForm({
   fodselsdato: fdInit,
   epost,
   bildeUrl: bildeUrlInit,
+  rolle,
 }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -223,7 +225,7 @@ export default function RedigerProfilForm({
             cursor: bildeLaster ? 'wait' : 'pointer',
           }}
         >
-          <Avatar name={navn} size={56} src={bildeUrl} />
+          <Avatar name={navn} size={56} src={bildeUrl} rolle={rolle} />
           <div
             style={{
               position: 'absolute',

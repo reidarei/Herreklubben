@@ -10,6 +10,7 @@ export type BursdagData = {
   dato: string // YYYY-MM-DD
   alder: number
   bildeUrl?: string | null
+  rolle?: string | null
 }
 
 export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
@@ -101,7 +102,12 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
           justifyContent: 'center',
         }}
       >
-        <Avatar name={bursdag.navn} src={bursdag.bildeUrl ?? null} size={64} />
+        <Avatar
+          name={bursdag.navn}
+          src={bursdag.bildeUrl ?? null}
+          size={64}
+          rolle={bursdag.rolle}
+        />
       </div>
     </Link>
   )

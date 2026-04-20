@@ -37,14 +37,14 @@ export default async function Forside() {
       .from('arrangementer')
       .select(
         `id, type, tittel, start_tidspunkt, oppmoetested, bilde_url,
-         paameldinger (profil_id, status, profiles (visningsnavn, bilde_url))`,
+         paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))`,
       )
       .gte('start_tidspunkt', treMndSiden.toISOString())
       .order('start_tidspunkt', { ascending: true }),
     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('aktiv', true),
     supabase
       .from('profiles')
-      .select('id, visningsnavn, fodselsdato, bilde_url')
+      .select('id, visningsnavn, fodselsdato, bilde_url, rolle')
       .eq('aktiv', true)
       .not('fodselsdato', 'is', null),
     supabase

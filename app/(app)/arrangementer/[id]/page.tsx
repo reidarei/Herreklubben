@@ -11,11 +11,16 @@ import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
 import { formaterDato } from '@/lib/dato'
+import { kanAdministrere } from '@/lib/roller'
 
 type Paamelding = {
   profil_id: string
   status: string
-  profiles: { navn: string | null; bilde_url: string | null } | null
+  profiles: {
+    navn: string | null
+    bilde_url: string | null
+    rolle?: string | null
+  } | null
 }
 
 function sceneFor(type: string): 'tur' | 'møte' | 'event' {
@@ -46,7 +51,7 @@ export default async function ArrangementDetaljer({
          oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
          bilde_url,
          opprettet_profil:profiles!arrangementer_opprettet_av_fkey (navn),
-         paameldinger (profil_id, status, profiles (navn, bilde_url))`,
+         paameldinger (profil_id, status, profiles (navn, bilde_url, rolle))`,
       )
       .eq('id', id)
       .single(),
@@ -56,12 +61,15 @@ export default async function ArrangementDetaljer({
       .eq('arrangement_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),
-    supabase.from('profiles').select('id, navn, bilde_url').eq('aktiv', true),
+    supabase
+      .from('profiles')
+      .select('id, navn, bilde_url, rolle')
+      .eq('aktiv', true),
   ])
 
   if (!arr) notFound()
 
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
   const erArrangoer = arr.opprettet_av === user!.id
   const kanRedigere = erArrangoer || erAdmin
   const erTur = arr.type === 'tur'
@@ -445,7 +453,12 @@ export default async function ArrangementDetaljer({
                     textDecoration: 'none',
                   }}
                 >
-                  <Avatar name={p.profiles?.navn ?? '?'} size={32} src={p.profiles?.bilde_url} />
+                  <Avatar
+                    name={p.profiles?.navn ?? '?'}
+                    size={32}
+                    src={p.profiles?.bilde_url}
+                    rolle={p.profiles?.rolle}
+                  />
                 </Link>
               ))}
               {jaListe.length > 7 && (

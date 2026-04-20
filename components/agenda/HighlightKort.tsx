@@ -6,7 +6,7 @@ import Placeholder from '@/components/ui/Placeholder'
 import Avatar from '@/components/ui/Avatar'
 import { formaterDato } from '@/lib/dato'
 
-type Deltaker = { navn: string; src?: string | null }
+type Deltaker = { navn: string; src?: string | null; rolle?: string | null }
 
 export type HighlightKortData = {
   id: string
@@ -125,7 +125,12 @@ export default function HighlightKort({ arr }: { arr: HighlightKortData }) {
           <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
             {arr.deltakereForhand.slice(0, 3).map((d, i) => (
               <div key={i} style={{ marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i, position: 'relative' }}>
-                <Avatar name={d.navn} size={24} src={d.src ?? undefined} />
+                <Avatar
+                  name={d.navn}
+                  size={24}
+                  src={d.src ?? undefined}
+                  rolle={d.rolle}
+                />
               </div>
             ))}
             <span

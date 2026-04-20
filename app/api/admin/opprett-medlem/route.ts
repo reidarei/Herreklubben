@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendEpost, velkommenEpostHtml } from '@/lib/epost'
 import { NextResponse } from 'next/server'
+import { kanAdministrere } from '@/lib/roller'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklubb.no'
 
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ feil: 'Ikke innlogget' }, { status: 401 })
 
   const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (profil?.rolle !== 'admin') return NextResponse.json({ feil: 'Ikke admin' }, { status: 403 })
+  if (!kanAdministrere(profil?.rolle)) return NextResponse.json({ feil: 'Ikke admin' }, { status: 403 })
 
   const { navn, epost } = await request.json()
   if (!navn || !epost) return NextResponse.json({ feil: 'Mangler navn eller e-post' }, { status: 400 })

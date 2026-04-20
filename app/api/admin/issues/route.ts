@@ -1,9 +1,10 @@
 import { getProfil } from '@/lib/auth-cache'
 import { NextRequest, NextResponse } from 'next/server'
+import { kanAdministrere } from '@/lib/roller'
 
 export async function GET(req: NextRequest) {
   const profil = await getProfil()
-  if (profil?.rolle !== 'admin') return NextResponse.json({ error: 'Ikke tilgang' }, { status: 403 })
+  if (!kanAdministrere(profil?.rolle)) return NextResponse.json({ error: 'Ikke tilgang' }, { status: 403 })
 
   const token = process.env.GITHUB_TOKEN
   if (!token) return NextResponse.json({ data: [] })

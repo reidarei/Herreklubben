@@ -4,11 +4,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import VedtektVisning from './VedtektVisning'
+import { kanAdministrere } from '@/lib/roller'
 
 export default async function VedtektSide({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
 
   const { data: vedtekt } = await supabase
     .from('vedtekter')

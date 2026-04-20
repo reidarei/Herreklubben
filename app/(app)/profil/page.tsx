@@ -5,6 +5,7 @@ import { norskAar, formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import SectionLabel from '@/components/ui/SectionLabel'
 import VarslerInnstillinger from '@/components/VarslerInnstillinger'
+import { tittelFor } from '@/lib/roller'
 import LoggUtKnapp from './LoggUtKnapp'
 
 const KLUBBEN_START_AAR = 2007
@@ -54,7 +55,7 @@ export default async function Profil() {
   ])
 
   const navn = profil?.navn ?? 'Ukjent'
-  const rolle = profil?.rolle === 'admin' ? 'Admin' : 'Medlem'
+  const rolle = tittelFor(profil?.rolle)
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
@@ -132,7 +133,12 @@ export default async function Profil() {
         }}
       >
         <div style={{ display: 'inline-block' }}>
-          <Avatar name={navn} size={78} src={profil?.bilde_url ?? null} />
+          <Avatar
+            name={navn}
+            size={78}
+            src={profil?.bilde_url ?? null}
+            rolle={profil?.rolle}
+          />
         </div>
         <div
           style={{

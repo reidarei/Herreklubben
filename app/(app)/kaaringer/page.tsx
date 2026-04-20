@@ -2,13 +2,14 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import KaaringerVisning from './KaaringerVisning'
+import { kanAdministrere } from '@/lib/roller'
 
 const KLUBBEN_START_AAR = 2008
 
 export default async function Kaaringer() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
 
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
   const gjeldende_aar = norskAar()
 
   const [

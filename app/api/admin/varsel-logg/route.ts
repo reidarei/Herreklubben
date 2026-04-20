@@ -1,10 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { NextRequest, NextResponse } from 'next/server'
+import { kanAdministrere } from '@/lib/roller'
 
 export async function GET(req: NextRequest) {
   const profil = await getProfil()
-  if (profil?.rolle !== 'admin') return NextResponse.json({ error: 'Ikke tilgang' }, { status: 403 })
+  if (!kanAdministrere(profil?.rolle)) return NextResponse.json({ error: 'Ikke tilgang' }, { status: 403 })
 
   const offset = parseInt(req.nextUrl.searchParams.get('offset') ?? '0')
   const limit = parseInt(req.nextUrl.searchParams.get('limit') ?? '10')

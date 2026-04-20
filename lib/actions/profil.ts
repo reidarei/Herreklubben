@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { kanAdministrere } from '@/lib/roller'
 
 export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
   const supabase = await createServerClient()
@@ -35,7 +36,7 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
   if (!user) throw new Error('Ikke innlogget')
 
   const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
+  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
 
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
@@ -53,7 +54,7 @@ export async function slettMedlem(id: string) {
   if (!user) throw new Error('Ikke innlogget')
 
   const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (profil?.rolle !== 'admin') throw new Error('Ikke admin')
+  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
   if (id === user.id) throw new Error('Kan ikke slette seg selv')
 
   const admin = createAdminClient()

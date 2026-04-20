@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
+import { kanAdministrere } from '@/lib/roller'
 
 export default async function RedigerArrangement({
   params,
@@ -23,7 +24,7 @@ export default async function RedigerArrangement({
 
   if (!arr) notFound()
 
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
   const kanRedigere = arr.opprettet_av === user!.id || erAdmin
 
   if (!kanRedigere) redirect(`/arrangementer/${id}`)

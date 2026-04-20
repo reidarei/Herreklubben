@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
+import { kanAdministrere } from '@/lib/roller'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -113,7 +114,7 @@ export async function varslOmArrangement(arrangementId: string) {
 
   // Sjekk at bruker er admin eller opprettet arrangementet
   const profil = await getProfil()
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
   const erOpprettet = arrangement.opprettet_av === user.id
   if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
 

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import MedlemRad from '@/components/klubbinfo/MedlemRad'
 import SectionLabel from '@/components/ui/SectionLabel'
+import { tittelFor } from '@/lib/roller'
 
 type Medlem = {
   id: string
@@ -115,7 +116,8 @@ export default function MedlemmerListe({
             key={m.id}
             id={m.id}
             navn={m.navn}
-            rolle={m.rolle === 'admin' ? 'Admin' : 'Medlem'}
+            rolle={m.rolle}
+            rolleLabel={tittelFor(m.rolle)}
             medlemSiden={m.medlemSiden}
             narv={m.narv}
             erNy={m.erNy}
@@ -149,7 +151,8 @@ export default function MedlemmerListe({
                 key={m.id}
                 id={m.id}
                 navn={m.navn}
-                rolle={m.rolle === 'admin' ? 'Admin' : 'Medlem'}
+                rolle={m.rolle}
+                rolleLabel={tittelFor(m.rolle)}
                 medlemSiden={m.medlemSiden}
                 narv={null}
                 bildeUrl={m.bildeUrl}

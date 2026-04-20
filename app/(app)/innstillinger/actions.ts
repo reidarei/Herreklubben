@@ -4,10 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { kjorPaaminnelser } from '@/lib/actions/paaminnelser'
 import { revalidatePath } from 'next/cache'
+import { kanAdministrere } from '@/lib/roller'
 
 export async function oppdaterVarselInnstilling(noekkel: string, aktiv: boolean) {
   const profil = await getProfil()
-  if (profil?.rolle !== 'admin') return
+  if (!kanAdministrere(profil?.rolle)) return
 
   const admin = createAdminClient()
   await admin
@@ -20,7 +21,7 @@ export async function oppdaterVarselInnstilling(noekkel: string, aktiv: boolean)
 
 export async function kjorPaaminnerManuelt(): Promise<boolean> {
   const profil = await getProfil()
-  if (profil?.rolle !== 'admin') return false
+  if (!kanAdministrere(profil?.rolle)) return false
 
   const admin = createAdminClient()
   await kjorPaaminnelser(admin)

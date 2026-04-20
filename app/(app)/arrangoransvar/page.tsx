@@ -6,11 +6,12 @@ import PurreKnapp from './PurreKnapp'
 import SectionLabel from '@/components/ui/SectionLabel'
 import { norskAar, norskDag, norskDatoNaa } from '@/lib/dato'
 import { isBefore } from 'date-fns'
+import { kanAdministrere } from '@/lib/roller'
 
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
   const [user, profil] = await Promise.all([getInnloggetBruker(), getProfil()])
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
 
   const innevaerendeAar = norskAar()
   const visAar = [innevaerendeAar, innevaerendeAar + 1]

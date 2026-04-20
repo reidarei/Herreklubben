@@ -3,12 +3,13 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
+import { kanAdministrere } from '@/lib/roller'
 
 const KLUBBEN_START_AAR = 2007
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
-  const erAdmin = profil?.rolle === 'admin'
+  const erAdmin = kanAdministrere(profil?.rolle)
 
   const [{ count: antallMedlemmer }, { count: totaltArr }] = await Promise.all([
     supabase

@@ -5,7 +5,10 @@ import Icon from '@/components/ui/Icon'
 type Props = {
   id: string
   navn: string
+  /** Rå rolle-streng fra DB — brukes til Avatar-styling (gul glød osv.) */
   rolle: string
+  /** Visningsetikett under navnet. Beregnes med `tittelFor(rolle)`. */
+  rolleLabel?: string
   medlemSiden: number
   narv: number | null
   erNy?: boolean
@@ -18,6 +21,7 @@ export default function MedlemRad({
   id,
   navn,
   rolle,
+  rolleLabel,
   medlemSiden,
   narv,
   erNy,
@@ -47,7 +51,7 @@ export default function MedlemRad({
         color: 'inherit',
       }}
     >
-      <Avatar name={navn} size={40} src={bildeUrl} />
+      <Avatar name={navn} size={40} src={bildeUrl} rolle={rolle} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
           <span
@@ -95,7 +99,7 @@ export default function MedlemRad({
             letterSpacing: '0.1px',
           }}
         >
-          {rolle} · medlem siden {medlemSiden}
+          {rolleLabel ?? rolle} · medlem siden {medlemSiden}
         </div>
       </div>
       {narv != null && (

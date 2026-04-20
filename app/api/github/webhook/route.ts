@@ -44,6 +44,10 @@ export async function POST(request: Request) {
       ?.trim()
       ?.slice(0, 200) ?? 'Nytt innspill i appen'
 
+    // Kun rollen 'admin' får issue-varsler. Generalsekretær har
+    // admin-rettigheter i RLS men er ekskludert fra issue-strømmen bevisst.
+    // Kilden til sannhet er `faarIssueVarsler` i lib/roller.ts — filteret
+    // her speiler den matrisen.
     const { data: admins } = await admin
       .from('profiles')
       .select('id')

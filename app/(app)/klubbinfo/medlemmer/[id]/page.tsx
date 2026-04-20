@@ -5,11 +5,12 @@ import { notFound } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import SectionLabel from '@/components/ui/SectionLabel'
 import { formaterDato } from '@/lib/dato'
+import { kanAdministrere, tittelFor } from '@/lib/roller'
 
 export default async function MedlemProfil({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const [supabase, meg] = await Promise.all([createServerClient(), getProfil()])
-  const erAdmin = meg?.rolle === 'admin'
+  const erAdmin = kanAdministrere(meg?.rolle)
 
   const [
     { data: medlem },
@@ -87,7 +88,7 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
 
   if (!medlem || (!medlem.aktiv && !erAdmin)) notFound()
 
-  const rolleLabel = medlem.rolle === 'admin' ? 'Admin' : 'Medlem'
+  const rolleLabel = tittelFor(medlem.rolle)
   const navn = medlem.navn ?? 'Ukjent'
 
   return (
@@ -177,7 +178,12 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
         }}
       >
         <div style={{ display: 'inline-block' }}>
-          <Avatar name={navn} size={78} src={medlem.bilde_url} />
+          <Avatar
+            name={navn}
+            size={78}
+            src={medlem.bilde_url}
+            rolle={medlem.rolle}
+          />
         </div>
         {medlem.visningsnavn && medlem.visningsnavn !== medlem.navn && (
           <div

@@ -1,8 +1,18 @@
+import { harGulGloed } from '@/lib/roller'
+
 type Props = {
   name: string
   size?: number
   src?: string | null
+  /** Medlemmets rolle — bestemmer evt. særegenskaper som gul glød. */
+  rolle?: string | null
 }
+
+// Gul-oransje glød som markerer generalsekretæren rundt profilbildet.
+// Bruker box-shadow lagvis (indre ring + mykt skjær) så effekten fungerer
+// både på avatar-bildet og på initial-bakgrunnen.
+const GULGLOED =
+  '0 0 0 2px #e8d9b5, 0 0 14px 2px color-mix(in srgb, #e8d9b5 65%, transparent)'
 
 function initialerAv(navn: string): string {
   return navn
@@ -22,16 +32,18 @@ function hueAv(navn: string): number {
   return (h % 60) + 40
 }
 
-export default function Avatar({ name, size = 32, src }: Props) {
+export default function Avatar({ name, size = 32, src, rolle }: Props) {
   const init = initialerAv(name || '?')
   const hue = hueAv(name || '')
+  const glod = harGulGloed(rolle)
 
   const felles = {
     width: size,
     height: size,
     borderRadius: '50%',
-    border: '0.5px solid var(--border)',
+    border: glod ? 'none' : '0.5px solid var(--border)',
     flexShrink: 0,
+    boxShadow: glod ? GULGLOED : undefined,
   } as const
 
   if (src) {

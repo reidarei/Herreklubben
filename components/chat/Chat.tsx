@@ -28,6 +28,7 @@ export type ChatProfil = {
   id: string
   navn: string | null
   bilde_url: string | null
+  rolle?: string | null
 }
 
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
@@ -80,6 +81,9 @@ export default function Chat({
   ).current
   const bildeMap = useRef(
     new Map(profiler.map(p => [p.id, p.bilde_url])),
+  ).current
+  const rolleMap = useRef(
+    new Map(profiler.map(p => [p.id, p.rolle ?? null])),
   ).current
   const andreProfiler = useRef(
     profiler.filter(p => p.id !== brukerId && p.navn),
@@ -375,6 +379,7 @@ export default function Chat({
           const kanSlette = erEgen || erAdmin
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
           const bilde = bildeMap.get(m.profil_id)
+          const rolle = rolleMap.get(m.profil_id) ?? null
           const tid = formaterDato(m.opprettet, 'HH:mm')
           return (
             <div
@@ -386,7 +391,7 @@ export default function Chat({
               }}
             >
               <div style={{ flexShrink: 0, alignSelf: 'flex-end' }}>
-                <Avatar name={navn} size={26} src={bilde} />
+                <Avatar name={navn} size={26} src={bilde} rolle={rolle} />
               </div>
               <div
                 style={{
