@@ -13,9 +13,10 @@ Detaljert brukerbehovsspesifikasjon (use cases, roller, scope, avklarte beslutni
 ## Roller
 
 - **Admin** (2): oppretter medlemmer, styrer kåringer, redigerer klubbinfo, kan redigere/slette alle arrangementer.
+- **Generalsekretær** (1, André Heede): har admin-rettigheter, men mottar ikke issue-varsler og markeres med gul glød på profilbildet.
 - **Medlem** (~15): oppretter egne arrangementer, melder seg på (Ja/Nei/Kanskje), leser alt innhold.
 
-Admins er også medlemmer. Tilgang håndheves i RLS — ikke bare i UI.
+Admins og generalsekretær er også medlemmer. Tilgang håndheves i RLS — ikke bare i UI. Se **Policy: Roller** nedenfor for hvordan sjekker skal gjøres i kode.
 
 ## Kommandoer
 
@@ -38,6 +39,8 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 **Varsler:** Sentral varslingsfunksjon `sendVarsel()` i `lib/varsler.ts` — all utgående kommunikasjon (push, epost) går gjennom denne. Se **Policy: Varsler** nedenfor.
 
 **Tid:** All tidshåndtering går gjennom `lib/dato.ts` med `Europe/Oslo` tidssone. Se **Policy: Tidshåndtering** nedenfor.
+
+**Roller:** Rettighetsmatrise i `lib/roller.ts` speiles av `er_admin()` i DB. Aldri sammenlign rolle-strenger direkte — bruk hjelperne. Se **Policy: Roller** nedenfor.
 
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
@@ -85,6 +88,35 @@ All utgående kommunikasjon (push, epost) skal gå gjennom `sendVarsel()` i `lib
 **Cron:** GitHub Actions (`.github/workflows/paaminne.yml`) kaller `/api/cron/paaminne` via POST kl 06:00 UTC (08:00 norsk sommertid) med `CRON_SECRET`-auth. Valgt foran Vercel cron for bedre logging og synlig feilrapportering. Datobasert sjekk — arrangementets dato sammenlignes med norsk dato, ikke tidspunkt.
 
 **Viktig:** Bruk aldri `after()` fra `next/server` for varsler — det kjører ikke pålitelig på Vercel Hobby. Bruk `await` direkte.
+
+## Policy: Roller
+
+Sentral rettighetsmatrise i `lib/roller.ts` definerer de tre rollene og hva hver rolle kan/mottar. **Aldri** sammenlign `rolle === 'admin'` direkte i kode — bruk hjelperne.
+
+**Roller:** `medlem`, `admin`, `generalsekretaer`. Alle har medlem-rettigheter. Admin og generalsekretær har i tillegg admin-rettigheter (CRUD på tvers, kåringer, klubbinfo, alle arrangementer).
+
+**Matrisen (`ROLLER`) har fire felt per rolle:**
+- `tittel` — visningsnavn i UI
+- `kanAdministrere` — har admin-rettigheter
+- `faarIssueVarsler` — mottar push/epost for nye GitHub-innspill
+- `harGulGloed` — særegen gul ring rundt avatar
+
+**Bruk disse hjelperne:**
+- `kanAdministrere(rolle)` — admin-sjekk i UI, server actions, API-ruter
+- `harGulGloed(rolle)` — avatar-styling
+- `faarIssueVarsler(rolle)` — brukes indirekte via `rollerMed('faarIssueVarsler')` for DB-spørringer
+- `tittelFor(rolle)` — visning av rolle i UI
+- `rettigheterFor(rolle)` — hele rettighetsobjektet
+- `rollerMed(rettighet)` — liste over roller som har en gitt rettighet (for `.in('rolle', …)`-filtre)
+- `VALGBARE_ROLLER` — roller som kan velges fra admin-UI (generalsekretær settes manuelt via SQL)
+
+**Database-siden:** Funksjonen `er_admin()` returnerer true for både admin og generalsekretær og brukes i alle RLS-policies. Hvis matrisen endres slik at en ny rolle skal ha admin-rettigheter, må `er_admin()` oppdateres i en ny migrasjon — dette er duplisering vi lever med fordi RLS må kjøre i DB.
+
+**Når nye RLS-policies skrives:** Bruk `er_admin()`, ikke inline `rolle = 'admin'`. Sistnevnte glipper unna når nye roller med admin-rettigheter kommer.
+
+**Setting av generalsekretær-rollen:** Via SQL (`update profiles set rolle = 'generalsekretaer' where …`). UI-et til medlemsredigering kan ikke sette denne rollen — bare bevare den hvis den allerede er satt.
+
+**Testing:** `__tests__/roller.test.ts` verifiserer at matrisen og hjelperne holder seg i synk. Oppdater testen hvis du legger til ny rolle eller rettighet.
 
 ## Policy: Tidshåndtering
 
