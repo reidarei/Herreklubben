@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
 
 type Tab = {
@@ -39,12 +39,33 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const pathname = usePathname()
   const initial = initialAv(brukerNavn ?? undefined)
 
+  // Skjul dokken når tastaturet er åpent — ellers flyter den over
+  // chat-input og skjemaer. Bruker VisualViewport fordi den rapporterer
+  // synlig høyde eksklusive tastatur på iOS/Android.
+  const [tastaturApent, setTastaturApent] = useState(false)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    function oppdater() {
+      if (!vv) return
+      const diff = window.innerHeight - vv.height
+      setTastaturApent(diff > 150)
+    }
+    vv.addEventListener('resize', oppdater)
+    oppdater()
+    return () => vv.removeEventListener('resize', oppdater)
+  }, [])
+
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
     left: 0,
     right: 0,
     zIndex: 30,
+    opacity: tastaturApent ? 0 : 1,
+    transform: tastaturApent ? 'translateY(24px)' : 'translateY(0)',
+    pointerEvents: tastaturApent ? 'none' : 'auto',
+    transition: 'opacity 160ms ease, transform 160ms ease',
     borderRadius: 999,
     padding: 6,
     display: 'flex',
