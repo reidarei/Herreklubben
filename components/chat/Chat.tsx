@@ -387,7 +387,11 @@ export default function Chat({
 
         {meldinger.map(m => {
           const erEgen = m.profil_id === brukerId
-          const kanSlette = erEgen || erAdmin
+          // Slett-knappen er bevisst deaktivert — det var for lett å mistrykke
+          // og ingen skal egentlig kunne slette chat-meldinger. Server-actionene
+          // (slettMelding / slettKlubbMelding) finnes fortsatt for manuelle
+          // databaseinngrep. Flipp tilbake til `erEgen || erAdmin` ved behov.
+          const kanSlette = false
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
           const bilde = bildeMap.get(m.profil_id)
           const rolle = rolleMap.get(m.profil_id) ?? null

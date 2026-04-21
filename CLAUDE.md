@@ -132,4 +132,16 @@ All tidshåndtering skal gå gjennom `lib/dato.ts`. **Aldri** bruk `new Date()` 
 
 **Tidssone:** `Europe/Oslo` (eksportert som `TIDSSONE` fra `lib/dato.ts`). Håndterer automatisk sommertid/vintertid via `date-fns-tz`.
 
+## Policy: Arrangøransvar-kobling
+
+Når en ansvarlig oppretter et arrangement i perioden sin, kobles det **automatisk** til riktig `arrangoransvar`-rad. Brukeren trenger ikke velge noe i UI-et.
+
+**Hjelper:** `finnAnsvarForArrangement()` i `lib/arrangoransvar-matching.ts`. Matcher norsk kalendermåned i `start_tidspunkt` mot måned-intervall utledet fra `arrangement_navn` (januar/februar → 1–2, mars/april → 3–4, osv.).
+
+**Navnekonvensjonen er kontrakten.** Hvis en arrangoransvar-rad heter `"Sommerfest"` matcher den ingenting — bruk alltid måneds-baserte navn (`"Mai/Juni-møtet"`, `"Julebord"`). Ved nye arrangementstyper utvides `periodeFraNavn()` og dette dokumentet.
+
+**Flyt:** `opprettArrangement` faller tilbake til auto-match når `data.ansvar_id` ikke er oppgitt. Oppdaterer ALLE rader med samme `(aar, arrangement_navn)` — flere ansvarlige kan dele samme arrangement.
+
+**Detaljer:** Se [løsningsdesign §5.4](HK-app_losningsdesign.md#54-kobling-mellom-nytt-arrangement-og-arrangøransvar). Tester i `__tests__/arrangoransvar-matching.test.ts`.
+
 Supabase: Herreklubbens org, Herreklubbens webapp, Database passord: d2F3j$G!-@j!i94

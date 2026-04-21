@@ -459,46 +459,43 @@ export async function POST(request: Request) {
 
 ### 5.4 Kobling mellom nytt arrangement og arrangøransvar
 
-Når en herr oppretter et arrangement skal systemet automatisk:
+Når en ansvarlig oppretter et arrangement i perioden sin, kobles det **automatisk** til riktig `arrangoransvar`-rad uten at brukeren må velge noe i UI-et. Matchingen er basert på norsk kalendermåned i `start_tidspunkt` og navnekonvensjonen i `arrangement_navn`.
 
-1. **Sjekke** om brukeren har en rad i `arrangoransvar` uten `arrangement_id` (dvs. ansvaret er ikke oppfylt ennå)
-2. **Foreslå** `arrangement_navn` fra den matchende raden som tittel-forslag i opprett-skjemaet
-3. **Koble** `arrangoransvar.arrangement_id` til det nye arrangementet etter lagring
-
-**Flyt i Server Action:**
+**Hjelper:** `lib/arrangoransvar-matching.ts`
 
 ```typescript
-// lib/actions/arrangementer.ts (pseudokode)
-
-export async function opprettArrangement(data: ArrangementInput) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // 1. Opprett arrangementet
-  const { data: arrangement } = await supabase
-    .from('arrangementer')
-    .insert({ ...data, opprettet_av: user!.id })
-    .select()
-    .single()
-
-  // 2. Koble til arrangøransvar hvis bruker valgte et ansvar i UI-et
-  //    (ansvarId kommer fra nedtrekksmenyen i opprett-skjemaet, eller null)
-  if (data.ansvarId) {
-    await supabase
-      .from('arrangoransvar')
-      .update({ arrangement_id: arrangement.id })
-      .eq('id', data.ansvarId)
-      .eq('ansvarlig_id', user!.id)  // sikrer at man bare kobler eget ansvar
-  }
-
-  // 4. Send varsler (push + e-post til alle)
-  // ...
-}
+export function finnAnsvarForArrangement(
+  ansvarListe: { id, aar, arrangement_navn }[],
+  startTidspunkt: string,
+): string | null
 ```
 
-**Tittelforslag i UI:** Opprett-skjemaet henter brukerens uoppfylte `arrangoransvar` ved sidelast (Server Component). Hvis det finnes én match, forhåndsutfylles tittelfeltet med `arrangement_navn` og brukeren får en informasjonsboks: *"Du er ansvarlig for januar-februar-møtet — dette er satt som tittel."* Brukeren kan overstyre.
+**Navnekonvensjon → måned-intervall** (definert i `periodeFraNavn()`):
 
-Dersom en bruker har flere uoppfylte ansvar (sjelden, men mulig), vises en nedtrekksmeny for å velge hvilket ansvar arrangementet tilhører.
+| Navn inneholder | Måneder |
+|---|---|
+| `januar` / `februar` | 1–2 |
+| `mars` / `april` | 3–4 |
+| `mai` / `juni` | 5–6 |
+| `august` / `september` | 8–9 |
+| `oktober` / `november` | 10–11 |
+| `jule` / `desember` | 12 |
+
+Juli og desember (med unntak av julebord) er bevisst udekket — klubben har sommerpause, og utenlandsturen er ikke knyttet til et måned-intervall.
+
+**Tidssone:** Måned hentes via `formaterDato()` med `Europe/Oslo`. Et arrangement kl 23:30 norsk tid 30. juni tilhører juni selv om UTC har krysset midnatt til juli.
+
+**Flyt i `opprettArrangement` (lib/actions/arrangementer.ts):**
+
+1. Opprett arrangementet.
+2. Hvis `data.ansvar_id` ikke er oppgitt → slå opp alle rader i `arrangoransvar` hvor `ansvarlig_id = user.id` og `arrangement_id is null`, kjør dem gjennom `finnAnsvarForArrangement()`.
+3. Hvis match funnet (enten manuell eller auto): oppdater `arrangement_id` på **alle** rader med samme `(aar, arrangement_navn)` — flere kan dele ansvar for samme arrangement.
+
+**Backfill:** Migrasjon `042_autokoble_arrangementer_til_ansvar.sql` kjører samme logikk i SQL mot eksisterende ukoblede arrangementer. Idempotent — treffer kun rader hvor `arrangement_id is null` og hvor `opprettet_av` faktisk er ansvarlig for perioden.
+
+**Hvorfor denne tilnærmingen:** Brukerne skal ikke trenge å tenke på kobling. Er du ansvarlig for mai/juni-møtet og oppretter et arrangement i juni, *er* det mai/juni-møtet — ingen nedtrekk eller bekreftelse. Skjemaet har fortsatt et valgfritt `ansvar_id`-felt for kantkasse-overstyring, men det er sjelden i bruk.
+
+**Testing:** `__tests__/arrangoransvar-matching.test.ts` dekker `periodeFraNavn()` og tidssone-edge-casen for sen kveld 30. juni.
 
 ---
 
