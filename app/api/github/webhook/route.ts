@@ -58,10 +58,12 @@ export async function POST(request: Request) {
     const oppretterId = issue.body?.match(/<!-- profil_id:([a-f0-9-]+) -->/)?.[1]
     const mottakere = oppretterId ? [...adminIder, oppretterId] : adminIder
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklubb.no'
     await sendVarsel({
       mottakere,
       tittel: 'Nytt innspill fra appen',
       melding: innhold,
+      url: `${baseUrl}/innspill#issue-${issue.number}`,
       knappTekst: 'Se innspillet',
       type: 'ønske_ny',
       tillatDuplikat: true,
@@ -104,10 +106,12 @@ export async function POST(request: Request) {
     const liveKl = formaterDato(liveTid.toISOString(), 'HH:mm')
     oppsummering += `\n\nEndringen er live i appen ca. kl. ${liveKl}.`
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklubb.no'
     await sendVarsel({
       mottakere: [profilId],
       tittel: 'Ønsket ditt er gjennomført',
       melding: oppsummering,
+      url: `${baseUrl}/innspill#issue-${issue.number}`,
       knappTekst: 'Se svaret',
       type: 'ønske_lukket',
       tillatDuplikat: true,
