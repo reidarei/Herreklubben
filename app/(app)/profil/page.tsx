@@ -306,6 +306,58 @@ export default async function Profil() {
         </section>
       )}
 
+      {/* Innspill */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Innspill</SectionLabel>
+        <Link
+          href="/innspill"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            padding: '16px 4px',
+            textDecoration: 'none',
+            color: 'inherit',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 18,
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.2px',
+                lineHeight: 1.15,
+                marginBottom: 3,
+              }}
+            >
+              Dine innspill
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.1px',
+              }}
+            >
+              Se innspill du har sendt inn og svar på håndterte saker
+            </div>
+          </div>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 14,
+              color: 'var(--text-tertiary)',
+              fontWeight: 400,
+            }}
+          >
+            →
+          </span>
+        </Link>
+      </section>
+
       {/* Varsler-innstillinger */}
       <VarslerInnstillinger
         pushAktiv={varselPref?.push_aktiv ?? false}
