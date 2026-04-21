@@ -36,6 +36,19 @@ export async function leggTilAnsvarlig(data: {
   const supabase = await sjekkAdmin()
   const purredato = await hentPurredato(data.arrangement_navn, data.aar)
 
+  // Arv arrangement_id fra eventuell søsken-rad. Hvis noen andre allerede
+  // har opprettet og koblet arrangementet for samme (aar, arrangement_navn),
+  // skal den nye ansvarlige også regnes som oppfylt — ellers dukker den
+  // opp som et eget «ikke arrangert»-utkast på agendaen.
+  const { data: sosken } = await supabase
+    .from('arrangoransvar')
+    .select('arrangement_id')
+    .eq('aar', data.aar)
+    .eq('arrangement_navn', data.arrangement_navn)
+    .not('arrangement_id', 'is', null)
+    .limit(1)
+    .maybeSingle()
+
   const { error } = await supabase
     .from('arrangoransvar')
     .insert({
@@ -43,10 +56,12 @@ export async function leggTilAnsvarlig(data: {
       arrangement_navn: data.arrangement_navn,
       ansvarlig_id: data.ansvarlig_id,
       purredato,
+      arrangement_id: sosken?.arrangement_id ?? null,
     })
 
   if (error) throw new Error(error.message)
   revalidatePath('/arrangoransvar')
+  revalidatePath('/')
 }
 
 export async function fjernAnsvarlig(ansvarId: string) {
