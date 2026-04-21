@@ -40,20 +40,39 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const initial = initialAv(brukerNavn ?? undefined)
 
   // Skjul dokken når tastaturet er åpent — ellers flyter den over
-  // chat-input og skjemaer. Bruker VisualViewport fordi den rapporterer
-  // synlig høyde eksklusive tastatur på iOS/Android.
+  // chat-input og skjemaer. Kombinerer to signaler:
+  //   1. focusin/focusout på input/textarea — fyrer alltid, uavhengig av
+  //      layout. Dekker arrangement-chat der VisualViewport ikke fyrer.
+  //   2. VisualViewport resize — backup for tilfeller hvor fokus sitter et
+  //      annet sted men tastaturet fortsatt er oppe (f.eks. etter scroll).
   const [tastaturApent, setTastaturApent] = useState(false)
   useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-    function oppdater() {
-      if (!vv) return
-      const diff = window.innerHeight - vv.height
-      setTastaturApent(diff > 150)
+    function erTekstInput(el: EventTarget | null): boolean {
+      if (!el || !(el instanceof HTMLElement)) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
     }
-    vv.addEventListener('resize', oppdater)
-    oppdater()
-    return () => vv.removeEventListener('resize', oppdater)
+    function onFocusIn(e: FocusEvent) {
+      if (erTekstInput(e.target)) setTastaturApent(true)
+    }
+    function onFocusOut(e: FocusEvent) {
+      if (erTekstInput(e.target)) setTastaturApent(false)
+    }
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
+
+    const vv = window.visualViewport
+    function onVv() {
+      if (!vv) return
+      if (window.innerHeight - vv.height > 150) setTastaturApent(true)
+    }
+    vv?.addEventListener('resize', onVv)
+
+    return () => {
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
+      vv?.removeEventListener('resize', onVv)
+    }
   }, [])
 
   const containerStyle: CSSProperties = {
