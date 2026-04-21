@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
+import { finnAnsvarForArrangement } from '@/lib/arrangoransvar-matching'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -48,15 +49,30 @@ export async function opprettArrangement(data: ArrangementInput) {
 
   if (error) throw new Error(error.message)
 
-  // Koble til arrangøransvar hvis valgt — oppdater ALLE rader for samme arrangement/år
-  if (data.ansvar_id) {
+  // Koble til arrangøransvar. Hvis brukeren ikke har valgt manuelt, prøv å
+  // matche automatisk ut fra tidspunkt og brukerens uoppfylte ansvarsoppdrag.
+  let ansvarId = data.ansvar_id ?? null
+  if (!ansvarId) {
+    const { data: mineAnsvar } = await supabase
+      .from('arrangoransvar')
+      .select('id, aar, arrangement_navn')
+      .eq('ansvarlig_id', user.id)
+      .is('arrangement_id', null)
+
+    if (mineAnsvar && mineAnsvar.length > 0) {
+      ansvarId = finnAnsvarForArrangement(mineAnsvar, arrangement.start_tidspunkt)
+    }
+  }
+
+  if (ansvarId) {
     const { data: ansvarRad } = await supabase
       .from('arrangoransvar')
       .select('aar, arrangement_navn')
-      .eq('id', data.ansvar_id)
+      .eq('id', ansvarId)
       .single()
 
     if (ansvarRad) {
+      // Oppdater ALLE rader for samme arrangement/år — flere ansvarlige kan dele
       await supabase
         .from('arrangoransvar')
         .update({ arrangement_id: arrangement.id })
