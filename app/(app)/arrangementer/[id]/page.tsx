@@ -9,6 +9,7 @@ import Placeholder from '@/components/ui/Placeholder'
 import SladdetFelt from '@/components/SladdetFelt'
 import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
+import SlettKnapp from './SlettKnapp'
 import Chat from '@/components/chat/Chat'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
@@ -485,6 +486,9 @@ export default async function ArrangementDetaljer({
           initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
           profiler={chatProfiler ?? []}
         />
+
+        {/* Slett-knapp — synlig for arrangør og admin */}
+        {kanRedigere && <SlettKnapp arrangementId={id} />}
       </div>
     </div>
   )
