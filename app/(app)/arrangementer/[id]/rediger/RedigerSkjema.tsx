@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, type CSSProperties } from 'react'
+import { useMemo, useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { oppdaterArrangement, slettArrangement } from '@/lib/actions/arrangementer'
@@ -11,6 +11,7 @@ import { MiniToggle } from '@/components/ui/ToggleSwitch'
 import Icon from '@/components/ui/Icon'
 import Placeholder from '@/components/ui/Placeholder'
 import BildeVelger from '@/components/BildeVelger'
+import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
 import { isoTilDatetimeLocal, datetimeLocalTilIso } from '@/lib/dato'
 
 type Arrangement = {
@@ -75,11 +76,33 @@ function Rad({
   )
 }
 
-export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arrangement }) {
-  const erTur = arr.type === 'tur'
+export default function RedigerSkjema({
+  arrangement: arr,
+  valg,
+  initialKey,
+}: {
+  arrangement: Arrangement
+  valg: MalValg[]
+  initialKey: string
+}) {
+  const [valgtKey, setValgtKey] = useState(initialKey)
+  const valgt = useMemo(
+    () => valg.find(v => v.key === valgtKey) ?? valg[valg.length - 1]!,
+    [valg, valgtKey],
+  )
+
+  // Når Annet er valgt, må bruker kunne styre type. Init fra arrangementets type.
+  const [annetType, setAnnetType] = useState<'moete' | 'tur'>(arr.type)
+  const effektivType: 'moete' | 'tur' = valgt.type ?? annetType
+  const erTur = effektivType === 'tur'
+
   const [sensurert, setSensurert] = useState<Record<string, boolean>>(arr.sensurerte_felt ?? {})
   const [bildeUrl, setBildeUrl] = useState<string | null>(arr.bilde_url)
   const [tittel, setTittel] = useState(arr.tittel)
+  // Hvis nåværende tittel avviker fra mal-navnet, regnes den som tilpasset.
+  const [tittelBerørt, setTittelBerørt] = useState(
+    () => arr.tittel !== (valg.find(v => v.key === initialKey)?.mal_navn ?? ''),
+  )
   const [beskrivelse, setBeskrivelse] = useState(arr.beskrivelse ?? '')
   const [start, setStart] = useState(isoTilDatetimeLocal(arr.start_tidspunkt))
   const [slutt, setSlutt] = useState(isoTilDatetimeLocal(arr.slutt_tidspunkt))
@@ -92,6 +115,14 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arran
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
+  function handleValgtMal(v: MalValg) {
+    setValgtKey(v.key)
+    // Auto-utfyll tittel hvis ikke manuelt redigert og vi har et mal-navn
+    if (!tittelBerørt && v.mal_navn && v.mal_navn !== 'Annet') {
+      setTittel(v.mal_navn)
+    }
+  }
+
   function toggleSensurert(felt: string) {
     setSensurert(prev => ({ ...prev, [felt]: !prev[felt] }))
   }
@@ -101,15 +132,18 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arran
     startTransition(async () => {
       try {
         await oppdaterArrangement(arr.id, {
+          type: effektivType,
           tittel,
           beskrivelse,
           start_tidspunkt: start ? datetimeLocalTilIso(start) : undefined,
-          slutt_tidspunkt: slutt ? datetimeLocalTilIso(slutt) : undefined,
+          slutt_tidspunkt: erTur && slutt ? datetimeLocalTilIso(slutt) : undefined,
           oppmoetested,
           destinasjon,
           pris_per_person: pris ? parseInt(pris) : undefined,
           sensurerte_felt: sensurert,
           bilde_url: bildeUrl || undefined,
+          mal_navn: valgt.mal_navn,
+          aar: valgt.aar,
         })
         router.push(`/arrangementer/${arr.id}`)
       } catch {
@@ -124,9 +158,9 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arran
     })
   }
 
-  const typeOptions = [
-    { value: 'tur' as const, label: 'Tur' },
+  const formatOptions = [
     { value: 'moete' as const, label: 'Møte' },
+    { value: 'tur' as const, label: 'Tur' },
   ]
 
   return (
@@ -191,9 +225,17 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arran
         </div>
       )}
 
-      {/* Type (read-only — type settes ved opprettelse) */}
-      <SkjemaSeksjon label="Type">
-        <Segment value={arr.type} options={typeOptions} onChange={() => {}} />
+      {/* Velg arrangement (mal) */}
+      <SkjemaSeksjon label="Velg arrangement">
+        <Rad last={valgt.type !== null}>
+          <TypeVelger valg={valg} valgtKey={valgtKey} onValg={handleValgtMal} />
+        </Rad>
+        {valgt.type === null && (
+          <Rad last>
+            <div style={monoLabel}>Format</div>
+            <Segment value={annetType} options={formatOptions} onChange={setAnnetType} />
+          </Rad>
+        )}
       </SkjemaSeksjon>
 
       {/* Detaljer */}
@@ -203,7 +245,10 @@ export default function RedigerSkjema({ arrangement: arr }: { arrangement: Arran
           <input
             type="text"
             value={tittel}
-            onChange={e => setTittel(e.target.value)}
+            onChange={e => {
+              setTittel(e.target.value)
+              setTittelBerørt(true)
+            }}
             style={accentStil}
           />
         </Rad>

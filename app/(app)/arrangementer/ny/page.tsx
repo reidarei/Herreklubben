@@ -1,17 +1,29 @@
 import { createServerClient } from '@/lib/supabase/server'
-import { getInnloggetBruker } from '@/lib/auth-cache'
 import NyttArrangementSkjema from './NyttArrangementSkjema'
+import { hentMalValg } from '@/lib/mal-valg'
 
-export default async function NyttArrangement() {
-  const [supabase, user] = await Promise.all([createServerClient(), getInnloggetBruker()])
+type Props = {
+  searchParams: Promise<{ mal?: string; aar?: string }>
+}
 
-  // Hent uoppfylte arrangøransvar for denne brukeren
-  const { data: ansvar } = await supabase
-    .from('arrangoransvar')
-    .select('id, arrangement_navn, aar')
-    .eq('ansvarlig_id', user!.id)
-    .is('arrangement_id', null)
-    .order('aar', { ascending: false })
+export default async function NyttArrangement({ searchParams }: Props) {
+  const [supabase, sp] = await Promise.all([createServerClient(), searchParams])
 
-  return <NyttArrangementSkjema uoppfyltAnsvar={ansvar ?? []} />
+  const valg = await hentMalValg(supabase)
+
+  // Pre-velg basert på query-param (brukes av utkast-kort i agenda)
+  let initialKey = valg[0]?.key ?? 'Annet::'
+  if (sp.mal) {
+    const kandidat =
+      sp.mal === 'Annet'
+        ? 'Annet::'
+        : sp.aar
+          ? `${sp.mal}::${sp.aar}`
+          : null
+    if (kandidat && valg.some(v => v.key === kandidat)) {
+      initialKey = kandidat
+    }
+  }
+
+  return <NyttArrangementSkjema valg={valg} initialKey={initialKey} />
 }

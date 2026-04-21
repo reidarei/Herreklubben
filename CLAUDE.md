@@ -134,14 +134,16 @@ All tidshåndtering skal gå gjennom `lib/dato.ts`. **Aldri** bruk `new Date()` 
 
 ## Policy: Arrangøransvar-kobling
 
-Når en ansvarlig oppretter et arrangement i perioden sin, kobles det **automatisk** til riktig `arrangoransvar`-rad. Brukeren trenger ikke velge noe i UI-et.
+Når en bruker oppretter et arrangement velger han **eksplisitt** hvilken mal det hører til i en nedtrekk-meny (`TypeVelger`). Menyen lister alle uoppfylte `(aar, arrangement_navn)`-kombinasjoner fra `arrangoransvar` + et `Annet`-valg som alltid ligger nederst. Valget styrer både kobling, type (møte/tur), purredato og forhåndsutfylt tittel.
 
-**Hjelper:** `finnAnsvarForArrangement()` i `lib/arrangoransvar-matching.ts`. Matcher norsk kalendermåned i `start_tidspunkt` mot måned-intervall utledet fra `arrangement_navn` (januar/februar → 1–2, mars/april → 3–4, osv.).
+**Komponenter:**
+- `components/arrangement/TypeVelger.tsx` — dropdown + typen `MalValg`
+- `lib/mal-valg.ts → hentMalValg(supabase, includeArrangementId?)` — henter og sorterer valg (aar asc, purredato asc nulls last, Annet sist). `includeArrangementId` tar med gjeldende kobling slik at rediger-siden fortsatt viser valget selv når det er oppfylt.
 
-**Navnekonvensjonen er kontrakten.** Hvis en arrangoransvar-rad heter `"Sommerfest"` matcher den ingenting — bruk alltid måneds-baserte navn (`"Mai/Juni-møtet"`, `"Julebord"`). Ved nye arrangementstyper utvides `periodeFraNavn()` og dette dokumentet.
+**Flyt:** `opprettArrangement` og `oppdaterArrangement` tar `mal_navn` + `aar`. Hjelperne `koble()` og `losne()` i `lib/actions/arrangementer.ts` oppdaterer ALLE arrangoransvar-rader med samme `(aar, arrangement_navn)` atomisk — flere ansvarlige deler samme arrangement.
 
-**Flyt:** `opprettArrangement` faller tilbake til auto-match når `data.ansvar_id` ikke er oppgitt. Oppdaterer ALLE rader med samme `(aar, arrangement_navn)` — flere ansvarlige kan dele samme arrangement.
+**Utkast på agendaen:** `UtkastKort` lenker ansvarlige rett til `/arrangementer/ny?mal=X&aar=Y` (mal forhåndsvalgt), andre til `/arrangoransvar#ansvar-Y-slug` (stabil anker for purring).
 
-**Detaljer:** Se [løsningsdesign §5.4](HK-app_losningsdesign.md#54-kobling-mellom-nytt-arrangement-og-arrangøransvar). Tester i `__tests__/arrangoransvar-matching.test.ts`.
+**Detaljer:** Se [løsningsdesign §5.4](HK-app_losningsdesign.md#54-kobling-mellom-nytt-arrangement-og-arrangøransvar).
 
 Supabase: Herreklubbens org, Herreklubbens webapp, Database passord: d2F3j$G!-@j!i94

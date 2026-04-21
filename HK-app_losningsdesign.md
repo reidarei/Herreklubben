@@ -459,43 +459,37 @@ export async function POST(request: Request) {
 
 ### 5.4 Kobling mellom nytt arrangement og arrangøransvar
 
-Når en ansvarlig oppretter et arrangement i perioden sin, kobles det **automatisk** til riktig `arrangoransvar`-rad uten at brukeren må velge noe i UI-et. Matchingen er basert på norsk kalendermåned i `start_tidspunkt` og navnekonvensjonen i `arrangement_navn`.
+Når en bruker oppretter et arrangement velger han **eksplisitt** hvilken mal arrangementet hører til via nedtrekk-menyen `TypeVelger`. Menyen lister alle uoppfylte `(aar, arrangement_navn)`-kombinasjoner fra `arrangoransvar` + et permanent `Annet`-valg nederst. Valget styrer både hvilken arrangoransvar-rad som kobles opp, om skjemaet viser møte- eller tur-felter, purredato (brukes som start-forslag), og forhåndsutfylt tittel.
 
-**Hjelper:** `lib/arrangoransvar-matching.ts`
+**Komponenter:**
+
+- `components/arrangement/TypeVelger.tsx` — presentasjon av nedtrekken + typen `MalValg`
+- `lib/mal-valg.ts → hentMalValg(supabase, includeArrangementId?)` — henter uoppfylte kombinasjoner (joiner `arrangoransvar` med `arrangementmaler` for type + purredato, konverterer mal-purredato fra år-2000-sentinel til reelt år), sorterer `(aar asc, purredato asc nulls last)`, appender `Annet` sist. `includeArrangementId` tar i tillegg med raden som allerede peker til et gitt arrangement — brukes fra rediger-skjemaet slik at nåværende valg fortsatt er synlig selv om det er oppfylt.
+
+**`MalValg`-type:**
 
 ```typescript
-export function finnAnsvarForArrangement(
-  ansvarListe: { id, aar, arrangement_navn }[],
-  startTidspunkt: string,
-): string | null
+type MalValg = {
+  key: string           // `${mal_navn}::${aar}` eller 'Annet::'
+  mal_navn: string
+  aar: number | null    // null for Annet
+  type: 'moete' | 'tur' | null  // null for Annet — brukeren må velge
+  purredato: string | null
+  ansvarlige: string[]
+}
 ```
 
-**Navnekonvensjon → måned-intervall** (definert i `periodeFraNavn()`):
+**Flyt i `opprettArrangement` / `oppdaterArrangement`:**
 
-| Navn inneholder | Måneder |
-|---|---|
-| `januar` / `februar` | 1–2 |
-| `mars` / `april` | 3–4 |
-| `mai` / `juni` | 5–6 |
-| `august` / `september` | 8–9 |
-| `oktober` / `november` | 10–11 |
-| `jule` / `desember` | 12 |
+1. Skjemaet sender `mal_navn` + `aar` (utledet fra valgt `MalValg`).
+2. `koble(supabase, arrangementId, mal_navn, aar)` oppdaterer `arrangement_id` på **alle** rader med samme `(aar, arrangement_navn)`. Hvis `mal_navn === 'Annet' || mal_navn == null || aar == null` gjøres ingen kobling.
+3. Ved mal-bytte i rediger: `losne()` nullstiller først alle rader som peker til arrangementet, deretter kalles `koble()` med det nye valget.
 
-Juli og desember (med unntak av julebord) er bevisst udekket — klubben har sommerpause, og utenlandsturen er ikke knyttet til et måned-intervall.
+**Utkast på agendaen:** Når en arrangoransvar-rad ikke er koblet til et arrangement vises et `UtkastKort`. Kortet lenker ansvarlige rett til `/arrangementer/ny?mal={mal_navn}&aar={aar}` (mal forhåndsvalgt i skjemaet), andre til `/arrangoransvar#ansvar-{aar}-{slug}` (stabil anker satt av `utkastAnkerId()`) slik at man enkelt kan purre.
 
-**Tidssone:** Måned hentes via `formaterDato()` med `Europe/Oslo`. Et arrangement kl 23:30 norsk tid 30. juni tilhører juni selv om UTC har krysset midnatt til juli.
+**Backfill:** Migrasjon `042_autokoble_arrangementer_til_ansvar.sql` gjorde en éngangs-backfill av eksisterende arrangementer basert på månedsmatch. Etter fase 4 er denne logikken ikke lenger en del av kodebasen — nye arrangementer kobles kun via eksplisitt valg i UI-et.
 
-**Flyt i `opprettArrangement` (lib/actions/arrangementer.ts):**
-
-1. Opprett arrangementet.
-2. Hvis `data.ansvar_id` ikke er oppgitt → slå opp alle rader i `arrangoransvar` hvor `ansvarlig_id = user.id` og `arrangement_id is null`, kjør dem gjennom `finnAnsvarForArrangement()`.
-3. Hvis match funnet (enten manuell eller auto): oppdater `arrangement_id` på **alle** rader med samme `(aar, arrangement_navn)` — flere kan dele ansvar for samme arrangement.
-
-**Backfill:** Migrasjon `042_autokoble_arrangementer_til_ansvar.sql` kjører samme logikk i SQL mot eksisterende ukoblede arrangementer. Idempotent — treffer kun rader hvor `arrangement_id is null` og hvor `opprettet_av` faktisk er ansvarlig for perioden.
-
-**Hvorfor denne tilnærmingen:** Brukerne skal ikke trenge å tenke på kobling. Er du ansvarlig for mai/juni-møtet og oppretter et arrangement i juni, *er* det mai/juni-møtet — ingen nedtrekk eller bekreftelse. Skjemaet har fortsatt et valgfritt `ansvar_id`-felt for kantkasse-overstyring, men det er sjelden i bruk.
-
-**Testing:** `__tests__/arrangoransvar-matching.test.ts` dekker `periodeFraNavn()` og tidssone-edge-casen for sen kveld 30. juni.
+**Hvorfor denne tilnærmingen:** Tidligere auto-match på månedsnavn var skjør — arrangementer utenfor forventet periode, maler uten måned-ord i navnet (`Reisekomiteen`), og nye ansvarlige som kom til etter kobling ga edge-cases. Eksplisitt valg i dropdown løser alt dette og gjør det synlig for brukeren hva som blir koblet opp.
 
 ---
 

@@ -6,7 +6,6 @@ import { redirect } from 'next/navigation'
 import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
-import { finnAnsvarForArrangement } from '@/lib/arrangoransvar-matching'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -20,8 +19,37 @@ export type ArrangementInput = {
   pris_per_person?: number
   sensurerte_felt?: Record<string, boolean>
   bilde_url?: string
-  // Kobling til arrangøransvar
-  ansvar_id?: string
+  // Mal-basert kobling til arrangøransvar. mal_navn = null eller "Annet" betyr
+  // ingen kobling. Ellers kobles arrangementet til ALLE arrangoransvar-rader
+  // med samme (aar, arrangement_navn) slik at alle ansvarlige markeres som
+  // oppfylt atomisk.
+  mal_navn?: string | null
+  aar?: number | null
+}
+
+async function koble(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  arrangementId: string,
+  malNavn: string | null | undefined,
+  aar: number | null | undefined,
+) {
+  if (!malNavn || malNavn === 'Annet' || !aar) return
+  await supabase
+    .from('arrangoransvar')
+    .update({ arrangement_id: arrangementId })
+    .eq('aar', aar)
+    .eq('arrangement_navn', malNavn)
+}
+
+async function losne(
+  supabase: Awaited<ReturnType<typeof createServerClient>>,
+  arrangementId: string,
+) {
+  // Sett arrangement_id = null på alle rader som peker til dette arrangementet
+  await supabase
+    .from('arrangoransvar')
+    .update({ arrangement_id: null })
+    .eq('arrangement_id', arrangementId)
 }
 
 export async function opprettArrangement(data: ArrangementInput) {
@@ -49,39 +77,10 @@ export async function opprettArrangement(data: ArrangementInput) {
 
   if (error) throw new Error(error.message)
 
-  // Koble til arrangøransvar. Hvis brukeren ikke har valgt manuelt, prøv å
-  // matche automatisk ut fra tidspunkt og brukerens uoppfylte ansvarsoppdrag.
-  let ansvarId = data.ansvar_id ?? null
-  if (!ansvarId) {
-    const { data: mineAnsvar } = await supabase
-      .from('arrangoransvar')
-      .select('id, aar, arrangement_navn')
-      .eq('ansvarlig_id', user.id)
-      .is('arrangement_id', null)
-
-    if (mineAnsvar && mineAnsvar.length > 0) {
-      ansvarId = finnAnsvarForArrangement(mineAnsvar, arrangement.start_tidspunkt)
-    }
-  }
-
-  if (ansvarId) {
-    const { data: ansvarRad } = await supabase
-      .from('arrangoransvar')
-      .select('aar, arrangement_navn')
-      .eq('id', ansvarId)
-      .single()
-
-    if (ansvarRad) {
-      // Oppdater ALLE rader for samme arrangement/år — flere ansvarlige kan dele
-      await supabase
-        .from('arrangoransvar')
-        .update({ arrangement_id: arrangement.id })
-        .eq('aar', ansvarRad.aar)
-        .eq('arrangement_navn', ansvarRad.arrangement_navn)
-    }
-  }
+  await koble(supabase, arrangement.id, data.mal_navn, data.aar)
 
   revalidatePath('/')
+  revalidatePath('/arrangoransvar')
 
   // Send varsler før redirect — after() er ikke pålitelig på Vercel Hobby
   await sendNyttArrangementVarsler({
@@ -95,24 +94,42 @@ export async function opprettArrangement(data: ArrangementInput) {
 
 export async function slettArrangement(id: string) {
   const supabase = await createServerClient()
+  // Løsne ansvar-rader før sletting slik at typen blir tilgjengelig igjen i
+  // dropdown-en (FK har on delete set null, men vi gjør det eksplisitt først
+  // for klarhet).
+  await losne(supabase, id)
   const { error } = await supabase.from('arrangementer').delete().eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath('/')
+  revalidatePath('/arrangoransvar')
   redirect('/')
 }
 
 export async function oppdaterArrangement(id: string, data: Partial<ArrangementInput>) {
   const supabase = await createServerClient()
+
+  // Håndter mal-bytte separat fra arrangement-feltene
+  const { mal_navn, aar, ...arrFelter } = data
+
   const { error } = await supabase
     .from('arrangementer')
     .update({
-      ...data,
+      ...arrFelter,
       oppdatert: new Date().toISOString(),
     })
     .eq('id', id)
   if (error) throw new Error(error.message)
+
+  // Mal-bytte: hvis mal_navn er eksplisitt satt (inkludert til "Annet" eller
+  // null), synkroniser koblingen. Udefinert = rør ikke.
+  if (mal_navn !== undefined) {
+    await losne(supabase, id)
+    await koble(supabase, id, mal_navn, aar)
+  }
+
   revalidatePath(`/arrangementer/${id}`)
   revalidatePath('/')
+  revalidatePath('/arrangoransvar')
 }
 
 export async function varslOmArrangement(arrangementId: string) {

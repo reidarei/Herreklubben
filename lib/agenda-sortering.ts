@@ -235,6 +235,8 @@ function bygUtkast(
     ([tittel, { ansvarlige, ansvarligeIds, purredato }]) => ({
       id: `utkast-${aar}-${tittel}`,
       tittel,
+      malNavn: tittel,
+      aar,
       ansvarlige,
       ansvarligeIds,
       purredato,
@@ -320,6 +322,8 @@ export function byggAgenda(input: {
       data: {
         id: u.id,
         tittel: u.tittel,
+        malNavn: u.malNavn,
+        aar: u.aar,
         ansvarlige: u.ansvarlige,
         ansvarligeIds: u.ansvarligeIds,
       },

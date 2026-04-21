@@ -3,6 +3,8 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
 import { kanAdministrere } from '@/lib/roller'
+import { hentMalValg } from '@/lib/mal-valg'
+import { ANNET_KEY } from '@/components/arrangement/TypeVelger'
 
 export default async function RedigerArrangement({
   params,
@@ -29,12 +31,31 @@ export default async function RedigerArrangement({
 
   if (!kanRedigere) redirect(`/arrangementer/${id}`)
 
+  // Hent valg (inkluder gjeldende kobling) og finn initialKey
+  const [valg, { data: gjeldendeAnsvar }] = await Promise.all([
+    hentMalValg(supabase, id),
+    supabase
+      .from('arrangoransvar')
+      .select('aar, arrangement_navn')
+      .eq('arrangement_id', id)
+      .limit(1)
+      .maybeSingle(),
+  ])
+
+  let initialKey = ANNET_KEY
+  if (gjeldendeAnsvar?.arrangement_navn && gjeldendeAnsvar.aar != null) {
+    const key = `${gjeldendeAnsvar.arrangement_navn}::${gjeldendeAnsvar.aar}`
+    if (valg.some(v => v.key === key)) initialKey = key
+  }
+
   return (
     <RedigerSkjema
       arrangement={{
         ...arr,
         sensurerte_felt: (arr.sensurerte_felt as Record<string, boolean> | null) ?? null,
       }}
+      valg={valg}
+      initialKey={initialKey}
     />
   )
 }

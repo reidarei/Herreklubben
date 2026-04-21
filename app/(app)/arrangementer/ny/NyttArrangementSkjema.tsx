@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, type CSSProperties } from 'react'
+import { useState, useTransition, useMemo, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { opprettArrangement } from '@/lib/actions/arrangementer'
@@ -11,9 +11,8 @@ import { MiniToggle } from '@/components/ui/ToggleSwitch'
 import Icon from '@/components/ui/Icon'
 import Placeholder from '@/components/ui/Placeholder'
 import BildeVelger from '@/components/BildeVelger'
+import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
 import { formaterDato, datetimeLocalTilIso } from '@/lib/dato'
-
-type Ansvar = { id: string; arrangement_navn: string; aar: number }
 
 const monoLabel: CSSProperties = {
   fontFamily: 'var(--font-mono)',
@@ -63,14 +62,34 @@ function Rad({
   )
 }
 
-export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsvar: Ansvar[] }) {
-  const foreslattTittel = uoppfyltAnsvar.length === 1 ? uoppfyltAnsvar[0].arrangement_navn : ''
-  const standardStart = `${formaterDato(new Date().toISOString(), 'yyyy-MM-dd')}T17:00`
+function defaultStart(purredato: string | null): string {
+  const basis = purredato ? `${purredato}T19:00:00Z` : new Date().toISOString()
+  return `${formaterDato(basis, 'yyyy-MM-dd')}T17:00`
+}
 
-  const [type, setType] = useState<'moete' | 'tur'>('moete')
-  const [tittel, setTittel] = useState(foreslattTittel)
+type Props = {
+  valg: MalValg[]
+  initialKey: string
+}
+
+export default function NyttArrangementSkjema({ valg, initialKey }: Props) {
+  const [valgtKey, setValgtKey] = useState(initialKey)
+  const valgt = useMemo(
+    () => valg.find(v => v.key === valgtKey) ?? valg[valg.length - 1],
+    [valg, valgtKey],
+  )
+
+  // Type: hvis malen har type → bruk den. Ellers (Annet) → bruker velger.
+  const [annetType, setAnnetType] = useState<'moete' | 'tur'>('moete')
+  const effektivType: 'moete' | 'tur' = valgt.type ?? annetType
+  const erTur = effektivType === 'tur'
+
+  // Tittel forhåndsutfylles fra arrangement_navn, men kan overstyres
+  const [tittel, setTittel] = useState(valgt.mal_navn === 'Annet' ? '' : valgt.mal_navn)
+  const [tittelBerørt, setTittelBerørt] = useState(false)
+
   const [beskrivelse, setBeskrivelse] = useState('')
-  const [start, setStart] = useState(standardStart)
+  const [start, setStart] = useState(defaultStart(valgt.purredato))
   const [slutt, setSlutt] = useState('')
   const [oppmoetested, setOppmoetested] = useState('')
   const [destinasjon, setDestinasjon] = useState('')
@@ -78,14 +97,18 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
   const [sensurert, setSensurert] = useState<Record<string, boolean>>({})
   const [bildeUrl, setBildeUrl] = useState<string | null>(null)
   const [visBildeVelger, setVisBildeVelger] = useState(false)
-  const [valgtAnsvar, setValgtAnsvar] = useState(
-    uoppfyltAnsvar.length === 1 ? uoppfyltAnsvar[0].id : '',
-  )
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
-  const erTur = type === 'tur'
+  function handleValgtMal(v: MalValg) {
+    setValgtKey(v.key)
+    // Oppdater tittel/dato-defaults hvis bruker ikke har rørt tittelen
+    if (!tittelBerørt) {
+      setTittel(v.mal_navn === 'Annet' ? '' : v.mal_navn)
+    }
+    setStart(defaultStart(v.purredato))
+  }
 
   function toggleSensurert(felt: string) {
     setSensurert(prev => ({ ...prev, [felt]: !prev[felt] }))
@@ -105,7 +128,7 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
     startTransition(async () => {
       try {
         await opprettArrangement({
-          type,
+          type: effektivType,
           tittel,
           beskrivelse,
           start_tidspunkt: datetimeLocalTilIso(start),
@@ -115,7 +138,8 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
           pris_per_person: pris ? parseInt(pris) : undefined,
           sensurerte_felt: sensurert,
           bilde_url: bildeUrl || undefined,
-          ansvar_id: valgtAnsvar || undefined,
+          mal_navn: valgt.mal_navn === 'Annet' ? null : valgt.mal_navn,
+          aar: valgt.aar ?? null,
         })
       } catch (err) {
         if (
@@ -200,54 +224,18 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
         </div>
       )}
 
-      {/* Arrangøransvar-kobling */}
-      {uoppfyltAnsvar.length > 0 && (
-        <SkjemaSeksjon label="Arrangøransvar">
+      {/* Arrangement-valg (erstatter gamle type-radio og ansvar-seksjon) */}
+      <SkjemaSeksjon label="Velg arrangement">
+        <Rad last={valgt.type !== null}>
+          <TypeVelger valg={valg} valgtKey={valgtKey} onValg={handleValgtMal} />
+        </Rad>
+        {/* Når "Annet" er valgt må brukeren velge møte/tur selv */}
+        {valgt.type === null && (
           <Rad last>
-            {uoppfyltAnsvar.length === 1 ? (
-              <>
-                <div style={monoLabel}>Kobles til</div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 14,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {uoppfyltAnsvar[0].arrangement_navn}{' '}
-                  <span style={{ color: 'var(--text-tertiary)' }}>({uoppfyltAnsvar[0].aar})</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={monoLabel}>Koble til ansvar</div>
-                <select
-                  value={valgtAnsvar}
-                  onChange={e => setValgtAnsvar(e.target.value)}
-                  style={{
-                    ...inputStil,
-                    fontSize: 14,
-                    appearance: 'none',
-                    WebkitAppearance: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="">Ingen</option>
-                  {uoppfyltAnsvar.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.arrangement_navn} ({a.aar})
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
+            <div style={monoLabel}>Format</div>
+            <Segment value={annetType} options={typeOptions} onChange={setAnnetType} />
           </Rad>
-        </SkjemaSeksjon>
-      )}
-
-      {/* Type */}
-      <SkjemaSeksjon label="Type">
-        <Segment value={type} options={typeOptions} onChange={setType} />
+        )}
       </SkjemaSeksjon>
 
       {/* Detaljer */}
@@ -257,7 +245,10 @@ export default function NyttArrangementSkjema({ uoppfyltAnsvar }: { uoppfyltAnsv
           <input
             type="text"
             value={tittel}
-            onChange={e => setTittel(e.target.value)}
+            onChange={e => {
+              setTittel(e.target.value)
+              setTittelBerørt(true)
+            }}
             style={accentStil}
             placeholder="Navn på arrangementet"
           />

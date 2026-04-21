@@ -119,6 +119,7 @@ export type Database = {
           opprettet: string | null
           purredato: string | null
           rekkefølge: number
+          type: string | null
         }
         Insert: {
           id?: string
@@ -126,6 +127,7 @@ export type Database = {
           opprettet?: string | null
           purredato?: string | null
           rekkefølge?: number
+          type?: string | null
         }
         Update: {
           id?: string
@@ -133,6 +135,7 @@ export type Database = {
           opprettet?: string | null
           purredato?: string | null
           rekkefølge?: number
+          type?: string | null
         }
         Relationships: []
       }

@@ -7,6 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import { norskAar, norskDag, norskDatoNaa } from '@/lib/dato'
 import { isBefore } from 'date-fns'
 import { kanAdministrere } from '@/lib/roller'
+import { utkastAnkerId } from '@/components/agenda/UtkastKort'
 
 export default async function Arrangoransvar() {
   const supabase = await createServerClient()
@@ -100,11 +101,13 @@ export default async function Arrangoransvar() {
               return (
                 <div
                   key={navn}
+                  id={utkastAnkerId(aar, navn)}
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 14,
                     padding: '16px 4px',
+                    scrollMarginTop: 24,
                     borderBottom:
                       i < fasteArrangementer.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
                   }}
