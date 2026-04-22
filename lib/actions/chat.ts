@@ -154,3 +154,36 @@ export async function slettKlubbMelding(meldingId: string) {
 
   if (error) throw new Error(error.message)
 }
+
+// Reaksjoner — samme flyt for arrangement-chat og klubb-chat. melding_id
+// peker til id i enten arrangement_chat eller klubb_chat. RLS håndhever at
+// brukeren kun kan legge til/fjerne egne reaksjoner.
+export async function leggTilReaksjon(meldingId: string, emoji: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { error } = await supabase
+    .from('chat_reaksjoner')
+    .upsert(
+      { melding_id: meldingId, profil_id: user.id, emoji },
+      { onConflict: 'melding_id,profil_id,emoji' },
+    )
+
+  if (error) throw new Error(error.message)
+}
+
+export async function fjernReaksjon(meldingId: string, emoji: string) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { error } = await supabase
+    .from('chat_reaksjoner')
+    .delete()
+    .eq('melding_id', meldingId)
+    .eq('profil_id', user.id)
+    .eq('emoji', emoji)
+
+  if (error) throw new Error(error.message)
+}

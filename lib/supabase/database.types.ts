@@ -187,6 +187,35 @@ export type Database = {
           },
         ]
       }
+      chat_reaksjoner: {
+        Row: {
+          emoji: string
+          melding_id: string
+          opprettet: string
+          profil_id: string
+        }
+        Insert: {
+          emoji: string
+          melding_id: string
+          opprettet?: string
+          profil_id: string
+        }
+        Update: {
+          emoji?: string
+          melding_id?: string
+          opprettet?: string
+          profil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reaksjoner_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kaaring_vinnere: {
         Row: {
           aar: number

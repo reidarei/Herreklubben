@@ -7,6 +7,8 @@ import {
   slettMelding,
   sendKlubbMelding,
   slettKlubbMelding,
+  leggTilReaksjon,
+  fjernReaksjon,
 } from '@/lib/actions/chat'
 import { formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
@@ -33,6 +35,11 @@ export type ChatProfil = {
 
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
 const SIDE_STORRELSE = 30
+
+// Emojis tilgjengelige i reaksjons-picker
+const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as const
+
+type Reaksjon = { melding_id: string; profil_id: string; emoji: string }
 
 function renderMedMentions(tekst: string) {
   const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
@@ -73,6 +80,13 @@ export default function Chat({
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
   const [mentionSøk, setMentionSøk] = useState<string | null>(null)
+  // Reaksjoner — flat liste hentet fra chat_reaksjoner. Grupperes per melding
+  // i render. En Map er raskere for hot-paths men flat liste er lettere å
+  // oppdatere atomisk via realtime.
+  const [reaksjoner, setReaksjoner] = useState<Reaksjon[]>([])
+  // Hvilken melding viser picker. Null = ingen.
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bunnenRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -259,6 +273,87 @@ export default function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase])
 
+  // Hent reaksjoner for synlige meldinger + subscribe til endringer.
+  useEffect(() => {
+    const meldingIds = meldinger.map(m => m.id).filter(id => !id.startsWith('temp-'))
+    if (meldingIds.length === 0) {
+      setReaksjoner([])
+      return
+    }
+
+    let cancelled = false
+    supabase
+      .from('chat_reaksjoner')
+      .select('melding_id, profil_id, emoji')
+      .in('melding_id', meldingIds)
+      .then(({ data }) => {
+        if (cancelled || !data) return
+        setReaksjoner(data as Reaksjon[])
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meldinger.length])
+
+  // Realtime for reaksjoner — egen kanal siden vi ikke har filter per scope
+  // (reaksjoner har ingen scope-kolonne; vi stoler på at bare synlige meldinger
+  // får reaksjoner oppdatert via postfiltering).
+  useEffect(() => {
+    let cancelled = false
+    let channelRef: ReturnType<typeof supabase.channel> | undefined
+
+    async function start() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled || !session) return
+      supabase.realtime.setAuth(session.access_token)
+
+      const channel = supabase.channel('chat-reaksjoner')
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'chat_reaksjoner' },
+          payload => {
+            const ny = payload.new as Reaksjon
+            setReaksjoner(prev => {
+              if (prev.some(r =>
+                r.melding_id === ny.melding_id &&
+                r.profil_id === ny.profil_id &&
+                r.emoji === ny.emoji
+              )) return prev
+              return [...prev, ny]
+            })
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'chat_reaksjoner' },
+          payload => {
+            const gml = payload.old as Partial<Reaksjon>
+            setReaksjoner(prev =>
+              prev.filter(r =>
+                !(
+                  r.melding_id === gml.melding_id &&
+                  r.profil_id === gml.profil_id &&
+                  r.emoji === gml.emoji
+                ),
+              ),
+            )
+          },
+        )
+        .subscribe()
+      channelRef = channel
+    }
+
+    start()
+    return () => {
+      cancelled = true
+      if (channelRef) supabase.removeChannel(channelRef)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen).
   // Henter de siste SIDE_STORRELSE for å fylle manglende meldinger.
   useEffect(() => {
@@ -320,6 +415,67 @@ export default function Chat({
     } finally {
       setSender(false)
       inputRef.current?.focus()
+    }
+  }
+
+  function startLongPress(meldingId: string) {
+    if (meldingId.startsWith('temp-')) return
+    clearLongPress()
+    longPressTimer.current = setTimeout(() => {
+      setPickerFor(meldingId)
+      // Haptisk feedback på mobil hvis tilgjengelig
+      if (typeof window !== 'undefined' && 'navigator' in window) {
+        navigator.vibrate?.(12)
+      }
+    }, 420)
+  }
+
+  function clearLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  async function toggleReaksjon(meldingId: string, emoji: string) {
+    const alleredePaa = reaksjoner.some(
+      r => r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji,
+    )
+    // Optimistisk oppdatering
+    if (alleredePaa) {
+      setReaksjoner(prev =>
+        prev.filter(
+          r => !(r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji),
+        ),
+      )
+    } else {
+      setReaksjoner(prev => [
+        ...prev,
+        { melding_id: meldingId, profil_id: brukerId, emoji },
+      ])
+    }
+    setPickerFor(null)
+
+    try {
+      if (alleredePaa) {
+        await fjernReaksjon(meldingId, emoji)
+      } else {
+        await leggTilReaksjon(meldingId, emoji)
+      }
+    } catch {
+      // Rollback ved feil
+      if (alleredePaa) {
+        setReaksjoner(prev => [
+          ...prev,
+          { melding_id: meldingId, profil_id: brukerId, emoji },
+        ])
+      } else {
+        setReaksjoner(prev =>
+          prev.filter(
+            r => !(r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji),
+          ),
+        )
+      }
     }
   }
 
@@ -462,6 +618,15 @@ export default function Chat({
                 )}
                 <div style={{ position: 'relative' }} className="chat-boble">
                   <div
+                    onTouchStart={() => startLongPress(m.id)}
+                    onTouchEnd={clearLongPress}
+                    onTouchMove={clearLongPress}
+                    onTouchCancel={clearLongPress}
+                    onContextMenu={e => {
+                      // Desktop: høyreklikk som alternativ trigger
+                      e.preventDefault()
+                      if (!m.id.startsWith('temp-')) setPickerFor(m.id)
+                    }}
                     style={{
                       padding: '10px 14px',
                       borderRadius: erEgen ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
@@ -476,10 +641,125 @@ export default function Chat({
                       letterSpacing: '0.1px',
                       whiteSpace: 'pre-wrap',
                       wordBreak: 'break-word',
+                      cursor: 'default',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
                     }}
                   >
                     {renderMedMentions(m.innhold)}
                   </div>
+                  {/* Reaksjons-chips */}
+                  {(() => {
+                    const mineReaksjoner = reaksjoner.filter(r => r.melding_id === m.id)
+                    if (mineReaksjoner.length === 0) return null
+                    const grupper = new Map<string, { antall: number; minReaksjon: boolean }>()
+                    for (const r of mineReaksjoner) {
+                      const g = grupper.get(r.emoji) ?? { antall: 0, minReaksjon: false }
+                      g.antall += 1
+                      if (r.profil_id === brukerId) g.minReaksjon = true
+                      grupper.set(r.emoji, g)
+                    }
+                    return (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 4,
+                          marginTop: 4,
+                          justifyContent: erEgen ? 'flex-end' : 'flex-start',
+                        }}
+                      >
+                        {[...grupper.entries()].map(([emoji, { antall, minReaksjon }]) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => toggleReaksjon(m.id, emoji)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              border: `0.5px solid ${minReaksjon ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                              background: minReaksjon ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                              fontSize: 12,
+                              lineHeight: 1.2,
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              fontFamily: 'var(--font-body)',
+                            }}
+                            aria-label={`${emoji} ${antall} ${minReaksjon ? '(fjern din reaksjon)' : '(reager også)'}`}
+                          >
+                            <span>{emoji}</span>
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 10,
+                                color: minReaksjon ? 'var(--accent)' : 'var(--text-secondary)',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {antall}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                  {/* Picker — vises over bobla når long-press trigger */}
+                  {pickerFor === m.id && (
+                    <>
+                      {/* Overlay som fanger klikk utenfor */}
+                      <div
+                        onClick={() => setPickerFor(null)}
+                        style={{
+                          position: 'fixed',
+                          inset: 0,
+                          zIndex: 90,
+                          background: 'transparent',
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 'calc(100% + 6px)',
+                          [erEgen ? 'right' : 'left']: 0,
+                          zIndex: 100,
+                          display: 'flex',
+                          gap: 4,
+                          padding: '6px 8px',
+                          borderRadius: 999,
+                          background: 'var(--bg-elevated)',
+                          border: '0.5px solid var(--border-strong)',
+                          boxShadow: '0 6px 20px rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        {REAKSJON_EMOJIS.map(emoji => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => toggleReaksjon(m.id, emoji)}
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: '50%',
+                              border: 'none',
+                              background: 'transparent',
+                              fontSize: 20,
+                              cursor: 'pointer',
+                              padding: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            aria-label={`Reager med ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   {kanSlette && !m.id.startsWith('temp-') && (
                     <button
                       type="button"
