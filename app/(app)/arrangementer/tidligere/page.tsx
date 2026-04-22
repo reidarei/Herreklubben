@@ -2,19 +2,23 @@ import { createServerClient } from '@/lib/supabase/server'
 import { formaterDato } from '@/lib/dato'
 import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+import { hentMaler, stilFor } from '@/lib/arrangement-stil'
 
 export default async function TidligereArrangementer() {
   const supabase = await createServerClient()
 
-  const { data: arrangementer } = await supabase
-    .from('arrangementer')
-    .select(`
-      id, type, tittel, start_tidspunkt, oppmoetested,
-      paameldinger (profil_id, status)
-    `)
-    .lt('start_tidspunkt', new Date().toISOString())
-    .order('start_tidspunkt', { ascending: false })
-    .limit(30)
+  const [{ data: arrangementer }, maler] = await Promise.all([
+    supabase
+      .from('arrangementer')
+      .select(`
+        id, mal_navn, tittel, start_tidspunkt, oppmoetested,
+        paameldinger (profil_id, status)
+      `)
+      .lt('start_tidspunkt', new Date().toISOString())
+      .order('start_tidspunkt', { ascending: false })
+      .limit(30),
+    hentMaler(),
+  ])
 
   return (
     <div className="max-w-lg mx-auto px-5 pt-6 pb-8">
@@ -31,7 +35,7 @@ export default async function TidligereArrangementer() {
         <div className="space-y-3">
           {arrangementer.map(arr => {
             const antallJa = arr.paameldinger.filter((p: { status: string }) => p.status === 'ja').length
-            const erTur = arr.type === 'tur'
+            const erTur = stilFor(arr.mal_navn, maler) === 'tur'
             return (
               <Link
                 key={arr.id}

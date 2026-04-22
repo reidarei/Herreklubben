@@ -13,6 +13,7 @@ import SlettKnapp from './SlettKnapp'
 import Chat from '@/components/chat/Chat'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
+import { hentMaler, sceneFor, stilFor } from '@/lib/arrangement-stil'
 
 type Paamelding = {
   profil_id: string
@@ -22,12 +23,6 @@ type Paamelding = {
     bilde_url: string | null
     rolle?: string | null
   } | null
-}
-
-function sceneFor(type: string): 'tur' | 'møte' | 'event' {
-  if (type === 'tur') return 'tur'
-  if (type === 'moete') return 'møte'
-  return 'event'
 }
 
 export default async function ArrangementDetaljer({
@@ -44,11 +39,11 @@ export default async function ArrangementDetaljer({
     getProfil(),
   ])
 
-  const [{ data: arr }, { data: chatMeldinger }, { data: chatProfiler }] = await Promise.all([
+  const [{ data: arr }, { data: chatMeldinger }, { data: chatProfiler }, maler] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(
-        `id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
+        `id, mal_navn, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt,
          oppmoetested, destinasjon, pris_per_person, sensurerte_felt, opprettet_av,
          bilde_url,
          opprettet_profil:profiles!arrangementer_opprettet_av_fkey (navn),
@@ -66,6 +61,7 @@ export default async function ArrangementDetaljer({
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
+    hentMaler(),
   ])
 
   if (!arr) notFound()
@@ -73,7 +69,7 @@ export default async function ArrangementDetaljer({
   const erAdmin = kanAdministrere(profil?.rolle)
   const erArrangoer = arr.opprettet_av === user!.id
   const kanRedigere = erArrangoer || erAdmin
-  const erTur = arr.type === 'tur'
+  const stil = stilFor(arr.mal_navn, maler)
 
   // Sensureringsregel: kun arrangør ser gjennom sladden.
   // Admin ser IKKE gjennom — bevisst strammet policy.
@@ -128,7 +124,7 @@ export default async function ArrangementDetaljer({
             />
           </div>
         ) : (
-          <Placeholder label="" aspectRatio="4/3" type={sceneFor(arr.type)} />
+          <Placeholder label="" aspectRatio="4/3" type={sceneFor(stil)} />
         )}
 
         {/* Mørk gradient nederst */}
@@ -273,7 +269,10 @@ export default async function ArrangementDetaljer({
                     icon: 'mapPin' as const,
                   }
                 : null,
-              erTur
+              // Destinasjon og pris vises hvis de er fylt ut — uavhengig av
+              // mal. Sensurerte felter vises som sladd selv når tomme, så
+              // arrangøren vet at feltet er sladdet.
+              arr.destinasjon || erSensurert('destinasjon')
                 ? {
                     label: 'Destinasjon',
                     value: erSensurert('destinasjon')
@@ -283,7 +282,7 @@ export default async function ArrangementDetaljer({
                     sladd: erSensurert('destinasjon'),
                   }
                 : null,
-              erTur
+              arr.pris_per_person != null || erSensurert('pris_per_person')
                 ? {
                     label: 'Pris',
                     value: erSensurert('pris_per_person')

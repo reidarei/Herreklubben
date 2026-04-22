@@ -3,10 +3,11 @@ import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import { formaterDato } from '@/lib/dato'
+import { sceneFor, type ArrangementStil } from '@/lib/arrangement-stil'
 
 export type ArrangementKortData = {
   id: string
-  type: string // 'tur' | 'moete'
+  stil: ArrangementStil
   tittel: string
   start_tidspunkt: string
   oppmoetested: string | null
@@ -15,23 +16,13 @@ export type ArrangementKortData = {
   minStatus: 'ja' | 'kanskje' | 'nei' | null
 }
 
-function sceneFor(type: string): 'tur' | 'møte' | 'event' {
-  if (type === 'tur') return 'tur'
-  if (type === 'moete') return 'møte'
-  return 'event'
-}
-
-function sceneBackground(scene: 'tur' | 'møte' | 'event'): string {
+function sceneBackground(scene: 'tur' | 'møte'): string {
   if (scene === 'tur') {
     return `linear-gradient(180deg, var(--accent-soft) 0%, transparent 60%),
             linear-gradient(135deg, oklch(0.22 0.03 230), oklch(0.14 0.04 260))`
   }
-  if (scene === 'møte') {
-    return `linear-gradient(180deg, var(--accent-soft) 0%, transparent 60%),
-            linear-gradient(135deg, oklch(0.20 0.02 40), oklch(0.12 0.02 30))`
-  }
   return `linear-gradient(180deg, var(--accent-soft) 0%, transparent 60%),
-          linear-gradient(135deg, oklch(0.20 0.03 200), oklch(0.13 0.03 220))`
+          linear-gradient(135deg, oklch(0.20 0.02 40), oklch(0.12 0.02 30))`
 }
 
 function statusDotFarge(status: ArrangementKortData['minStatus']): string {
@@ -57,7 +48,7 @@ export default function ArrangementKort({ arr, tidligere = false }: Props) {
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
   const tid = formaterDato(iso, 'HH:mm')
-  const scene = sceneFor(arr.type)
+  const scene = sceneFor(arr.stil)
 
   return (
     <Link
