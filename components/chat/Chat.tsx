@@ -369,7 +369,7 @@ export default function Chat({
       )}
 
       {/* Meldingsliste */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 14 }}>
         {meldinger.length === 0 && (
           <div
             style={{
@@ -385,7 +385,11 @@ export default function Chat({
           </div>
         )}
 
-        {meldinger.map(m => {
+        {meldinger.map((m, i) => {
+          const forrige = i > 0 ? meldinger[i - 1] : null
+          // Grupper sammenhengende meldinger fra samme bruker — skjul avatar
+          // og navn/tid-header på fortsettelses-meldinger.
+          const erFortsettelse = forrige?.profil_id === m.profil_id
           const erEgen = m.profil_id === brukerId
           // Slett-knappen er bevisst deaktivert — det var for lett å mistrykke
           // og ingen skal egentlig kunne slette chat-meldinger. Server-actionene
@@ -403,10 +407,16 @@ export default function Chat({
                 display: 'flex',
                 gap: 10,
                 flexDirection: erEgen ? 'row-reverse' : 'row',
+                marginTop: erFortsettelse ? 3 : i === 0 ? 0 : 14,
               }}
             >
               <div style={{ flexShrink: 0, alignSelf: 'flex-end' }}>
-                <Avatar name={navn} size={26} src={bilde} rolle={rolle} />
+                {erFortsettelse ? (
+                  // Tom plassholder så meldingene linjerer opp mot forrige boble
+                  <div style={{ width: 26, height: 1 }} />
+                ) : (
+                  <Avatar name={navn} size={26} src={bilde} rolle={rolle} />
+                )}
               </div>
               <div
                 style={{
@@ -417,37 +427,39 @@ export default function Chat({
                   minWidth: 0,
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: 8,
-                    marginBottom: 4,
-                    paddingLeft: erEgen ? 0 : 2,
-                    paddingRight: erEgen ? 2 : 0,
-                  }}
-                >
-                  <span
+                {!erFortsettelse && (
+                  <div
                     style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 12,
-                      color: 'var(--text-secondary)',
-                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: 8,
+                      marginBottom: 4,
+                      paddingLeft: erEgen ? 0 : 2,
+                      paddingRight: erEgen ? 2 : 0,
                     }}
                   >
-                    {navn}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 9,
-                      color: 'var(--text-tertiary)',
-                      letterSpacing: '1.2px',
-                    }}
-                  >
-                    {tid}
-                  </span>
-                </div>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 12,
+                        color: 'var(--text-secondary)',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {navn}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 9,
+                        color: 'var(--text-tertiary)',
+                        letterSpacing: '1.2px',
+                      }}
+                    >
+                      {tid}
+                    </span>
+                  </div>
+                )}
                 <div style={{ position: 'relative' }} className="chat-boble">
                   <div
                     style={{
