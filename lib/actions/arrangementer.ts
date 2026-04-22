@@ -10,13 +10,14 @@ import { kanAdministrere } from '@/lib/roller'
 export type ArrangementInput = {
   type: 'moete' | 'tur'
   tittel: string
-  beskrivelse?: string
+  beskrivelse?: string | null
   start_tidspunkt: string
-  oppmoetested?: string
-  // Tur-felter
-  slutt_tidspunkt?: string
-  destinasjon?: string
-  pris_per_person?: number
+  oppmoetested?: string | null
+  // Tur-felter. CHECK-constraint tur_felt_kun_for_tur krever at disse er null
+  // når type='moete' — klienten må eksplisitt sende null, ikke tom streng.
+  slutt_tidspunkt?: string | null
+  destinasjon?: string | null
+  pris_per_person?: number | null
   sensurerte_felt?: Record<string, boolean>
   bilde_url?: string | null
   // Mal-basert kobling til arrangøransvar. mal_navn = null eller "Annet" betyr
