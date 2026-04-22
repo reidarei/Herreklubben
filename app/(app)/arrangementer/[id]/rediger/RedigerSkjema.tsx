@@ -145,8 +145,37 @@ export default function RedigerSkjema({
           aar: valgt.aar,
         })
         router.push(`/arrangementer/${arr.id}`)
-      } catch {
-        setFeil('Noe gikk galt. Prøv igjen.')
+      } catch (err) {
+        // Redirect/notFound fra server action skal boble videre
+        if (
+          err &&
+          typeof err === 'object' &&
+          'digest' in err &&
+          typeof (err as { digest?: string }).digest === 'string' &&
+          ((err as { digest: string }).digest.startsWith('NEXT_REDIRECT') ||
+            (err as { digest: string }).digest.startsWith('NEXT_NOT_FOUND'))
+        ) {
+          throw err
+        }
+        console.error('[rediger arrangement] feilet:', err)
+        const melding = err instanceof Error ? err.message : String(err)
+        const digest =
+          err && typeof err === 'object' && 'digest' in err
+            ? String((err as { digest: unknown }).digest)
+            : ''
+        setFeil(
+          melding
+            ? digest
+              ? `${melding} (digest: ${digest})`
+              : melding
+            : digest
+              ? `Serverfeil (digest: ${digest})`
+              : 'Noe gikk galt. Prøv igjen.',
+        )
+        // Scroll til topp så brukeren ser feil-meldingen
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
       }
     })
   }
@@ -171,6 +200,24 @@ export default function RedigerSkjema({
         onLagre={handleLagre}
         laster={isPending}
       />
+
+      {feil && (
+        <div
+          style={{
+            background: 'rgba(217, 122, 108, 0.12)',
+            border: '0.5px solid rgba(217, 122, 108, 0.4)',
+            borderRadius: 12,
+            padding: '12px 14px',
+            marginBottom: 16,
+            color: '#d97a6c',
+            fontSize: 13,
+            fontFamily: 'var(--font-body)',
+            lineHeight: 1.45,
+          }}
+        >
+          {feil}
+        </div>
+      )}
 
       {/* Hero-bilde med bytt-knapp — trigger galleri direkte */}
       <div
@@ -355,19 +402,6 @@ export default function RedigerSkjema({
           placeholder="Skriv noe om arrangementet…"
         />
       </SkjemaSeksjon>
-
-      {feil && (
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--danger)',
-            marginTop: -8,
-            marginBottom: 16,
-          }}
-        >
-          {feil}
-        </p>
-      )}
 
       {/* Faresone */}
       <SkjemaSeksjon label="Faresone">
