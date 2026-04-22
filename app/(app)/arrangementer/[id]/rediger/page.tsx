@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
 import { kanAdministrere } from '@/lib/roller'
 import { hentMalValg } from '@/lib/mal-valg'
-import { ANNET_KEY } from '@/components/arrangement/mal-valg-typer'
+import { ANNET_KEY, BONUS_MOETE_KEY, BONUS_TUR_KEY } from '@/components/arrangement/mal-valg-typer'
 
 export default async function RedigerArrangement({
   params,
@@ -44,8 +44,15 @@ export default async function RedigerArrangement({
       .maybeSingle(),
   ])
 
-  let initialKey = ANNET_KEY
-  if (gjeldendeAnsvar?.arrangement_navn && gjeldendeAnsvar.aar != null) {
+  // Finn initialKey basert på arrangementets mal. Bonus-maler er direkte
+  // på arrangement (ingen arrangoransvar-rad). Konkrete maler utledes fra
+  // arrangoransvar-kobling.
+  let initialKey: string = ANNET_KEY
+  if (arr.mal_navn === 'Bonusmøte') {
+    initialKey = BONUS_MOETE_KEY
+  } else if (arr.mal_navn === 'Bonustur') {
+    initialKey = BONUS_TUR_KEY
+  } else if (gjeldendeAnsvar?.arrangement_navn && gjeldendeAnsvar.aar != null) {
     const key = `${gjeldendeAnsvar.arrangement_navn}::${gjeldendeAnsvar.aar}`
     if (valg.some(v => v.key === key)) initialKey = key
   }

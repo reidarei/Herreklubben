@@ -1,6 +1,6 @@
 import type { createServerClient } from '@/lib/supabase/server'
 import type { MalValg } from '@/components/arrangement/mal-valg-typer'
-import { byggAnnetValg } from '@/components/arrangement/mal-valg-typer'
+import { byggAnnetValg, BONUS_MOETE_KEY, BONUS_TUR_KEY } from '@/components/arrangement/mal-valg-typer'
 
 // Henter alle uoppfylte (aar, arrangement_navn)-kombinasjoner med tildelte
 // ansvarlige, joiner med arrangementmaler for type + purredato, og returnerer
@@ -83,7 +83,27 @@ export async function hentMalValg(
     return a.purredato.localeCompare(b.purredato)
   })
 
-  // "Annet" alltid til slutt
+  // "Annet" alltid til slutt i synlig del av dropdown
   valg.push(byggAnnetValg())
+
+  // Bonus-malene er skjulte valg som ikke vises i dropdown, men skjemaet
+  // trenger dem tilgjengelig når et arrangement er koblet til Bonusmøte/
+  // Bonustur. TypeVelger filtrerer dem ut av <option>-listen.
+  valg.push({
+    key: BONUS_MOETE_KEY,
+    mal_navn: 'Bonusmøte',
+    aar: null,
+    type: 'moete',
+    purredato: null,
+    ansvarlige: [],
+  })
+  valg.push({
+    key: BONUS_TUR_KEY,
+    mal_navn: 'Bonustur',
+    aar: null,
+    type: 'tur',
+    purredato: null,
+    ansvarlige: [],
+  })
   return valg
 }
