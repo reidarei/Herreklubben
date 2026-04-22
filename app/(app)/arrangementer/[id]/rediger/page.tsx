@@ -18,6 +18,8 @@ export default async function RedigerArrangement({
     getProfil(),
   ])
 
+  if (!user) redirect('/login')
+
   const { data: arr } = await supabase
     .from('arrangementer')
     .select('*')
@@ -27,7 +29,7 @@ export default async function RedigerArrangement({
   if (!arr) notFound()
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const kanRedigere = arr.opprettet_av === user!.id || erAdmin
+  const kanRedigere = arr.opprettet_av === user.id || erAdmin
 
   if (!kanRedigere) redirect(`/arrangementer/${id}`)
 

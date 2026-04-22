@@ -42,6 +42,8 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Roller:** Rettighetsmatrise i `lib/roller.ts` speiles av `er_admin()` i DB. Aldri sammenlign rolle-strenger direkte — bruk hjelperne. Se **Policy: Roller** nedenfor.
 
+**Avatarer:** Alle profil-avatarer rendres via `components/ui/Avatar.tsx`. Komponenten holdes bevisst enkel — utvid ikke med nye props, lag heller lokale wrappere. Se **Policy: Avatar** nedenfor.
+
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
 **Produksjon:** Appen kjører på [mortensrudherreklubb.no](https://mortensrudherreklubb.no) (Vercel, Dublin-region). Domenet er kjøpt via Domeneshop og DNS peker til Vercel.
@@ -145,5 +147,21 @@ Når en bruker oppretter et arrangement velger han **eksplisitt** hvilken mal de
 **Utkast på agendaen:** `UtkastKort` lenker ansvarlige rett til `/arrangementer/ny?mal=X&aar=Y` (mal forhåndsvalgt), andre til `/arrangoransvar#ansvar-Y-slug` (stabil anker for purring).
 
 **Detaljer:** Se [løsningsdesign §5.4](HK-app_losningsdesign.md#54-kobling-mellom-nytt-arrangement-og-arrangøransvar).
+
+## Policy: Avatar
+
+Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.tsx`. **Aldri** skriv inline `<img src={bilde_url}>` eller en rund div med initialer andre steder — bruk komponenten.
+
+**Props (fulle settet, utvides ikke):**
+- `name: string` — fullt navn, brukes til initialer og hue-beregning
+- `size?: number` — piksler (default 32)
+- `src?: string | null` — bildeUrl, fallback til initialer ved null
+- `rolle?: string | null` — brukes kun til gul glød for generalsekretær via `harGulGloed()`
+
+**Enkel kjerne — lag lokale wrappere for særtilfeller:** Hvis et sted trenger status-dot, krone-badge, aktiv-ring eller annen dekor rundt avataren, lag en liten wrapper-komponent lokalt (f.eks. `<AvatarMedKrone>`) som bruker Avatar inni. Legg **aldri** til props som `aktiv`, `badge`, `border`, `style` eller `children` på kjerne-komponenten — det gjør den til en konfigmatrise som er vanskelig å resonnere om.
+
+**Én bevisst særstilling:** `ProfilDisk` i `components/BottomNav.tsx` er en nav-tab-indikator (22px med aktiv-ring+shadow), ikke en profil-avatar — den bruker ikke Avatar og skal ikke tvinges gjennom den.
+
+**Når du legger til nye steder som viser profilbilder:** Bruk `<Avatar name={...} src={bilde_url} rolle={rolle} />`. Gul glød for generalsekretær faller da inn av seg selv — sjekker for dette skal ikke duplikeres utenfor komponenten.
 
 Supabase: Herreklubbens org, Herreklubbens webapp, Database passord: d2F3j$G!-@j!i94
