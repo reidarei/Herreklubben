@@ -142,7 +142,14 @@ export default function RedigerSkjema({
           pris_per_person: erTur ? (pris ? parseInt(pris) : null) : null,
           sensurerte_felt: erTur ? sensurert : {},
           bilde_url: bildeUrl,
-          mal_navn: valgt.mal_navn,
+          // Annet mappes til Bonusmøte/Bonustur basert på effektiv type.
+          // Andre maler sendes som-er.
+          mal_navn:
+            valgt.mal_navn === 'Annet'
+              ? effektivType === 'tur'
+                ? 'Bonustur'
+                : 'Bonusmøte'
+              : valgt.mal_navn,
           aar: valgt.aar,
         })
         router.push(`/arrangementer/${arr.id}`)

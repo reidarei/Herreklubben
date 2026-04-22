@@ -138,7 +138,13 @@ export default function NyttArrangementSkjema({ valg, initialKey }: Props) {
           pris_per_person: erTur ? (pris ? parseInt(pris) : null) : null,
           sensurerte_felt: erTur ? sensurert : {},
           bilde_url: bildeUrl,
-          mal_navn: valgt.mal_navn === 'Annet' ? null : valgt.mal_navn,
+          // Annet mappes til Bonusmøte/Bonustur basert på effektiv type.
+          mal_navn:
+            valgt.mal_navn === 'Annet'
+              ? effektivType === 'tur'
+                ? 'Bonustur'
+                : 'Bonusmøte'
+              : valgt.mal_navn,
           aar: valgt.aar ?? null,
         })
       } catch (err) {
