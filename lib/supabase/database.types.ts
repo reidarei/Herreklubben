@@ -59,7 +59,6 @@ export type Database = {
           bilde_url: string | null
           destinasjon: string | null
           id: string
-          mal_navn: string | null
           oppdatert: string
           oppmoetested: string | null
           opprettet: string
@@ -76,7 +75,6 @@ export type Database = {
           bilde_url?: string | null
           destinasjon?: string | null
           id?: string
-          mal_navn?: string | null
           oppdatert?: string
           oppmoetested?: string | null
           opprettet?: string
@@ -93,7 +91,6 @@ export type Database = {
           bilde_url?: string | null
           destinasjon?: string | null
           id?: string
-          mal_navn?: string | null
           oppdatert?: string
           oppmoetested?: string | null
           opprettet?: string
@@ -106,13 +103,6 @@ export type Database = {
           type?: Database["public"]["Enums"]["arrangementstype"]
         }
         Relationships: [
-          {
-            foreignKeyName: "arrangementer_mal_navn_fkey"
-            columns: ["mal_navn"]
-            isOneToOne: false
-            referencedRelation: "arrangementmaler"
-            referencedColumns: ["navn"]
-          },
           {
             foreignKeyName: "arrangementer_opprettet_av_fkey"
             columns: ["opprettet_av"]

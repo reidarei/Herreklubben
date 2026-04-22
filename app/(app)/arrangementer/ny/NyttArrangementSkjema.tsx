@@ -6,13 +6,12 @@ import Image from 'next/image'
 import { opprettArrangement } from '@/lib/actions/arrangementer'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
+import Segment from '@/components/ui/Segment'
 import { MiniToggle } from '@/components/ui/ToggleSwitch'
 import Icon from '@/components/ui/Icon'
 import Placeholder from '@/components/ui/Placeholder'
 import BildeBytterKnapp from '@/components/BildeBytterKnapp'
 import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
-import NyttDialog from '@/components/arrangement/NyttDialog'
-import { BONUS_MOETE_KEY, BONUS_TUR_KEY } from '@/components/arrangement/mal-valg-typer'
 import { formaterDato, datetimeLocalTilIso } from '@/lib/dato'
 
 const monoLabel: CSSProperties = {
@@ -71,29 +70,22 @@ function defaultStart(purredato: string | null): string {
 type Props = {
   valg: MalValg[]
   initialKey: string
-  aapneDialogVedStart?: boolean
 }
 
-export default function NyttArrangementSkjema({ valg, initialKey, aapneDialogVedStart = false }: Props) {
+export default function NyttArrangementSkjema({ valg, initialKey }: Props) {
   const [valgtKey, setValgtKey] = useState(initialKey)
-  const [visDialog, setVisDialog] = useState(aapneDialogVedStart)
   const valgt = useMemo(
     () => valg.find(v => v.key === valgtKey) ?? valg[valg.length - 1],
     [valg, valgtKey],
   )
 
-  // Malen dikterer skjema-stil. For "Annet" (type=null) faller vi tilbake
-  // til moete inntil dialog-valget har gått gjennom.
-  const effektivType: 'moete' | 'tur' = valgt.type ?? 'moete'
+  // Type: hvis malen har type → bruk den. Ellers (Annet) → bruker velger.
+  const [annetType, setAnnetType] = useState<'moete' | 'tur'>('moete')
+  const effektivType: 'moete' | 'tur' = valgt.type ?? annetType
   const erTur = effektivType === 'tur'
 
-  // Tittel forhåndsutfylles fra arrangement_navn, men kan overstyres.
-  // Bonus-maler og Annet gir tom tittel — brukeren skriver selv.
-  const [tittel, setTittel] = useState(
-    valgt.mal_navn === 'Annet' || valgt.mal_navn === 'Bonusmøte' || valgt.mal_navn === 'Bonustur'
-      ? ''
-      : valgt.mal_navn,
-  )
+  // Tittel forhåndsutfylles fra arrangement_navn, men kan overstyres
+  const [tittel, setTittel] = useState(valgt.mal_navn === 'Annet' ? '' : valgt.mal_navn)
   const [tittelBerørt, setTittelBerørt] = useState(false)
 
   const [beskrivelse, setBeskrivelse] = useState('')
@@ -109,25 +101,12 @@ export default function NyttArrangementSkjema({ valg, initialKey, aapneDialogVed
   const router = useRouter()
 
   function handleValgtMal(v: MalValg) {
-    // "Annet" er et virtuelt valg — dialog må avgjøre møte eller tur.
-    if (v.mal_navn === 'Annet') {
-      setVisDialog(true)
-      return
-    }
     setValgtKey(v.key)
     // Oppdater tittel/dato-defaults hvis bruker ikke har rørt tittelen
     if (!tittelBerørt) {
-      setTittel(
-        v.mal_navn === 'Bonusmøte' || v.mal_navn === 'Bonustur' ? '' : v.mal_navn,
-      )
+      setTittel(v.mal_navn === 'Annet' ? '' : v.mal_navn)
     }
     setStart(defaultStart(v.purredato))
-  }
-
-  function handleDialogVelg(stil: 'moete' | 'tur') {
-    setValgtKey(stil === 'tur' ? BONUS_TUR_KEY : BONUS_MOETE_KEY)
-    if (!tittelBerørt) setTittel('')
-    setVisDialog(false)
   }
 
   function toggleSensurert(felt: string) {
@@ -159,9 +138,7 @@ export default function NyttArrangementSkjema({ valg, initialKey, aapneDialogVed
           pris_per_person: erTur ? (pris ? parseInt(pris) : null) : null,
           sensurerte_felt: erTur ? sensurert : {},
           bilde_url: bildeUrl,
-          // valgt.mal_navn peker alltid på en reell mal (Bonusmøte/Bonustur
-          // for "Annet"-caset, eller en konkret mal). Dialog har sørget for det.
-          mal_navn: valgt.mal_navn,
+          mal_navn: valgt.mal_navn === 'Annet' ? null : valgt.mal_navn,
           aar: valgt.aar ?? null,
         })
       } catch (err) {
@@ -179,15 +156,13 @@ export default function NyttArrangementSkjema({ valg, initialKey, aapneDialogVed
     })
   }
 
+  const typeOptions = [
+    { value: 'tur' as const, label: 'Tur' },
+    { value: 'moete' as const, label: 'Møte' },
+  ]
+
   return (
     <div style={{ padding: '0 20px 120px' }}>
-      {visDialog && (
-        <NyttDialog
-          onVelg={handleDialogVelg}
-          onLukk={() => setVisDialog(false)}
-        />
-      )}
-
       <SkjemaBar
         overtittel="Nytt"
         tittel={tittel || 'Arrangement'}
@@ -227,11 +202,18 @@ export default function NyttArrangementSkjema({ valg, initialKey, aapneDialogVed
         </div>
       </div>
 
-      {/* Arrangement-valg — Annet åpner dialog for møte/tur-valg */}
+      {/* Arrangement-valg (erstatter gamle type-radio og ansvar-seksjon) */}
       <SkjemaSeksjon label="Velg arrangement">
-        <Rad last>
+        <Rad last={valgt.type !== null}>
           <TypeVelger valg={valg} valgtKey={valgtKey} onValg={handleValgtMal} />
         </Rad>
+        {/* Når "Annet" er valgt må brukeren velge møte/tur selv */}
+        {valgt.type === null && (
+          <Rad last>
+            <div style={monoLabel}>Format</div>
+            <Segment value={annetType} options={typeOptions} onChange={setAnnetType} />
+          </Rad>
+        )}
       </SkjemaSeksjon>
 
       {/* Detaljer */}

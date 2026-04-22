@@ -13,8 +13,6 @@ export type MalValg = {
 }
 
 export const ANNET_KEY = 'Annet::'
-export const BONUS_MOETE_KEY = 'Bonusmøte::'
-export const BONUS_TUR_KEY = 'Bonustur::'
 
 export function byggAnnetValg(): MalValg {
   return {

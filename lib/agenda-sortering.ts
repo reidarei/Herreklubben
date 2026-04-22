@@ -29,7 +29,6 @@ import type { ArrangementKortData } from '@/components/agenda/ArrangementKort'
 import type { UtkastData } from '@/components/agenda/UtkastKort'
 import type { BursdagData } from '@/components/agenda/BursdagKort'
 import type { KlubbJubileumData } from '@/components/agenda/KlubbJubileumKort'
-import { stilFor, type ArrangementStil } from '@/lib/arrangement-stil'
 
 // Herreklubben ble stiftet 24. november 2007. Brukes til å beregne
 // neste stiftelsesdag på agendaen.
@@ -49,17 +48,13 @@ export type PaameldingRaad = {
 
 export type ArrangementRaad = {
   id: string
-  mal_navn: string
+  type: string
   tittel: string
   start_tidspunkt: string
   oppmoetested: string | null
   bilde_url: string | null
   paameldinger: PaameldingRaad[]
 }
-
-// Minimal mal-liste for stil-utledning. Passes inn til byggAgenda slik at
-// sorteringslogikken er ren — ingen DB-lookup innenfra.
-export type MalForStil = { navn: string; type: ArrangementStil }
 
 export type UtkastRaad = {
   arrangement_navn: string
@@ -119,16 +114,12 @@ export function erSammeNorskeDag(iso: string, referanse: Date): boolean {
 
 // Mapper et ArrangementRaad til HighlightKortData — brukes for «I kveld»-
 // seksjonen som viser stor hero-stil med forhåndsvisning av ja-deltakere.
-export function tilHighlight(
-  arr: ArrangementRaad,
-  meg: string,
-  maler: MalForStil[],
-): HighlightKortData {
+export function tilHighlight(arr: ArrangementRaad, meg: string): HighlightKortData {
   const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
   const min = arr.paameldinger.find(p => p.profil_id === meg)
   return {
     id: arr.id,
-    stil: stilFor(arr.mal_navn, maler),
+    type: arr.type,
     tittel: arr.tittel,
     start_tidspunkt: arr.start_tidspunkt,
     oppmoetested: arr.oppmoetested,
@@ -148,16 +139,12 @@ export function tilHighlight(
 
 // Mapper et ArrangementRaad til ArrangementKortData — kompakt kort brukt i
 // «Kommende» og «Tidligere». Ingen deltaker-forhåndsvisning, bare antall ja.
-export function tilKort(
-  arr: ArrangementRaad,
-  meg: string,
-  maler: MalForStil[],
-): ArrangementKortData {
+export function tilKort(arr: ArrangementRaad, meg: string): ArrangementKortData {
   const jaListe = arr.paameldinger.filter(p => p.status === 'ja')
   const min = arr.paameldinger.find(p => p.profil_id === meg)
   return {
     id: arr.id,
-    stil: stilFor(arr.mal_navn, maler),
+    type: arr.type,
     tittel: arr.tittel,
     start_tidspunkt: arr.start_tidspunkt,
     oppmoetested: arr.oppmoetested,
@@ -266,13 +253,12 @@ export function byggAgenda(input: {
   arrangementer: ArrangementRaad[]
   ansvar: UtkastRaad[]
   profilerMedBursdag: ProfilMedBursdag[]
-  maler: MalForStil[]
   meg: string
   naa: Date
   aar: number
   bursdagsvinduDager?: number
 }): Agenda {
-  const { arrangementer, ansvar, profilerMedBursdag, maler, meg, naa, aar } = input
+  const { arrangementer, ansvar, profilerMedBursdag, meg, naa, aar } = input
   const bursdagsvinduDager = input.bursdagsvinduDager ?? 365
   const nowIso = new Date().toISOString()
 
@@ -283,7 +269,7 @@ export function byggAgenda(input: {
   const tidligere: ArrangementKortData[] = arrangementer
     .filter(a => !erSammeNorskeDag(a.start_tidspunkt, naa) && a.start_tidspunkt < nowIso)
     .sort((a, b) => b.start_tidspunkt.localeCompare(a.start_tidspunkt))
-    .map(a => tilKort(a, meg, maler))
+    .map(a => tilKort(a, meg))
 
   // Bursdager innen standardvinduet (default 365 dager fremover).
   const bursdager = beregnBursdager(profilerMedBursdag, naa, bursdagsvinduDager)
@@ -301,8 +287,8 @@ export function byggAgenda(input: {
       const erIdag = erSammeNorskeDag(a.start_tidspunkt, naa)
       // I kveld → highlight-variant, ellers kompakt kort
       return erIdag
-        ? { kind: 'highlight', sortIso: a.start_tidspunkt, data: tilHighlight(a, meg, maler) }
-        : { kind: 'arrangement', sortIso: a.start_tidspunkt, data: tilKort(a, meg, maler) }
+        ? { kind: 'highlight', sortIso: a.start_tidspunkt, data: tilHighlight(a, meg) }
+        : { kind: 'arrangement', sortIso: a.start_tidspunkt, data: tilKort(a, meg) }
     })
 
   // Bursdager: sortIso = midt på dagen UTC. Dette plasserer dem tryggt

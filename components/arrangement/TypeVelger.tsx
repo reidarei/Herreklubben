@@ -46,14 +46,6 @@ const inputStil: CSSProperties = {
 }
 
 export default function TypeVelger({ valg, valgtKey, onValg }: Props) {
-  // Bonus-malene er "skjulte" — vises ikke i dropdown, men kan være state.
-  // Hvis valgtKey peker på en skjult mal, viser vi "Annet" som display-valg.
-  const synligValg = valg.filter(
-    v => v.mal_navn !== 'Bonusmøte' && v.mal_navn !== 'Bonustur',
-  )
-  const erSkjult = !synligValg.some(v => v.key === valgtKey)
-  const displayKey = erSkjult ? 'Annet::' : valgtKey
-
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = valg.find(x => x.key === e.target.value)
     if (v) onValg(v)
@@ -62,8 +54,8 @@ export default function TypeVelger({ valg, valgtKey, onValg }: Props) {
   return (
     <div>
       <div style={monoLabel}>Arrangement</div>
-      <select value={displayKey} onChange={handleChange} style={inputStil}>
-        {synligValg.map(v => (
+      <select value={valgtKey} onChange={handleChange} style={inputStil}>
+        {valg.map(v => (
           <option key={v.key} value={v.key}>
             {v.mal_navn}
             {v.aar != null ? ` (${v.aar})` : ''}

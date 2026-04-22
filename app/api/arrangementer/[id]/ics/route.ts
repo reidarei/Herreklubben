@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const supabase = await createServerClient()
   const { data: arr } = await supabase
     .from('arrangementer')
-    .select('id, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt, oppmoetested, destinasjon')
+    .select('id, type, tittel, beskrivelse, start_tidspunkt, slutt_tidspunkt, oppmoetested, destinasjon')
     .eq('id', id)
     .single()
 
@@ -32,8 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const beskrivelseDeler: string[] = []
   if (arr.beskrivelse) beskrivelseDeler.push(arr.beskrivelse)
-  // Destinasjon tas med hvis den finnes — ingen type-sjekk. Møter har alltid null her.
-  if (arr.destinasjon) beskrivelseDeler.push(`Destinasjon: ${arr.destinasjon}`)
+  if (arr.type === 'tur' && arr.destinasjon) beskrivelseDeler.push(`Destinasjon: ${arr.destinasjon}`)
   beskrivelseDeler.push(`https://mortensrudherreklubb.no/arrangementer/${id}`)
 
   const linjer = [

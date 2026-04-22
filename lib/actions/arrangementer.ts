@@ -9,7 +9,6 @@ import { kanAdministrere } from '@/lib/roller'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
-  mal_navn: string // 'Mai-juni møte' | 'Reisekomiteen' | 'Bonusmøte' | 'Bonustur' | ...
   tittel: string
   beskrivelse?: string | null
   start_tidspunkt: string
@@ -21,8 +20,11 @@ export type ArrangementInput = {
   pris_per_person?: number | null
   sensurerte_felt?: Record<string, boolean>
   bilde_url?: string | null
-  // aar brukes til kobling til arrangoransvar (for konkrete maler som f.eks.
-  // "Mai-juni møte" 2026). Bonus-maler har aar=null og ingen ansvars-kobling.
+  // Mal-basert kobling til arrangøransvar. mal_navn = null eller "Annet" betyr
+  // ingen kobling. Ellers kobles arrangementet til ALLE arrangoransvar-rader
+  // med samme (aar, arrangement_navn) slik at alle ansvarlige markeres som
+  // oppfylt atomisk.
+  mal_navn?: string | null
   aar?: number | null
 }
 
@@ -32,9 +34,7 @@ async function koble(
   malNavn: string | null | undefined,
   aar: number | null | undefined,
 ) {
-  // Bonus-maler har ingen arrangoransvar-rader (de er fritt-opprettede). Konkrete
-  // maler (Mai-juni møte, Reisekomiteen, …) knyttes til ansvars-raden for (aar, malNavn).
-  if (!malNavn || !aar || malNavn === 'Bonusmøte' || malNavn === 'Bonustur') return
+  if (!malNavn || malNavn === 'Annet' || !aar) return
   await supabase
     .from('arrangoransvar')
     .update({ arrangement_id: arrangementId })
@@ -62,7 +62,6 @@ export async function opprettArrangement(data: ArrangementInput) {
     .from('arrangementer')
     .insert({
       type: data.type,
-      mal_navn: data.mal_navn,
       tittel: data.tittel,
       beskrivelse: data.beskrivelse || null,
       start_tidspunkt: data.start_tidspunkt,
@@ -110,8 +109,8 @@ export async function slettArrangement(id: string) {
 export async function oppdaterArrangement(id: string, data: Partial<ArrangementInput>) {
   const supabase = await createServerClient()
 
-  // aar brukes kun til koble/losne — det er ikke en kolonne på arrangementer.
-  const { aar, ...arrFelter } = data
+  // Håndter mal-bytte separat fra arrangement-feltene
+  const { mal_navn, aar, ...arrFelter } = data
 
   const { error } = await supabase
     .from('arrangementer')
@@ -122,11 +121,11 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
     .eq('id', id)
   if (error) throw new Error(error.message)
 
-  // Mal-bytte: hvis mal_navn er eksplisitt satt, synkroniser arrangoransvar-koblingen.
-  // Udefinert = rør ikke.
-  if (arrFelter.mal_navn !== undefined) {
+  // Mal-bytte: hvis mal_navn er eksplisitt satt (inkludert til "Annet" eller
+  // null), synkroniser koblingen. Udefinert = rør ikke.
+  if (mal_navn !== undefined) {
     await losne(supabase, id)
-    await koble(supabase, id, arrFelter.mal_navn, aar)
+    await koble(supabase, id, mal_navn, aar)
   }
 
   revalidatePath(`/arrangementer/${id}`)

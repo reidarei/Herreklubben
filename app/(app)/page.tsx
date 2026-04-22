@@ -18,7 +18,6 @@ import {
   type UtkastRaad,
   type ProfilMedBursdag,
 } from '@/lib/agenda-sortering'
-import { hentMaler } from '@/lib/arrangement-stil'
 
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
@@ -34,12 +33,11 @@ export default async function Forside() {
     { count: aktiveMedlemmer },
     { data: profilerMedBursdag },
     { data: ansvar },
-    maler,
   ] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(
-        `id, mal_navn, tittel, start_tidspunkt, oppmoetested, bilde_url,
+        `id, type, tittel, start_tidspunkt, oppmoetested, bilde_url,
          paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))`,
       )
       .gte('start_tidspunkt', treMndSiden.toISOString())
@@ -55,14 +53,12 @@ export default async function Forside() {
       .select('arrangement_navn, purredato, ansvarlig_id, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
-    hentMaler(),
   ])
 
   const { idag, kommende, tidligere } = byggAgenda({
     arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
     ansvar: (ansvar ?? []) as unknown as UtkastRaad[],
     profilerMedBursdag: (profilerMedBursdag ?? []) as ProfilMedBursdag[],
-    maler,
     meg: user!.id,
     naa,
     aar,

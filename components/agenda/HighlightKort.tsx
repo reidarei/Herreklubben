@@ -5,13 +5,12 @@ import Pill, { IKveldChip } from '@/components/ui/Pill'
 import Placeholder from '@/components/ui/Placeholder'
 import Avatar from '@/components/ui/Avatar'
 import { formaterDato } from '@/lib/dato'
-import { sceneFor, stilLabel, type ArrangementStil } from '@/lib/arrangement-stil'
 
 type Deltaker = { navn: string; src?: string | null; rolle?: string | null }
 
 export type HighlightKortData = {
   id: string
-  stil: ArrangementStil
+  type: string // 'tur' | 'moete'
   tittel: string
   start_tidspunkt: string
   oppmoetested: string | null
@@ -19,6 +18,18 @@ export type HighlightKortData = {
   antallJa: number
   deltakereForhand: Deltaker[] // opptil 3 for overlappende avatarer
   minStatus: 'ja' | 'kanskje' | 'nei' | null
+}
+
+function sceneFor(type: string): 'tur' | 'møte' | 'event' {
+  if (type === 'tur') return 'tur'
+  if (type === 'moete') return 'møte'
+  return 'event'
+}
+
+function typeLabel(type: string): string {
+  if (type === 'tur') return 'Tur'
+  if (type === 'moete') return 'Møte'
+  return 'Annet'
 }
 
 function statusPill(status: HighlightKortData['minStatus']) {
@@ -62,7 +73,7 @@ export default function HighlightKort({ arr }: { arr: HighlightKortData }) {
           />
         </div>
       ) : (
-        <Placeholder label={`image · ${stilLabel(arr.stil).toLowerCase()}`} aspectRatio="16/10" type={sceneFor(arr.stil)} />
+        <Placeholder label={`image · ${typeLabel(arr.type).toLowerCase()}`} aspectRatio="16/10" type={sceneFor(arr.type)} />
       )}
 
       {/* I kveld-chip */}
@@ -74,7 +85,7 @@ export default function HighlightKort({ arr }: { arr: HighlightKortData }) {
       <div style={{ padding: '18px 18px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <Pill variant="accent" small>
-            {stilLabel(arr.stil)}
+            {typeLabel(arr.type)}
           </Pill>
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{datoTekst}</span>
         </div>
