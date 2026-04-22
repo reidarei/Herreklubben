@@ -407,32 +407,26 @@ export default function RedigerSkjema({
       {/* Faresone */}
       <SkjemaSeksjon label="Faresone">
         {!visSlett ? (
-          <button
-            type="button"
-            onClick={() => setVisSlett(true)}
-            style={{
-              width: '100%',
-              padding: '16px 4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              color: '#d97a6c',
-              fontFamily: 'var(--font-display)',
-              fontSize: 16,
-              fontWeight: 500,
-              letterSpacing: '-0.2px',
-              cursor: 'pointer',
-              borderBottom: '0.5px solid var(--border-subtle)',
-              background: 'transparent',
-              border: 'none',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-            }}
-          >
-            <span>Slett arrangement</span>
-            <Icon name="chevron" size={14} color="#d97a6c" />
-          </button>
+          <div style={{ padding: '16px 4px' }}>
+            <button
+              type="button"
+              onClick={() => setVisSlett(true)}
+              style={{
+                width: '100%',
+                padding: '14px 0',
+                borderRadius: 999,
+                border: '1px solid #d97a6c',
+                background: 'transparent',
+                color: '#d97a6c',
+                fontFamily: 'var(--font-body)',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Slett arrangement
+            </button>
+          </div>
         ) : (
           <div style={{ padding: '16px 4px' }}>
             <p
