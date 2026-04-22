@@ -623,7 +623,8 @@ export default function Chat({
                     onTouchMove={clearLongPress}
                     onTouchCancel={clearLongPress}
                     onContextMenu={e => {
-                      // Desktop: høyreklikk som alternativ trigger
+                      // Hindrer iOS sin native callout (kopier/del) og
+                      // fungerer som desktop-høyreklikk-trigger.
                       e.preventDefault()
                       if (!m.id.startsWith('temp-')) setPickerFor(m.id)
                     }}
@@ -644,6 +645,8 @@ export default function Chat({
                       cursor: 'default',
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
+                      WebkitTouchCallout: 'none',
+                      touchAction: 'manipulation',
                     }}
                   >
                     {renderMedMentions(m.innhold)}

@@ -108,3 +108,12 @@ body {
 .chat-boble:focus-within .chat-slett-knapp {
   opacity: 1 !important;
 }
+
+/* Hindre at long-press på chat-meldinger markerer tekst eller åpner iOS-
+   callout (kopier/del-meny). Gjelder hele boble-wrapperen og alle barn. */
+.chat-boble,
+.chat-boble * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
