@@ -1,6 +1,6 @@
 import type { createServerClient } from '@/lib/supabase/server'
-import type { MalValg } from '@/components/arrangement/TypeVelger'
-import { byggAnnetValg } from '@/components/arrangement/TypeVelger'
+import type { MalValg } from '@/components/arrangement/mal-valg-typer'
+import { byggAnnetValg } from '@/components/arrangement/mal-valg-typer'
 
 // Henter alle uoppfylte (aar, arrangement_navn)-kombinasjoner med tildelte
 // ansvarlige, joiner med arrangementmaler for type + purredato, og returnerer

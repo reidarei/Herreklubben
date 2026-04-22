@@ -8,29 +8,12 @@
 // Sortering: (aar asc, purredato asc nulls last), "Annet" alltid sist.
 
 import type { CSSProperties } from 'react'
+import type { MalValg } from './mal-valg-typer'
 
-export type MalValg = {
-  // Stabilt nøkkel for React-rendering og seleksjon: `${arrangement_navn}::${aar ?? ''}`
-  key: string
-  mal_navn: string // 'Mai-juni møte' | ... | 'Annet'
-  aar: number | null // null for "Annet"
-  type: 'moete' | 'tur' | null // null for "Annet" — brukeren må velge
-  purredato: string | null // 'YYYY-MM-DD' med riktig år (ikke mal-dato med år 2000)
-  ansvarlige: string[] // navn, kun for visning/tooltip
-}
-
-export const ANNET_KEY = 'Annet::'
-
-export function byggAnnetValg(): MalValg {
-  return {
-    key: ANNET_KEY,
-    mal_navn: 'Annet',
-    aar: null,
-    type: null,
-    purredato: null,
-    ansvarlige: [],
-  }
-}
+// Re-eksport for bakoverkompatibilitet — byggAnnetValg og ANNET_KEY må ligge i
+// en ikke-client-modul for å kunne kalles fra server-side hentMalValg().
+export { ANNET_KEY, byggAnnetValg } from './mal-valg-typer'
+export type { MalValg } from './mal-valg-typer'
 
 type Props = {
   valg: MalValg[]

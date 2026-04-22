@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import RedigerSkjema from './RedigerSkjema'
 import { kanAdministrere } from '@/lib/roller'
 import { hentMalValg } from '@/lib/mal-valg'
-import { ANNET_KEY } from '@/components/arrangement/TypeVelger'
+import { ANNET_KEY } from '@/components/arrangement/mal-valg-typer'
 
 export default async function RedigerArrangement({
   params,
