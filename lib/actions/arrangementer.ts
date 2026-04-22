@@ -18,7 +18,7 @@ export type ArrangementInput = {
   destinasjon?: string
   pris_per_person?: number
   sensurerte_felt?: Record<string, boolean>
-  bilde_url?: string
+  bilde_url?: string | null
   // Mal-basert kobling til arrangøransvar. mal_navn = null eller "Annet" betyr
   // ingen kobling. Ellers kobles arrangementet til ALLE arrangoransvar-rader
   // med samme (aar, arrangement_navn) slik at alle ansvarlige markeres som

@@ -10,7 +10,7 @@ import Segment from '@/components/ui/Segment'
 import { MiniToggle } from '@/components/ui/ToggleSwitch'
 import Icon from '@/components/ui/Icon'
 import Placeholder from '@/components/ui/Placeholder'
-import BildeVelger from '@/components/BildeVelger'
+import BildeBytterKnapp from '@/components/BildeBytterKnapp'
 import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
 import { isoTilDatetimeLocal, datetimeLocalTilIso } from '@/lib/dato'
 
@@ -110,7 +110,6 @@ export default function RedigerSkjema({
   const [destinasjon, setDestinasjon] = useState(arr.destinasjon ?? '')
   const [pris, setPris] = useState<string>(arr.pris_per_person?.toString() ?? '')
   const [visSlett, setVisSlett] = useState(false)
-  const [visBildeVelger, setVisBildeVelger] = useState(false)
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -141,7 +140,7 @@ export default function RedigerSkjema({
           destinasjon,
           pris_per_person: pris ? parseInt(pris) : undefined,
           sensurerte_felt: sensurert,
-          bilde_url: bildeUrl || undefined,
+          bilde_url: bildeUrl,
           mal_navn: valgt.mal_navn,
           aar: valgt.aar,
         })
@@ -173,7 +172,7 @@ export default function RedigerSkjema({
         laster={isPending}
       />
 
-      {/* Hero-bilde med bytt-knapp */}
+      {/* Hero-bilde med bytt-knapp — trigger galleri direkte */}
       <div
         style={{
           position: 'relative',
@@ -195,35 +194,13 @@ export default function RedigerSkjema({
         ) : (
           <Placeholder label="Arrangement bilde" aspectRatio="16/9" type={erTur ? 'tur' : 'møte'} />
         )}
-        <button
-          type="button"
-          onClick={() => setVisBildeVelger(v => !v)}
-          style={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            background: 'rgba(10,10,12,0.6)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            color: 'var(--text-primary)',
-            border: '0.5px solid var(--border)',
-            padding: '7px 14px',
-            borderRadius: 999,
-            fontSize: 12,
-            fontWeight: 500,
-            fontFamily: 'var(--font-body)',
-            cursor: 'pointer',
-          }}
-        >
-          Bytt bilde
-        </button>
-      </div>
-
-      {visBildeVelger && (
-        <div style={{ marginBottom: 20 }}>
-          <BildeVelger bildeUrl={bildeUrl} onBildeUrl={setBildeUrl} />
+        <div style={{ position: 'absolute', bottom: 12, right: 12 }}>
+          <BildeBytterKnapp
+            onBildeUrl={setBildeUrl}
+            label={bildeUrl ? 'Bytt bilde' : 'Legg til bilde'}
+          />
         </div>
-      )}
+      </div>
 
       {/* Velg arrangement (mal) */}
       <SkjemaSeksjon label="Velg arrangement">
