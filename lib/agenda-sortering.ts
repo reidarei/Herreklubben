@@ -83,6 +83,11 @@ export type PollRaad = {
   opprettet_av: string
   antallStemmer: number
   harStemt: boolean
+  // Alternativer + egne stemmer følger med så kortet kan rendre inline-
+  // stemming når valg.length er lavt nok. Tomme felter er ok for eldre
+  // callsites (f.eks. tester som ikke bruker poll).
+  valg: { id: string; tekst: string }[]
+  mineStemmer: string[]
 }
 
 // === Resultat-typer ===============================================
@@ -173,6 +178,8 @@ export function tilPollKort(p: PollRaad, avsluttet: boolean): PollKortData {
     antallStemmer: p.antallStemmer,
     harStemt: p.harStemt,
     avsluttet,
+    valg: p.valg,
+    mineStemmer: p.mineStemmer,
   }
 }
 

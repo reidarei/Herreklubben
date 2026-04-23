@@ -65,15 +65,25 @@ export default async function Forside() {
       .is('arrangement_id', null),
     supabase
       .from('poll')
-      .select('id, spoersmaal, svarfrist, flervalg, opprettet_av, poll_stemme (profil_id)')
+      .select(
+        `id, spoersmaal, svarfrist, flervalg, opprettet_av,
+         poll_valg (id, tekst, rekkefoelge),
+         poll_stemme (profil_id, valg_id)`,
+      )
       .gte('svarfrist', pollVinduStart)
       .order('svarfrist', { ascending: true }),
   ])
 
-  // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er blant dem
+  // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
+  // blant dem, + hvilke valg jeg har stemt på. Valgene sorteres etter
+  // rekkefølge så inline-knappene rendres i opprettet rekkefølge.
   const poller: PollRaad[] = (pollerRaad ?? []).map(p => {
-    const stemmer = (p.poll_stemme ?? []) as { profil_id: string }[]
+    const stemmer = (p.poll_stemme ?? []) as { profil_id: string; valg_id: string }[]
     const unike = new Set(stemmer.map(s => s.profil_id))
+    const mine = stemmer.filter(s => s.profil_id === user!.id).map(s => s.valg_id)
+    const valg = [...(p.poll_valg ?? [])]
+      .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
+      .map(v => ({ id: v.id, tekst: v.tekst }))
     return {
       id: p.id,
       spoersmaal: p.spoersmaal,
@@ -82,6 +92,8 @@ export default async function Forside() {
       opprettet_av: p.opprettet_av,
       antallStemmer: unike.size,
       harStemt: unike.has(user!.id),
+      valg,
+      mineStemmer: mine,
     }
   })
 
