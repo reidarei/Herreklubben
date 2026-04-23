@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
+import KommenterKnapp from '@/components/agenda/KommenterKnapp'
 import { formaterDato } from '@/lib/dato'
 
 export type ArrangementKortData = {
@@ -146,31 +147,46 @@ export default function ArrangementKort({ arr, tidligere = false }: Props) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              justifyContent: 'space-between',
+              gap: 8,
               fontSize: 11,
               color: 'var(--text-tertiary)',
             }}
           >
-            {tidligere ? (
-              <>
-                <Icon name="checkmark" size={11} color="var(--text-tertiary)" strokeWidth={1.8} />
-                <span>{arr.antallJa} deltok</span>
-              </>
-            ) : (
-              <>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: statusDotFarge(arr.minStatus),
-                  }}
-                />
-                <span>
-                  {arr.antallJa} påmeldt · {statusTekst(arr.minStatus)}
-                </span>
-              </>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                minWidth: 0,
+                overflow: 'hidden',
+              }}
+            >
+              {tidligere ? (
+                <>
+                  <Icon name="checkmark" size={11} color="var(--text-tertiary)" strokeWidth={1.8} />
+                  <span>{arr.antallJa} deltok</span>
+                </>
+              ) : (
+                <>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      background: statusDotFarge(arr.minStatus),
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {arr.antallJa} påmeldt · {statusTekst(arr.minStatus)}
+                  </span>
+                </>
+              )}
+            </div>
+            {!tidligere && (
+              <KommenterKnapp href={`/arrangementer/${arr.id}#kommentarer`} />
             )}
           </div>
         </div>

@@ -408,6 +408,45 @@ export type Database = {
           },
         ]
       }
+      poll_chat: {
+        Row: {
+          id: string
+          innhold: string
+          opprettet: string
+          poll_id: string
+          profil_id: string
+        }
+        Insert: {
+          id?: string
+          innhold: string
+          opprettet?: string
+          poll_id: string
+          profil_id: string
+        }
+        Update: {
+          id?: string
+          innhold?: string
+          opprettet?: string
+          poll_id?: string
+          profil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_chat_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_chat_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poll_stemme: {
         Row: {
           opprettet: string

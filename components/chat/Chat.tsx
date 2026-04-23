@@ -7,6 +7,8 @@ import {
   slettMelding,
   sendKlubbMelding,
   slettKlubbMelding,
+  sendPollMelding,
+  slettPollMelding,
   leggTilReaksjon,
   fjernReaksjon,
 } from '@/lib/actions/chat'
@@ -18,6 +20,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 export type ChatScope =
   | { type: 'arrangement'; arrangementId: string }
   | { type: 'klubb' }
+  | { type: 'poll'; pollId: string }
 
 export type ChatMelding = {
   id: string
@@ -104,8 +107,18 @@ export default function Chat({
   ).current
   const supabase = useRef(createClient()).current
 
-  const tabell = scope.type === 'klubb' ? 'klubb_chat' : 'arrangement_chat'
-  const kanalNavn = scope.type === 'klubb' ? 'chat-klubb' : `chat-arr-${scope.arrangementId}`
+  const tabell =
+    scope.type === 'klubb'
+      ? 'klubb_chat'
+      : scope.type === 'poll'
+        ? 'poll_chat'
+        : 'arrangement_chat'
+  const kanalNavn =
+    scope.type === 'klubb'
+      ? 'chat-klubb'
+      : scope.type === 'poll'
+        ? `chat-poll-${scope.pollId}`
+        : `chat-arr-${scope.arrangementId}`
 
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
@@ -115,6 +128,17 @@ export default function Chat({
         let q = supabase
           .from('klubb_chat')
           .select('id, profil_id, innhold, opprettet')
+          .order('opprettet', { ascending: false })
+          .limit(SIDE_STORRELSE)
+        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+        const { data } = await q
+        return data ? [...data].reverse() : []
+      }
+      if (scope.type === 'poll') {
+        let q = supabase
+          .from('poll_chat')
+          .select('id, profil_id, innhold, opprettet')
+          .eq('poll_id', scope.pollId)
           .order('opprettet', { ascending: false })
           .limit(SIDE_STORRELSE)
         if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
@@ -132,7 +156,12 @@ export default function Chat({
       return data ? [...data].reverse() : []
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase],
+    [
+      scope.type,
+      scope.type === 'arrangement' ? scope.arrangementId : '',
+      scope.type === 'poll' ? scope.pollId : '',
+      supabase,
+    ],
   )
 
   // @alle er et spesialvalg som trigger varsel til alle aktive profiler.
@@ -223,16 +252,24 @@ export default function Chat({
 
       const channel = supabase.channel(kanalNavn)
 
-      // Filter: for arrangement, filtrer på arrangement_id. For klubb, ingen
-      // filter siden tabellen kun inneholder klubb-meldinger.
-      const insertConfig = scope.type === 'arrangement'
-        ? {
-            event: 'INSERT' as const,
-            schema: 'public',
-            table: tabell,
-            filter: `arrangement_id=eq.${scope.arrangementId}`,
-          }
-        : { event: 'INSERT' as const, schema: 'public', table: tabell }
+      // Filter: for arrangement/poll, filtrer på respektive id. For klubb,
+      // ingen filter siden tabellen kun inneholder klubb-meldinger.
+      const insertConfig =
+        scope.type === 'arrangement'
+          ? {
+              event: 'INSERT' as const,
+              schema: 'public',
+              table: tabell,
+              filter: `arrangement_id=eq.${scope.arrangementId}`,
+            }
+          : scope.type === 'poll'
+            ? {
+                event: 'INSERT' as const,
+                schema: 'public',
+                table: tabell,
+                filter: `poll_id=eq.${scope.pollId}`,
+              }
+            : { event: 'INSERT' as const, schema: 'public', table: tabell }
 
       const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
 
@@ -271,7 +308,12 @@ export default function Chat({
       if (channelRef) supabase.removeChannel(channelRef)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope.type, scope.type === 'arrangement' ? scope.arrangementId : '', supabase])
+  }, [
+    scope.type,
+    scope.type === 'arrangement' ? scope.arrangementId : '',
+    scope.type === 'poll' ? scope.pollId : '',
+    supabase,
+  ])
 
   // Hent reaksjoner for synlige meldinger + subscribe til endringer.
   useEffect(() => {
@@ -407,6 +449,8 @@ export default function Chat({
     try {
       if (scope.type === 'arrangement') {
         await sendMelding(scope.arrangementId, melding)
+      } else if (scope.type === 'poll') {
+        await sendPollMelding(scope.pollId, melding)
       } else {
         await sendKlubbMelding(melding)
       }
@@ -484,6 +528,8 @@ export default function Chat({
     try {
       if (scope.type === 'arrangement') {
         await slettMelding(id)
+      } else if (scope.type === 'poll') {
+        await slettPollMelding(id)
       } else {
         await slettKlubbMelding(id)
       }
@@ -496,7 +542,11 @@ export default function Chat({
 
   return (
     <div style={{ marginTop: visSeksjonsLabel ? 28 : 0 }}>
-      {visSeksjonsLabel && <SectionLabel count={meldinger.length}>Samtale</SectionLabel>}
+      {visSeksjonsLabel && (
+        <SectionLabel count={meldinger.length}>
+          {scope.type === 'klubb' ? 'Samtale' : 'Kommentarer'}
+        </SectionLabel>
+      )}
 
       {/* Vis eldre-knapp */}
       {harMerEldre && meldinger.length > 0 && (

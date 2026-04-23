@@ -13,6 +13,7 @@ import BursdagKort from '@/components/agenda/BursdagKort'
 import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import PollKort from '@/components/agenda/PollKort'
+import SisteKommentarerKort, { type KommentarSnippet } from '@/components/agenda/SisteKommentarerKort'
 import {
   byggAgenda,
   type ArrangementRaad,
@@ -43,6 +44,8 @@ export default async function Forside() {
     { data: profilerMedBursdag },
     { data: ansvar },
     { data: pollerRaad },
+    { data: arrKommentarer },
+    { data: pollKommentarer },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -72,6 +75,26 @@ export default async function Forside() {
       )
       .gte('svarfrist', pollVinduStart)
       .order('svarfrist', { ascending: true }),
+    // Siste kommentarer fra arrangement_chat og poll_chat. Hentes separat
+    // og slås sammen i app-laget (ingen UNION i Supabase-client).
+    supabase
+      .from('arrangement_chat')
+      .select(
+        `id, innhold, opprettet, profil_id, arrangement_id,
+         profiles (navn, bilde_url, rolle),
+         arrangementer (tittel)`,
+      )
+      .order('opprettet', { ascending: false })
+      .limit(5),
+    supabase
+      .from('poll_chat')
+      .select(
+        `id, innhold, opprettet, profil_id, poll_id,
+         profiles (navn, bilde_url, rolle),
+         poll (spoersmaal)`,
+      )
+      .order('opprettet', { ascending: false })
+      .limit(5),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -96,6 +119,56 @@ export default async function Forside() {
       mineStemmer: mine,
     }
   })
+
+  // Slå sammen siste kommentarer fra arrangement + poll, sorter, ta top 3.
+  type RawArrKomm = {
+    id: string
+    innhold: string
+    opprettet: string
+    profil_id: string
+    arrangement_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    arrangementer: { tittel: string } | null
+  }
+  type RawPollKomm = {
+    id: string
+    innhold: string
+    opprettet: string
+    profil_id: string
+    poll_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    poll: { spoersmaal: string } | null
+  }
+
+  const arrItems: KommentarSnippet[] = ((arrKommentarer ?? []) as unknown as RawArrKomm[])
+    .filter(k => k.profiles && k.arrangementer)
+    .map(k => ({
+      id: k.id,
+      innhold: k.innhold,
+      opprettet: k.opprettet,
+      avsender: {
+        navn: k.profiles!.navn ?? 'Ukjent',
+        bilde_url: k.profiles!.bilde_url,
+        rolle: k.profiles!.rolle,
+      },
+      kontekst: { type: 'arrangement', id: k.arrangement_id, tittel: k.arrangementer!.tittel },
+    }))
+  const pollItems: KommentarSnippet[] = ((pollKommentarer ?? []) as unknown as RawPollKomm[])
+    .filter(k => k.profiles && k.poll)
+    .map(k => ({
+      id: k.id,
+      innhold: k.innhold,
+      opprettet: k.opprettet,
+      avsender: {
+        navn: k.profiles!.navn ?? 'Ukjent',
+        bilde_url: k.profiles!.bilde_url,
+        rolle: k.profiles!.rolle,
+      },
+      kontekst: { type: 'poll', id: k.poll_id, tittel: k.poll!.spoersmaal },
+    }))
+  const sisteKommentarer: KommentarSnippet[] = [...arrItems, ...pollItems]
+    .sort((a, b) => b.opprettet.localeCompare(a.opprettet))
+    .slice(0, 3)
 
   const { idag, kommende, tidligere } = byggAgenda({
     arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
@@ -219,6 +292,9 @@ export default async function Forside() {
           )}
         </div>
       </section>
+
+      {/* Siste kommentarer */}
+      <SisteKommentarerKort items={sisteKommentarer} />
 
       {/* Lag avstemming */}
       <section style={{ marginBottom: 28 }}>

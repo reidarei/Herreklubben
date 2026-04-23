@@ -477,14 +477,16 @@ export default async function ArrangementDetaljer({
           </>
         )}
 
-        {/* Chat */}
-        <Chat
-          scope={{ type: 'arrangement', arrangementId: id }}
-          brukerId={user!.id}
-          erAdmin={erAdmin}
-          initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
-          profiler={chatProfiler ?? []}
-        />
+        {/* Kommentarer */}
+        <div id="kommentarer">
+          <Chat
+            scope={{ type: 'arrangement', arrangementId: id }}
+            brukerId={user!.id}
+            erAdmin={erAdmin}
+            initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
+            profiler={chatProfiler ?? []}
+          />
+        </div>
       </div>
     </div>
   )

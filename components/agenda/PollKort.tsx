@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
+import KommenterKnapp from '@/components/agenda/KommenterKnapp'
 import { formaterDato } from '@/lib/dato'
 import PollInlineStemme from '@/components/poll/PollInlineStemme'
 
@@ -115,19 +116,26 @@ export default function PollKort({ poll, tidligere = false }: Props) {
               color: 'var(--text-tertiary)',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              justifyContent: 'space-between',
+              gap: 8,
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
-              }}
-            />
-            <span>{statusTekst}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {statusTekst}
+              </span>
+            </div>
+            <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
           </div>
         </Card>
       </Link>
@@ -166,21 +174,30 @@ export default function PollKort({ poll, tidligere = false }: Props) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              justifyContent: 'space-between',
+              gap: 8,
               fontSize: 11,
               color: 'var(--text-tertiary)',
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
-              }}
-            />
-            <span>{statusTekst}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {statusTekst}
+              </span>
+            </div>
+            {!poll.avsluttet && !tidligere && (
+              <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
+            )}
           </div>
         </div>
 

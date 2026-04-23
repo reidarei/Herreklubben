@@ -7,6 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import PollStemming from '@/components/poll/PollStemming'
 import PollResultat from '@/components/poll/PollResultat'
 import PollRealtime from '@/components/poll/PollRealtime'
+import Chat from '@/components/chat/Chat'
 import SlettPollKnapp from './SlettPollKnapp'
 
 type PollRad = {
@@ -31,15 +32,27 @@ export default async function PollDetalj({
     getProfil(),
   ])
 
-  const { data: poll } = await supabase
-    .from('poll')
-    .select(
-      `id, spoersmaal, svarfrist, flervalg, opprettet_av,
-       poll_valg (id, tekst, rekkefoelge),
-       poll_stemme (valg_id, profil_id)`,
-    )
-    .eq('id', id)
-    .single<PollRad>()
+  const [{ data: poll }, { data: chatMeldinger }, { data: chatProfiler }] = await Promise.all([
+    supabase
+      .from('poll')
+      .select(
+        `id, spoersmaal, svarfrist, flervalg, opprettet_av,
+         poll_valg (id, tekst, rekkefoelge),
+         poll_stemme (valg_id, profil_id)`,
+      )
+      .eq('id', id)
+      .single<PollRad>(),
+    supabase
+      .from('poll_chat')
+      .select('id, profil_id, innhold, opprettet')
+      .eq('poll_id', id)
+      .order('opprettet', { ascending: false })
+      .limit(30),
+    supabase
+      .from('profiles')
+      .select('id, navn, bilde_url, rolle')
+      .eq('aktiv', true),
+  ])
 
   if (!poll) notFound()
 
@@ -146,6 +159,17 @@ export default async function PollDetalj({
           </div>
         </section>
       )}
+
+      {/* Kommentarer */}
+      <div id="kommentarer">
+        <Chat
+          scope={{ type: 'poll', pollId: poll.id }}
+          brukerId={user!.id}
+          erAdmin={erAdmin}
+          initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
+          profiler={chatProfiler ?? []}
+        />
+      </div>
 
       {/* Slett-knapp for oppretter/admin */}
       {kanSlette && (
