@@ -5,10 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import {
   sendMelding,
   slettMelding,
+  oppdaterMelding,
   sendKlubbMelding,
   slettKlubbMelding,
+  oppdaterKlubbMelding,
   sendPollMelding,
   slettPollMelding,
+  oppdaterPollMelding,
   leggTilReaksjon,
   fjernReaksjon,
 } from '@/lib/actions/chat'
@@ -89,6 +92,10 @@ export default function Chat({
   const [reaksjoner, setReaksjoner] = useState<Reaksjon[]>([])
   // Hvilken melding viser picker. Null = ingen.
   const [pickerFor, setPickerFor] = useState<string | null>(null)
+  // Hvilken melding redigeres. Null = ingen. editTekst holder editert innhold.
+  const [editerer, setEditerer] = useState<string | null>(null)
+  const [editTekst, setEditTekst] = useState('')
+  const [lagrerEdit, setLagrerEdit] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bunnenRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -272,6 +279,7 @@ export default function Chat({
             : { event: 'INSERT' as const, schema: 'public', table: tabell }
 
       const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
+      const updateConfig = { event: 'UPDATE' as const, schema: 'public', table: tabell }
 
       channel
         .on('postgres_changes', insertConfig, payload => {
@@ -292,6 +300,12 @@ export default function Chat({
         .on('postgres_changes', deleteConfig, payload => {
           const slettetId = (payload.old as { id: string }).id
           setMeldinger(prev => prev.filter(m => m.id !== slettetId))
+        })
+        .on('postgres_changes', updateConfig, payload => {
+          const oppdatert = payload.new as ChatMelding
+          setMeldinger(prev =>
+            prev.map(m => (m.id === oppdatert.id ? { ...m, innhold: oppdatert.innhold } : m)),
+          )
         })
         .subscribe()
 
@@ -523,6 +537,50 @@ export default function Chat({
     }
   }
 
+  function startEdit(meldingId: string, naavarende: string) {
+    setPickerFor(null)
+    setEditerer(meldingId)
+    setEditTekst(naavarende)
+  }
+
+  function avbrytEdit() {
+    setEditerer(null)
+    setEditTekst('')
+  }
+
+  async function lagreEdit(id: string) {
+    const ny = editTekst.trim()
+    if (!ny || lagrerEdit) return
+    // No-op hvis tekst er uendret
+    const forrige = meldinger.find(m => m.id === id)
+    if (forrige && forrige.innhold === ny) {
+      avbrytEdit()
+      return
+    }
+    setLagrerEdit(true)
+    // Optimistisk oppdatering
+    setMeldinger(prev => prev.map(m => (m.id === id ? { ...m, innhold: ny } : m)))
+    try {
+      if (scope.type === 'arrangement') {
+        await oppdaterMelding(id, ny)
+      } else if (scope.type === 'poll') {
+        await oppdaterPollMelding(id, ny)
+      } else {
+        await oppdaterKlubbMelding(id, ny)
+      }
+      avbrytEdit()
+    } catch {
+      // Rull tilbake ved feil
+      if (forrige) {
+        setMeldinger(prev =>
+          prev.map(m => (m.id === id ? { ...m, innhold: forrige.innhold } : m)),
+        )
+      }
+    } finally {
+      setLagrerEdit(false)
+    }
+  }
+
   async function handleSlett(id: string) {
     setMeldinger(prev => prev.filter(m => m.id !== id))
     try {
@@ -667,6 +725,100 @@ export default function Chat({
                   </div>
                 )}
                 <div style={{ position: 'relative' }} className="chat-boble">
+                  {editerer === m.id ? (
+                    <div
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: erEgen ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                        background: erEgen ? 'var(--accent-soft)' : 'var(--bg-elevated)',
+                        border: '0.5px solid var(--accent)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        minWidth: 220,
+                      }}
+                    >
+                      <textarea
+                        autoFocus
+                        value={editTekst}
+                        onChange={e => setEditTekst(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            lagreEdit(m.id)
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault()
+                            avbrytEdit()
+                          }
+                        }}
+                        maxLength={500}
+                        rows={2}
+                        style={{
+                          width: '100%',
+                          resize: 'none',
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          color: 'var(--text-primary)',
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          padding: '2px 4px',
+                        }}
+                      />
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          justifyContent: 'flex-end',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={avbrytEdit}
+                          disabled={lagrerEdit}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 9,
+                            letterSpacing: '1.4px',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                            cursor: lagrerEdit ? 'wait' : 'pointer',
+                          }}
+                        >
+                          Avbryt
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => lagreEdit(m.id)}
+                          disabled={lagrerEdit || !editTekst.trim()}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 999,
+                            background: 'var(--accent)',
+                            border: 'none',
+                            color: '#0a0a0a',
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 9,
+                            letterSpacing: '1.4px',
+                            textTransform: 'uppercase',
+                            fontWeight: 700,
+                            cursor:
+                              lagrerEdit || !editTekst.trim() ? 'default' : 'pointer',
+                            opacity: lagrerEdit || !editTekst.trim() ? 0.5 : 1,
+                          }}
+                        >
+                          {lagrerEdit ? 'Lagrer…' : 'Lagre'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     onTouchStart={() => startLongPress(m.id)}
                     onTouchEnd={clearLongPress}
@@ -701,6 +853,7 @@ export default function Chat({
                   >
                     {renderMedMentions(m.innhold)}
                   </div>
+                  )}
                   {/* Reaksjons-chips */}
                   {(() => {
                     const mineReaksjoner = reaksjoner.filter(r => r.melding_id === m.id)
@@ -810,6 +963,41 @@ export default function Chat({
                             {emoji}
                           </button>
                         ))}
+                        {erEgen && (
+                          <>
+                            <div
+                              style={{
+                                width: '0.5px',
+                                background: 'var(--border-subtle)',
+                                margin: '4px 4px',
+                              }}
+                              aria-hidden="true"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => startEdit(m.id, m.innhold)}
+                              style={{
+                                height: 34,
+                                borderRadius: 999,
+                                border: 'none',
+                                background: 'transparent',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: 9,
+                                color: 'var(--text-secondary)',
+                                letterSpacing: '1.4px',
+                                textTransform: 'uppercase',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                padding: '0 12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                              }}
+                              aria-label="Rediger melding"
+                            >
+                              Rediger
+                            </button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}

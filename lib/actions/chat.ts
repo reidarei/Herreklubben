@@ -73,6 +73,19 @@ async function sendMentionVarsler(arrangementId: string, tekst: string, avsender
   })
 }
 
+export async function oppdaterMelding(meldingId: string, innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('arrangement_chat')
+    .update({ innhold: tekst })
+    .eq('id', meldingId)
+
+  if (error) throw new Error(error.message)
+}
+
 export async function slettMelding(meldingId: string) {
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -143,6 +156,19 @@ async function sendKlubbMentionVarsler(tekst: string, avsenderId: string) {
     type: 'mention',
     tillatDuplikat: true,
   })
+}
+
+export async function oppdaterKlubbMelding(meldingId: string, innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('klubb_chat')
+    .update({ innhold: tekst })
+    .eq('id', meldingId)
+
+  if (error) throw new Error(error.message)
 }
 
 export async function slettKlubbMelding(meldingId: string) {
@@ -222,6 +248,19 @@ async function sendPollMentionVarsler(pollId: string, tekst: string, avsenderId:
     type: 'mention',
     tillatDuplikat: true,
   })
+}
+
+export async function oppdaterPollMelding(meldingId: string, innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('poll_chat')
+    .update({ innhold: tekst })
+    .eq('id', meldingId)
+
+  if (error) throw new Error(error.message)
 }
 
 export async function slettPollMelding(meldingId: string) {
