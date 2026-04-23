@@ -57,13 +57,12 @@ test.describe('Kommentarer på arrangement og poll', () => {
     await page.screenshot({ path: path.join(UT_DIR, '02-poll-med-kommentar.png'), fullPage: true })
     await expect(page.getByText(kommentar)).toBeVisible()
 
-    // Sjekk agenda — widget skal vise kommentaren
+    // Sjekk agenda — kommentaren skal vises inline i selve pollkortet
     await page.goto('/')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(600)
-    await page.screenshot({ path: path.join(UT_DIR, '03-agenda-widget.png'), fullPage: true })
-    await expect(page.getByText('Siste kommentarer')).toBeVisible()
-    await expect(page.locator('a', { hasText: kommentar.slice(0, 30) })).toBeVisible()
+    await page.screenshot({ path: path.join(UT_DIR, '03-agenda-inline.png'), fullPage: true })
+    await expect(page.getByText(kommentar).first()).toBeVisible()
 
     // Kommenter-knappen på inline poll-kortet skal finnes
     await expect(page.locator('[aria-label="Kommenter"]').first()).toBeVisible()

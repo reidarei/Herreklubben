@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import KommenterKnapp from '@/components/agenda/KommenterKnapp'
+import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato } from '@/lib/dato'
 
 export type ArrangementKortData = {
@@ -51,9 +52,10 @@ function statusTekst(status: ArrangementKortData['minStatus']): string {
 type Props = {
   arr: ArrangementKortData
   tidligere?: boolean
+  kommentarer?: KommentarKortData[]
 }
 
-export default function ArrangementKort({ arr, tidligere = false }: Props) {
+export default function ArrangementKort({ arr, tidligere = false, kommentarer = [] }: Props) {
   const iso = arr.start_tidspunkt
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
@@ -69,12 +71,19 @@ export default function ArrangementKort({ arr, tidligere = false }: Props) {
         padding={false}
         style={{
           display: 'flex',
+          flexDirection: 'column',
           gap: 0,
-          alignItems: 'stretch',
           opacity: tidligere ? 0.62 : 1,
           borderRadius: 'var(--radius-card)',
         }}
       >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: 0,
+          }}
+        >
         <div
           style={{
             flex: 1,
@@ -232,6 +241,12 @@ export default function ArrangementKort({ arr, tidligere = false }: Props) {
             </svg>
           )}
         </div>
+        </div>
+
+        {/* Kommentarer — inne i kortet, kollapsbart */}
+        {!tidligere && kommentarer.length > 0 && (
+          <KommentarerPaaKort kommentarer={kommentarer} />
+        )}
       </Card>
     </Link>
   )

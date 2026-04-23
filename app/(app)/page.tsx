@@ -13,7 +13,7 @@ import BursdagKort from '@/components/agenda/BursdagKort'
 import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import PollKort from '@/components/agenda/PollKort'
-import SisteKommentarerKort, { type KommentarSnippet } from '@/components/agenda/SisteKommentarerKort'
+import type { KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import {
   byggAgenda,
   type ArrangementRaad,
@@ -75,26 +75,25 @@ export default async function Forside() {
       )
       .gte('svarfrist', pollVinduStart)
       .order('svarfrist', { ascending: true }),
-    // Siste kommentarer fra arrangement_chat og poll_chat. Hentes separat
-    // og slås sammen i app-laget (ingen UNION i Supabase-client).
+    // Siste kommentarer per arrangement og poll — vises inline på hvert kort.
+    // Henter bredt (siste 100 per tabell) og grupperer i app-laget. For vår
+    // skala er dette billig og unngår Postgres-window-functions.
     supabase
       .from('arrangement_chat')
       .select(
-        `id, innhold, opprettet, profil_id, arrangement_id,
-         profiles (navn, bilde_url, rolle),
-         arrangementer (tittel)`,
+        `id, innhold, opprettet, arrangement_id,
+         profiles (navn, bilde_url, rolle)`,
       )
       .order('opprettet', { ascending: false })
-      .limit(5),
+      .limit(100),
     supabase
       .from('poll_chat')
       .select(
-        `id, innhold, opprettet, profil_id, poll_id,
-         profiles (navn, bilde_url, rolle),
-         poll (spoersmaal)`,
+        `id, innhold, opprettet, poll_id,
+         profiles (navn, bilde_url, rolle)`,
       )
       .order('opprettet', { ascending: false })
-      .limit(5),
+      .limit(100),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -120,55 +119,60 @@ export default async function Forside() {
     }
   })
 
-  // Slå sammen siste kommentarer fra arrangement + poll, sorter, ta top 3.
+  // Grupper kommentarer per arrangement/poll-id, ta top 3. Siden queryen
+  // allerede er sortert synkende på opprettet, tar vi bare de første 3 per
+  // gruppe — men reverserer rekkefølgen så eldste vises øverst (leser
+  // kommentarene i kronologisk rekkefølge).
   type RawArrKomm = {
     id: string
     innhold: string
     opprettet: string
-    profil_id: string
     arrangement_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
-    arrangementer: { tittel: string } | null
   }
   type RawPollKomm = {
     id: string
     innhold: string
     opprettet: string
-    profil_id: string
     poll_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
-    poll: { spoersmaal: string } | null
   }
 
-  const arrItems: KommentarSnippet[] = ((arrKommentarer ?? []) as unknown as RawArrKomm[])
-    .filter(k => k.profiles && k.arrangementer)
-    .map(k => ({
-      id: k.id,
-      innhold: k.innhold,
-      opprettet: k.opprettet,
-      avsender: {
-        navn: k.profiles!.navn ?? 'Ukjent',
-        bilde_url: k.profiles!.bilde_url,
-        rolle: k.profiles!.rolle,
-      },
-      kontekst: { type: 'arrangement', id: k.arrangement_id, tittel: k.arrangementer!.tittel },
-    }))
-  const pollItems: KommentarSnippet[] = ((pollKommentarer ?? []) as unknown as RawPollKomm[])
-    .filter(k => k.profiles && k.poll)
-    .map(k => ({
-      id: k.id,
-      innhold: k.innhold,
-      opprettet: k.opprettet,
-      avsender: {
-        navn: k.profiles!.navn ?? 'Ukjent',
-        bilde_url: k.profiles!.bilde_url,
-        rolle: k.profiles!.rolle,
-      },
-      kontekst: { type: 'poll', id: k.poll_id, tittel: k.poll!.spoersmaal },
-    }))
-  const sisteKommentarer: KommentarSnippet[] = [...arrItems, ...pollItems]
-    .sort((a, b) => b.opprettet.localeCompare(a.opprettet))
-    .slice(0, 3)
+  function grupperKommentarer<T extends { id: string; innhold: string; opprettet: string; profiles: RawArrKomm['profiles'] }>(
+    rader: T[],
+    nokkel: (r: T) => string,
+  ): Map<string, KommentarKortData[]> {
+    const map = new Map<string, KommentarKortData[]>()
+    for (const r of rader) {
+      if (!r.profiles) continue
+      const k = nokkel(r)
+      const list = map.get(k) ?? []
+      if (list.length >= 3) continue
+      list.push({
+        id: r.id,
+        innhold: r.innhold,
+        opprettet: r.opprettet,
+        avsender: {
+          navn: r.profiles.navn ?? 'Ukjent',
+          bilde_url: r.profiles.bilde_url,
+          rolle: r.profiles.rolle,
+        },
+      })
+      map.set(k, list)
+    }
+    // Reverser så eldste vises øverst (kronologisk lesing)
+    for (const [k, v] of map) map.set(k, v.reverse())
+    return map
+  }
+
+  const kommentarerPerArr = grupperKommentarer(
+    (arrKommentarer ?? []) as unknown as RawArrKomm[],
+    r => r.arrangement_id,
+  )
+  const kommentarerPerPoll = grupperKommentarer(
+    (pollKommentarer ?? []) as unknown as RawPollKomm[],
+    r => r.poll_id,
+  )
 
   const { idag, kommende, tidligere } = byggAgenda({
     arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
@@ -258,8 +262,9 @@ export default async function Forside() {
               if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
               if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
-              if (i.kind === 'poll') return <PollKort key={i.data.id} poll={i.data} />
-              return <ArrangementKort key={i.data.id} arr={i.data} />
+              if (i.kind === 'poll')
+                return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
+              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
             })}
           </div>
         </section>
@@ -270,11 +275,13 @@ export default async function Forside() {
         <SectionLabel>Kommende</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {kommende.map(i => {
-            if (i.kind === 'arrangement') return <ArrangementKort key={i.data.id} arr={i.data} />
+            if (i.kind === 'arrangement')
+              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
             if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
-            if (i.kind === 'poll') return <PollKort key={i.data.id} poll={i.data} />
+            if (i.kind === 'poll')
+              return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
             return <HighlightKort key={i.data.id} arr={i.data} />
           })}
           {kommende.length === 0 && (
@@ -292,9 +299,6 @@ export default async function Forside() {
           )}
         </div>
       </section>
-
-      {/* Siste kommentarer */}
-      <SisteKommentarerKort items={sisteKommentarer} />
 
       {/* Lag avstemming */}
       <section style={{ marginBottom: 28 }}>

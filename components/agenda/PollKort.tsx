@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import KommenterKnapp from '@/components/agenda/KommenterKnapp'
+import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato } from '@/lib/dato'
 import PollInlineStemme from '@/components/poll/PollInlineStemme'
 
@@ -27,6 +28,7 @@ type Props = {
   poll: PollKortData
   /** Plasser kortet i «tidligere»-stil (dempet opacity). */
   tidligere?: boolean
+  kommentarer?: KommentarKortData[]
 }
 
 function fristLabel(avsluttet: boolean, iso: string): string {
@@ -37,7 +39,7 @@ function fristLabel(avsluttet: boolean, iso: string): string {
   return `frist ${dag}. ${mnd} ${tid}`
 }
 
-export default function PollKort({ poll, tidligere = false }: Props) {
+export default function PollKort({ poll, tidligere = false, kommentarer = [] }: Props) {
   const erInline = !poll.avsluttet && !tidligere && poll.valg.length <= MAKS_INLINE_VALG
 
   // Felles topp-innhold (label + spørsmål). Både inline og kompakt bruker
@@ -96,47 +98,52 @@ export default function PollKort({ poll, tidligere = false }: Props) {
         <Card
           padding={false}
           style={{
-            padding: '14px 16px',
             borderRadius: 'var(--radius-card)',
           }}
         >
-          {topp}
+          <div style={{ padding: '14px 16px' }}>
+            {topp}
 
-          <PollInlineStemme
-            pollId={poll.id}
-            flervalg={poll.flervalg}
-            valg={poll.valg}
-            mineStemmer={poll.mineStemmer}
-          />
+            <PollInlineStemme
+              pollId={poll.id}
+              flervalg={poll.flervalg}
+              valg={poll.valg}
+              mineStemmer={poll.mineStemmer}
+            />
 
-          <div
-            style={{
-              marginTop: 10,
-              fontSize: 11,
-              color: 'var(--text-tertiary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {statusTekst}
-              </span>
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                color: 'var(--text-tertiary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {statusTekst}
+                </span>
+              </div>
+              <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
             </div>
-            <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
           </div>
+
+          {kommentarer.length > 0 && (
+            <KommentarerPaaKort kommentarer={kommentarer} />
+          )}
         </Card>
       </Link>
     )
@@ -152,12 +159,13 @@ export default function PollKort({ poll, tidligere = false }: Props) {
         padding={false}
         style={{
           display: 'flex',
+          flexDirection: 'column',
           gap: 0,
-          alignItems: 'stretch',
           opacity: tidligere ? 0.62 : 1,
           borderRadius: 'var(--radius-card)',
         }}
       >
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 0 }}>
         <div
           style={{
             flex: 1,
@@ -215,6 +223,11 @@ export default function PollKort({ poll, tidligere = false }: Props) {
         >
           <Icon name="chart" size={34} color="var(--accent)" strokeWidth={1.4} />
         </div>
+        </div>
+
+        {!poll.avsluttet && !tidligere && kommentarer.length > 0 && (
+          <KommentarerPaaKort kommentarer={kommentarer} />
+        )}
       </Card>
     </Link>
   )
