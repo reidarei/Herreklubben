@@ -13,6 +13,7 @@ import { kanAdministrere } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
   nytt_arrangement: 'Varsel ved nytt arrangement',
+  ny_poll: 'Varsel ved ny avstemming',
   paaminnelse_7d: 'Påminnelse 7 dager før',
   paaminnelse_1d: 'Påminnelse 1 dag før',
   purring_aktiv: 'Purring til de som ikke har svart (3 dager før)',

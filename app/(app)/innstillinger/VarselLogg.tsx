@@ -15,6 +15,7 @@ type VarselRad = {
 
 const typeLabels: Record<string, string> = {
   nytt_arrangement: 'Nytt arrangement',
+  ny_poll: 'Ny avstemming',
   oppdatert: 'Arrangement oppdatert',
   paaminne_7: 'Påminnelse 7 dager',
   paaminne_1: 'Påminnelse 1 dag',

@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { sendNyPollVarsler } from '@/lib/varsler'
 
 export type PollInput = {
   spoersmaal: string
@@ -68,6 +69,14 @@ export async function opprettPoll(data: PollInput) {
   }
 
   revalidatePath('/')
+
+  // Send varsler før redirect — after() er ikke pålitelig på Vercel Hobby
+  await sendNyPollVarsler({
+    pollId: poll.id,
+    spoersmaal,
+    svarfrist: frist.toISOString(),
+  }).catch(console.error)
+
   redirect(`/poll/${poll.id}`)
 }
 

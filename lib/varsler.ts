@@ -268,6 +268,30 @@ export async function sendArrangorPurringVarsler({
   })
 }
 
+export async function sendNyPollVarsler({
+  pollId,
+  spoersmaal,
+  svarfrist,
+}: {
+  pollId: string
+  spoersmaal: string
+  svarfrist: string
+}) {
+  if (!(await erVarselAktiv('ny_poll'))) return
+  const frist = formaterDatoKlokke(svarfrist)
+  await sendVarsel({
+    tittel: 'Ny avstemming',
+    melding: `${spoersmaal} — svarfrist ${frist}`,
+    url: `${BASE_URL}/poll/${pollId}`,
+    knappTekst: 'Stem nå',
+    type: 'ny_poll',
+    // Hver poll er unik — ingen dedup-behov. sendVarsel bruker arrangementId
+    // for dedup, men vår pollId peker ikke dit. Sett tillatDuplikat for å
+    // unngå at den uansett tolker vår context feil.
+    tillatDuplikat: true,
+  })
+}
+
 export async function sendPurringVarsler({
   arrangementId,
   tittel,
