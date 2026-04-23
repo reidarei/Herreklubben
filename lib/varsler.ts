@@ -7,6 +7,22 @@ const formaterDatoKlokke = (iso: string) => formaterDato(iso, FORMAT_DATO_KLOKKE
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
+// Sikkerhetsvakt: hvis BASE_URL peker til localhost, betyr det at vi kjører
+// i dev og sannsynligvis mot prod-databasen. Push-varsler med lokal URL
+// lander som ubrukelige lenker på ekte mobiler (bruker må restarte PWA
+// for å komme videre). Refuser å sende push/epost i dette tilfellet
+// med mindre utvikleren eksplisitt overstyrer med ALLOW_LOCAL_NOTIFICATIONS.
+//
+// Dette er en «belte og seler»-sjekk utover test_modus i varsel_innstillinger
+// — fordi test_modus er admin-konfig som kan glemmes ved utvikling.
+const ER_LOKAL_BASE =
+  BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1')
+const TILLAT_LOKAL = process.env.ALLOW_LOCAL_NOTIFICATIONS === 'true'
+// Unit-tester må kunne verifisere send-logikken uten å slå på miljøflagget.
+// Vitest setter VITEST=true automatisk.
+const ER_UNIT_TEST = !!process.env.VITEST
+const BLOKKER_UTSENDING = ER_LOKAL_BASE && !TILLAT_LOKAL && !ER_UNIT_TEST
+
 // Sjekk om en varseltype er aktivert i admin-innstillinger
 async function erVarselAktiv(noekkel: string): Promise<boolean> {
   const supabase = createAdminClient()
@@ -84,6 +100,19 @@ export async function sendVarsel({
   arrangementId?: string
   tillatDuplikat?: boolean
 }) {
+  // Dev-guard: Blokker utsending fra lokal dev-server mot prod-DB.
+  // Vi returnerer tidlig uten å skrive varsel_logg — det er bedre å ikke
+  // forurense loggen med "late som"-rader. Logg til konsoll slik at
+  // utvikleren ser hva som skjedde.
+  if (BLOKKER_UTSENDING) {
+    console.warn(
+      `[varsler] BLOKKERT: BASE_URL='${BASE_URL}' ser lokal ut. ` +
+      `Varselet '${tittel}' (type=${type}) ble IKKE sendt. ` +
+      `Sett NEXT_PUBLIC_BASE_URL til prod-URL eller ALLOW_LOCAL_NOTIFICATIONS=true for å overstyre.`
+    )
+    return
+  }
+
   const supabase = createAdminClient()
 
   // 1. Dedup-sjekk
