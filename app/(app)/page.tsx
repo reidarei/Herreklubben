@@ -106,6 +106,10 @@ export default async function Forside() {
     const valg = [...(p.poll_valg ?? [])]
       .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
       .map(v => ({ id: v.id, tekst: v.tekst }))
+    const stemmerPerValg: Record<string, number> = {}
+    for (const s of stemmer) {
+      stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+    }
     return {
       id: p.id,
       spoersmaal: p.spoersmaal,
@@ -116,6 +120,7 @@ export default async function Forside() {
       harStemt: unike.has(user!.id),
       valg,
       mineStemmer: mine,
+      stemmerPerValg,
     }
   })
 

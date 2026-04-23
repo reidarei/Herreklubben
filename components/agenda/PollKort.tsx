@@ -22,6 +22,7 @@ export type PollKortData = {
   avsluttet: boolean
   valg: { id: string; tekst: string }[]
   mineStemmer: string[]
+  stemmerPerValg: Record<string, number>
 }
 
 type Props = {
@@ -109,6 +110,8 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
               flervalg={poll.flervalg}
               valg={poll.valg}
               mineStemmer={poll.mineStemmer}
+              stemmerPerValg={poll.stemmerPerValg}
+              antallStemmere={poll.antallStemmer}
             />
 
             <div

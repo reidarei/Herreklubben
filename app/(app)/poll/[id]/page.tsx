@@ -7,6 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import PollStemming from '@/components/poll/PollStemming'
 import PollResultat from '@/components/poll/PollResultat'
 import PollRealtime from '@/components/poll/PollRealtime'
+import PollStemtVisning from '@/components/poll/PollStemtVisning'
 import Chat from '@/components/chat/Chat'
 import SlettPollKnapp from './SlettPollKnapp'
 
@@ -136,7 +137,18 @@ export default async function PollDetalj({
             mineStemmer={mineStemmer}
           />
         </section>
+      ) : mineStemmer.length > 0 ? (
+        // Har stemt: resultat er primær, «Endre svar» ekspanderer stemming
+        <PollStemtVisning
+          pollId={poll.id}
+          flervalg={poll.flervalg}
+          valg={valg}
+          mineStemmer={mineStemmer}
+          stemmerPerValg={Object.fromEntries(stemmerPerValg)}
+          antallStemmere={antallStemmere}
+        />
       ) : (
+        // Ikke stemt ennå: viser stemme-UI med foreløpig resultat under
         <section style={{ marginBottom: 24 }}>
           <SectionLabel count={antallStemmere}>
             {poll.flervalg ? 'Velg ett eller flere' : 'Velg ett'}
@@ -147,7 +159,6 @@ export default async function PollDetalj({
             valg={valg}
             mineStemmer={mineStemmer}
           />
-          {/* Vis delresultat også under stemming — oppdateres via realtime */}
           <div style={{ marginTop: 28 }}>
             <SectionLabel>Foreløpig</SectionLabel>
             <PollResultat

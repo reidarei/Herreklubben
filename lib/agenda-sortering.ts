@@ -88,6 +88,9 @@ export type PollRaad = {
   // callsites (f.eks. tester som ikke bruker poll).
   valg: { id: string; tekst: string }[]
   mineStemmer: string[]
+  // Antall stemmer per valg-id — brukes til å vise resultat inline etter
+  // at man har stemt.
+  stemmerPerValg: Record<string, number>
 }
 
 // === Resultat-typer ===============================================
@@ -180,6 +183,7 @@ export function tilPollKort(p: PollRaad, avsluttet: boolean): PollKortData {
     avsluttet,
     valg: p.valg,
     mineStemmer: p.mineStemmer,
+    stemmerPerValg: p.stemmerPerValg,
   }
 }
 
