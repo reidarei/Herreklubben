@@ -367,6 +367,119 @@ export type Database = {
           },
         ]
       }
+      poll: {
+        Row: {
+          flervalg: boolean
+          id: string
+          kontekst: string | null
+          kontekst_data: Json | null
+          opprettet: string
+          opprettet_av: string
+          spoersmaal: string
+          svarfrist: string
+        }
+        Insert: {
+          flervalg?: boolean
+          id?: string
+          kontekst?: string | null
+          kontekst_data?: Json | null
+          opprettet?: string
+          opprettet_av: string
+          spoersmaal: string
+          svarfrist: string
+        }
+        Update: {
+          flervalg?: boolean
+          id?: string
+          kontekst?: string | null
+          kontekst_data?: Json | null
+          opprettet?: string
+          opprettet_av?: string
+          spoersmaal?: string
+          svarfrist?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_opprettet_av_fkey"
+            columns: ["opprettet_av"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_stemme: {
+        Row: {
+          opprettet: string
+          poll_id: string
+          profil_id: string
+          valg_id: string
+        }
+        Insert: {
+          opprettet?: string
+          poll_id: string
+          profil_id: string
+          valg_id: string
+        }
+        Update: {
+          opprettet?: string
+          poll_id?: string
+          profil_id?: string
+          valg_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_stemme_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_stemme_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_stemme_valg_id_fkey"
+            columns: ["valg_id"]
+            isOneToOne: false
+            referencedRelation: "poll_valg"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_valg: {
+        Row: {
+          id: string
+          poll_id: string
+          rekkefoelge: number
+          tekst: string
+        }
+        Insert: {
+          id?: string
+          poll_id: string
+          rekkefoelge?: number
+          tekst: string
+        }
+        Update: {
+          id?: string
+          poll_id?: string
+          rekkefoelge?: number
+          tekst?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_valg_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           aktiv: boolean

@@ -12,12 +12,15 @@ import UtkastKort from '@/components/agenda/UtkastKort'
 import BursdagKort from '@/components/agenda/BursdagKort'
 import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
+import PollKort from '@/components/agenda/PollKort'
 import {
   byggAgenda,
   type ArrangementRaad,
   type UtkastRaad,
   type ProfilMedBursdag,
+  type PollRaad,
 } from '@/lib/agenda-sortering'
+import { subDays } from 'date-fns'
 
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
@@ -28,11 +31,18 @@ export default async function Forside() {
   const treMndSiden = subMonths(new Date(), 3)
   const aar = norskAar()
 
+  // Polls hentes med alle stemmer joinet — billig så lenge vi filtrerer
+  // på nylige polls (svarfrist > nå - 30 dager). Stemme-aggregeringen
+  // (antall unike + «har jeg stemt») gjøres i app-laget for å unngå
+  // database-view/RPC.
+  const pollVinduStart = subDays(new Date(), 30).toISOString()
+
   const [
     { data: arrangementer },
     { count: aktiveMedlemmer },
     { data: profilerMedBursdag },
     { data: ansvar },
+    { data: pollerRaad },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -53,12 +63,33 @@ export default async function Forside() {
       .select('arrangement_navn, purredato, ansvarlig_id, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
+    supabase
+      .from('poll')
+      .select('id, spoersmaal, svarfrist, flervalg, opprettet_av, poll_stemme (profil_id)')
+      .gte('svarfrist', pollVinduStart)
+      .order('svarfrist', { ascending: true }),
   ])
+
+  // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er blant dem
+  const poller: PollRaad[] = (pollerRaad ?? []).map(p => {
+    const stemmer = (p.poll_stemme ?? []) as { profil_id: string }[]
+    const unike = new Set(stemmer.map(s => s.profil_id))
+    return {
+      id: p.id,
+      spoersmaal: p.spoersmaal,
+      svarfrist: p.svarfrist,
+      flervalg: p.flervalg,
+      opprettet_av: p.opprettet_av,
+      antallStemmer: unike.size,
+      harStemt: unike.has(user!.id),
+    }
+  })
 
   const { idag, kommende, tidligere } = byggAgenda({
     arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
     ansvar: (ansvar ?? []) as unknown as UtkastRaad[],
     profilerMedBursdag: (profilerMedBursdag ?? []) as ProfilMedBursdag[],
+    poller,
     meg: user!.id,
     naa,
     aar,
@@ -142,6 +173,7 @@ export default async function Forside() {
               if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
               if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
+              if (i.kind === 'poll') return <PollKort key={i.data.id} poll={i.data} />
               return <ArrangementKort key={i.data.id} arr={i.data} />
             })}
           </div>
@@ -157,6 +189,7 @@ export default async function Forside() {
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
             if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
+            if (i.kind === 'poll') return <PollKort key={i.data.id} poll={i.data} />
             return <HighlightKort key={i.data.id} arr={i.data} />
           })}
           {kommende.length === 0 && (
@@ -175,6 +208,31 @@ export default async function Forside() {
         </div>
       </section>
 
+      {/* Lag avstemming */}
+      <section style={{ marginBottom: 28 }}>
+        <SectionLabel>Lurer du på hva gutta mener?</SectionLabel>
+        <Link
+          href="/poll/ny"
+          style={{
+            display: 'block',
+            width: '100%',
+            padding: '14px 0',
+            textAlign: 'center',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            borderRadius: 999,
+            color: 'var(--accent)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            fontWeight: 500,
+            letterSpacing: '0.2px',
+            textDecoration: 'none',
+          }}
+        >
+          Lag avstemming
+        </Link>
+      </section>
+
       {/* Innspill */}
       <InnspillKnapp />
 
@@ -183,9 +241,11 @@ export default async function Forside() {
         <section style={{ marginBottom: 28 }}>
           <SectionLabel>Tidligere</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tidligere.map(a => (
-              <ArrangementKort key={a.id} arr={a} tidligere />
-            ))}
+            {tidligere.map(t =>
+              t.kind === 'arrangement'
+                ? <ArrangementKort key={t.data.id} arr={t.data} tidligere />
+                : <PollKort key={t.data.id} poll={t.data} tidligere />,
+            )}
           </div>
         </section>
       )}

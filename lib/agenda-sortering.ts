@@ -29,6 +29,7 @@ import type { ArrangementKortData } from '@/components/agenda/ArrangementKort'
 import type { UtkastData } from '@/components/agenda/UtkastKort'
 import type { BursdagData } from '@/components/agenda/BursdagKort'
 import type { KlubbJubileumData } from '@/components/agenda/KlubbJubileumKort'
+import type { PollKortData } from '@/components/agenda/PollKort'
 
 // Herreklubben ble stiftet 24. november 2007. Brukes til å beregne
 // neste stiftelsesdag på agendaen.
@@ -71,6 +72,19 @@ export type ProfilMedBursdag = {
   rolle?: string | null
 }
 
+// Rådata fra poll-tabellen + aggregater hentet av forsiden. Forsiden gjør
+// én query mot poll med join til poll_valg (for count) og poll_stemme
+// (for unike stemmere og min-stemt-sjekk). Dette er én spørring — ingen N+1.
+export type PollRaad = {
+  id: string
+  spoersmaal: string
+  svarfrist: string
+  flervalg: boolean
+  opprettet_av: string
+  antallStemmer: number
+  harStemt: boolean
+}
+
 // === Resultat-typer ===============================================
 
 // Et item på agendaen. Hver variant har egen UI-data + felles sortIso.
@@ -84,12 +98,23 @@ export type AgendaItem =
   | { kind: 'utkast'; sortIso: string | null; data: UtkastData }
   | { kind: 'bursdag'; sortIso: string; data: BursdagData }
   | { kind: 'klubbjubileum'; sortIso: string; data: KlubbJubileumData }
+  | { kind: 'poll'; sortIso: string; data: PollKortData }
+
+// Tidligere-seksjonen viser både avsluttede arrangementer og avsluttede
+// polls (sistnevnte i 30 dager etter svarfrist). Vi bruker tagget union
+// slik at render-koden kan velge riktig kort-komponent.
+export type TidligereItem =
+  | { kind: 'arrangement'; sortIso: string; data: ArrangementKortData }
+  | { kind: 'poll'; sortIso: string; data: PollKortData }
 
 export type Agenda = {
   idag: AgendaItem[]
   kommende: AgendaItem[]
-  tidligere: ArrangementKortData[]
+  tidligere: TidligereItem[]
 }
+
+// Polls med svarfrist passert vises i «tidligere» i 30 dager før de skjules.
+const POLL_TIDLIGERE_VINDU_DAGER = 30
 
 // === Helpers (eksportert for test og gjenbruk) ====================
 
@@ -134,6 +159,20 @@ export function tilHighlight(arr: ArrangementRaad, meg: string): HighlightKortDa
       .filter(d => d.navn)
       .slice(0, 3),
     minStatus: (min?.status as 'ja' | 'kanskje' | 'nei' | undefined) ?? null,
+  }
+}
+
+// Mapper et PollRaad til PollKortData. `avsluttet` styrer visningen —
+// aktive polls viser "Du har stemt"/frist, avsluttede viser bare antall.
+export function tilPollKort(p: PollRaad, avsluttet: boolean): PollKortData {
+  return {
+    id: p.id,
+    spoersmaal: p.spoersmaal,
+    svarfrist: p.svarfrist,
+    flervalg: p.flervalg,
+    antallStemmer: p.antallStemmer,
+    harStemt: p.harStemt,
+    avsluttet,
   }
 }
 
@@ -253,12 +292,14 @@ export function byggAgenda(input: {
   arrangementer: ArrangementRaad[]
   ansvar: UtkastRaad[]
   profilerMedBursdag: ProfilMedBursdag[]
+  poller?: PollRaad[]
   meg: string
   naa: Date
   aar: number
   bursdagsvinduDager?: number
 }): Agenda {
   const { arrangementer, ansvar, profilerMedBursdag, meg, naa, aar } = input
+  const poller = input.poller ?? []
   const bursdagsvinduDager = input.bursdagsvinduDager ?? 365
   const nowIso = new Date().toISOString()
 
@@ -266,10 +307,31 @@ export function byggAgenda(input: {
   // *og* ikke faller på samme norske dag som naa. Den andre betingelsen
   // hindrer at et arrangement klokka 17:00 norsk tid havner under «Tidligere»
   // senere samme kveld.
-  const tidligere: ArrangementKortData[] = arrangementer
+  const tidligereArr: TidligereItem[] = arrangementer
     .filter(a => !erSammeNorskeDag(a.start_tidspunkt, naa) && a.start_tidspunkt < nowIso)
     .sort((a, b) => b.start_tidspunkt.localeCompare(a.start_tidspunkt))
-    .map(a => tilKort(a, meg))
+    .map(a => ({
+      kind: 'arrangement' as const,
+      sortIso: a.start_tidspunkt,
+      data: tilKort(a, meg),
+    }))
+
+  // Avsluttede polls vises i tidligere-seksjonen i 30 dager etter svarfrist.
+  // Filtrer bort eldre, deretter merge inn i tidligere sortert synkende.
+  const tidligstePollFrist = new Date(
+    Date.now() - POLL_TIDLIGERE_VINDU_DAGER * 24 * 60 * 60 * 1000,
+  ).toISOString()
+  const tidligerePoll: TidligereItem[] = poller
+    .filter(p => p.svarfrist < nowIso && p.svarfrist >= tidligstePollFrist)
+    .map(p => ({
+      kind: 'poll' as const,
+      sortIso: p.svarfrist,
+      data: tilPollKort(p, true),
+    }))
+
+  const tidligere: TidligereItem[] = [...tidligereArr, ...tidligerePoll].sort((a, b) =>
+    b.sortIso.localeCompare(a.sortIso),
+  )
 
   // Bursdager innen standardvinduet (default 365 dager fremover).
   const bursdager = beregnBursdager(profilerMedBursdag, naa, bursdagsvinduDager)
@@ -330,7 +392,23 @@ export function byggAgenda(input: {
     }
   })
 
-  const alleItems: AgendaItem[] = [...arrItems, ...bursdagItems, ...jubileumItems, ...utkastItems]
+  // Aktive polls (svarfrist i fremtid eller samme norske dag) vises i
+  // «i kveld»/«kommende». sortIso = svarfrist.
+  const pollItems: AgendaItem[] = poller
+    .filter(p => p.svarfrist >= nowIso || erSammeNorskeDag(p.svarfrist, naa))
+    .map(p => ({
+      kind: 'poll',
+      sortIso: p.svarfrist,
+      data: tilPollKort(p, false),
+    }))
+
+  const alleItems: AgendaItem[] = [
+    ...arrItems,
+    ...bursdagItems,
+    ...jubileumItems,
+    ...utkastItems,
+    ...pollItems,
+  ]
 
   // Regel 1: I kveld = items med sortIso som ligger på samme norske dag.
   const idag = alleItems.filter(i => i.sortIso && erSammeNorskeDag(i.sortIso, naa))

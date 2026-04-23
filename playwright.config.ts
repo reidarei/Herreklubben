@@ -19,16 +19,18 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+
 export default defineConfig({
   testDir: './e2e',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE_URL,
     screenshot: 'on',
     viewport: { width: 390, height: 844 }, // iPhone 14-størrelse
   },
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: BASE_URL,
     reuseExistingServer: true,
     timeout: 120_000,
   },
