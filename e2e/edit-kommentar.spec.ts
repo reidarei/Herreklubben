@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-poll'
 
 const UT_DIR = path.join('.screenshots', 'edit-kommentar')
 const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
@@ -19,6 +20,8 @@ test.describe('Redigere egne meldinger inline', () => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
 
+  test.afterEach(ryddTestPoll)
+
   test('redigerer egen kommentar via picker', async ({ page }) => {
     test.setTimeout(120_000)
 
@@ -36,6 +39,7 @@ test.describe('Redigere egne meldinger inline', () => {
     await page.getByRole('button', { name: 'Publiser' }).click()
     await page.waitForURL(/\/poll\/[0-9a-f-]+$/, { timeout: 10_000 })
     const pollUrl = page.url()
+    setTestPollId(pollIdFraUrl(pollUrl))
 
     const original = `Opprinnelig tekst ${ts}`
     await page.fill('input[placeholder="Skriv en melding…"]', original)
@@ -66,11 +70,6 @@ test.describe('Redigere egne meldinger inline', () => {
     await expect(page.getByText(endret)).toBeVisible()
     await expect(page.getByText(original)).not.toBeVisible()
 
-    // Rydd opp
-    page.on('dialog', d => d.accept())
-    await page.goto(pollUrl)
-    await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: 'Slett avstemming' }).click()
-    await page.waitForURL('**/', { timeout: 10_000 })
+    // Cleanup håndteres av test.afterEach(ryddTestPoll)
   })
 })

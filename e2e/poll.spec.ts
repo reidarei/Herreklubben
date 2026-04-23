@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-poll'
 
 /**
  * Visuell + funksjonell verifisering av poll-funksjonaliteten (#86).
@@ -28,6 +29,8 @@ test.describe('Poll-flyt', () => {
   test.beforeAll(() => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
+
+  test.afterEach(ryddTestPoll)
 
   test('oppretter, stemmer på og sletter en test-poll', async ({ page }) => {
     test.setTimeout(120_000)
@@ -72,6 +75,7 @@ test.describe('Poll-flyt', () => {
     await page.getByRole('button', { name: 'Publiser' }).click()
     await page.waitForURL(/\/poll\/[0-9a-f-]+$/, { timeout: 10_000 })
     const pollUrl = page.url()
+    setTestPollId(pollIdFraUrl(pollUrl))
     await page.waitForTimeout(600)
     await page.screenshot({ path: path.join(UT_DIR, '04-detalj-ustemt.png'), fullPage: true })
 
@@ -95,11 +99,6 @@ test.describe('Poll-flyt', () => {
     await page.screenshot({ path: path.join(UT_DIR, '07-agenda-med-poll.png'), fullPage: true })
     await expect(page.getByRole('link', { name: new RegExp(spoersmaal) })).toBeVisible()
 
-    // 8. Rydd opp: slett test-pollen
-    await page.goto(pollUrl)
-    await page.waitForLoadState('networkidle')
-    page.on('dialog', d => d.accept())
-    await page.getByRole('button', { name: 'Slett avstemming' }).click()
-    await page.waitForURL('**/', { timeout: 10_000 })
+    // Cleanup håndteres av test.afterEach(ryddTestPoll)
   })
 })

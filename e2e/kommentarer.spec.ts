@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-poll'
 
 /**
  * Verifiserer kommentar-funksjonalitet på arrangement + poll og at siste
@@ -24,6 +25,8 @@ test.describe('Kommentarer på arrangement og poll', () => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
 
+  test.afterEach(ryddTestPoll)
+
   test('poll: opprett, kommenter, verifiser widget på agenda', async ({ page }) => {
     test.setTimeout(120_000)
 
@@ -43,6 +46,7 @@ test.describe('Kommentarer på arrangement og poll', () => {
     await page.getByRole('button', { name: 'Publiser' }).click()
     await page.waitForURL(/\/poll\/[0-9a-f-]+$/, { timeout: 10_000 })
     const pollUrl = page.url()
+    setTestPollId(pollIdFraUrl(pollUrl))
 
     // Detaljsiden skal nå vise Kommentarer-seksjon
     await page.waitForTimeout(500)
@@ -67,11 +71,7 @@ test.describe('Kommentarer på arrangement og poll', () => {
     // Kommenter-knappen på inline poll-kortet skal finnes
     await expect(page.locator('[aria-label="Kommenter"]').first()).toBeVisible()
 
-    // Rydd opp: slett test-pollen (sletter også kommentar via cascade)
-    await page.goto(pollUrl)
-    await page.waitForLoadState('networkidle')
-    page.on('dialog', d => d.accept())
-    await page.getByRole('button', { name: 'Slett avstemming' }).click()
-    await page.waitForURL('**/', { timeout: 10_000 })
+    // Cleanup håndteres av test.afterEach(ryddTestPoll). poll_chat-raden
+    // cascade-slettes sammen med pollen via FK on delete cascade.
   })
 })

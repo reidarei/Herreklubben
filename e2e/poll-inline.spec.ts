@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-poll'
 
 /**
  * Verifiserer inline-stemming på agenda-kortet for poll med ≤ MAKS_INLINE_VALG
@@ -25,6 +26,8 @@ test.describe('Inline-stemming på agenda', () => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
 
+  test.afterEach(ryddTestPoll)
+
   test('2-valgs poll vises med inline stemmeknapper', async ({ page }) => {
     test.setTimeout(120_000)
 
@@ -45,6 +48,7 @@ test.describe('Inline-stemming på agenda', () => {
     await page.getByRole('button', { name: 'Publiser' }).click()
     await page.waitForURL(/\/poll\/[0-9a-f-]+$/, { timeout: 10_000 })
     const pollUrl = page.url()
+    setTestPollId(pollIdFraUrl(pollUrl))
 
     // Gå til agenda og verifiser inline-kortet
     await page.goto('/')
@@ -60,21 +64,22 @@ test.describe('Inline-stemming på agenda', () => {
     await expect(jaBtn).toBeVisible()
     await expect(neiBtn).toBeVisible()
 
-    // Stem inline — klikk Ja
+    // Stem inline — klikk Ja. Etter stemme flipper kortet til resultat-
+    // visning (stolper + Endre svar-knapp).
     await jaBtn.click()
     await page.waitForTimeout(1500)
     await page.screenshot({ path: path.join(UT_DIR, '02-agenda-inline-stemt-ja.png'), fullPage: true })
 
-    // Skift stemme — klikk Nei
-    await neiBtn.click()
+    // Skift stemme — trykk Endre svar først for å få tilbake knappene,
+    // deretter klikk Nei.
+    await kort.getByRole('button', { name: 'Endre svar' }).click()
+    await page.waitForTimeout(300)
+    const neiBtnIgjen = kort.getByRole('button', { name: 'Nei' })
+    await expect(neiBtnIgjen).toBeVisible()
+    await neiBtnIgjen.click()
     await page.waitForTimeout(1500)
     await page.screenshot({ path: path.join(UT_DIR, '03-agenda-inline-byttet-nei.png'), fullPage: true })
 
-    // Rydd opp
-    await page.goto(pollUrl)
-    await page.waitForLoadState('networkidle')
-    page.on('dialog', d => d.accept())
-    await page.getByRole('button', { name: 'Slett avstemming' }).click()
-    await page.waitForURL('**/', { timeout: 10_000 })
+    // Cleanup håndteres av test.afterEach(ryddTestPoll)
   })
 })
