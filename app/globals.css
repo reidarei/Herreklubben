@@ -117,3 +117,30 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* Tving portrett-visning. Manifest har allerede orientation:portrait, men
+   iOS Safari i browser-modus ignorerer det. Når enheten er i landskap
+   blokkerer vi appen med et overlay som ber brukeren rotere tilbake. */
+.orientering-overlay {
+  display: none;
+}
+@media screen and (orientation: landscape) and (max-device-width: 932px) {
+  .orientering-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+  }
+  body:has(.orientering-overlay) {
+    overflow: hidden;
+  }
+}

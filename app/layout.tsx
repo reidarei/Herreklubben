@@ -68,6 +68,13 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        <div className="orientering-overlay" role="alert" aria-live="polite">
+          <div style={{ fontSize: 40, lineHeight: 1 }}>↻</div>
+          <div style={{ fontSize: 18, fontWeight: 500 }}>Roter telefonen</div>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 320 }}>
+            Herreklubben fungerer best i portrett-modus.
+          </div>
+        </div>
         <SpeedInsights />
         <VitalsLogger />
       </body>
