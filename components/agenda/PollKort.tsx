@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
-import KommenterKnapp from '@/components/agenda/KommenterKnapp'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato } from '@/lib/dato'
 import PollInlineStemme from '@/components/poll/PollInlineStemme'
@@ -121,32 +120,29 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
                 color: 'var(--text-tertiary)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
+                gap: 6,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {statusTekst}
-                </span>
-              </div>
-              <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: '50%',
+                  background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {statusTekst}
+              </span>
             </div>
           </div>
 
-          {kommentarer.length > 0 && (
-            <KommentarerPaaKort kommentarer={kommentarer} />
-          )}
+          <KommentarerPaaKort
+            kommentarer={kommentarer}
+            scope={{ type: 'poll', id: poll.id }}
+          />
         </Card>
       </Link>
     )
@@ -185,30 +181,24 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
+              gap: 6,
               fontSize: 11,
               color: 'var(--text-tertiary)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
-                  flexShrink: 0,
-                }}
-              />
-              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {statusTekst}
-              </span>
-            </div>
-            {!poll.avsluttet && !tidligere && (
-              <KommenterKnapp href={`/poll/${poll.id}#kommentarer`} />
-            )}
+            <span
+              aria-hidden="true"
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: poll.harStemt ? 'var(--success)' : 'var(--text-tertiary)',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {statusTekst}
+            </span>
           </div>
         </div>
 
@@ -228,8 +218,11 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
         </div>
         </div>
 
-        {!poll.avsluttet && !tidligere && kommentarer.length > 0 && (
-          <KommentarerPaaKort kommentarer={kommentarer} />
+        {!poll.avsluttet && !tidligere && (
+          <KommentarerPaaKort
+            kommentarer={kommentarer}
+            scope={{ type: 'poll', id: poll.id }}
+          />
         )}
       </Card>
     </Link>

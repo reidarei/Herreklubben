@@ -2,7 +2,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
-import KommenterKnapp from '@/components/agenda/KommenterKnapp'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato } from '@/lib/dato'
 
@@ -156,46 +155,32 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
+              gap: 6,
               fontSize: 11,
               color: 'var(--text-tertiary)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                minWidth: 0,
-                overflow: 'hidden',
-              }}
-            >
-              {tidligere ? (
-                <>
-                  <Icon name="checkmark" size={11} color="var(--text-tertiary)" strokeWidth={1.8} />
-                  <span>{arr.antallJa} deltok</span>
-                </>
-              ) : (
-                <>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: '50%',
-                      background: statusDotFarge(arr.minStatus),
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {arr.antallJa} påmeldt · {statusTekst(arr.minStatus)}
-                  </span>
-                </>
-              )}
-            </div>
-            {!tidligere && (
-              <KommenterKnapp href={`/arrangementer/${arr.id}#kommentarer`} />
+            {tidligere ? (
+              <>
+                <Icon name="checkmark" size={11} color="var(--text-tertiary)" strokeWidth={1.8} />
+                <span>{arr.antallJa} deltok</span>
+              </>
+            ) : (
+              <>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: '50%',
+                    background: statusDotFarge(arr.minStatus),
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {arr.antallJa} påmeldt · {statusTekst(arr.minStatus)}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -243,9 +228,12 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
         </div>
         </div>
 
-        {/* Kommentarer — inne i kortet, kollapsbart */}
-        {!tidligere && kommentarer.length > 0 && (
-          <KommentarerPaaKort kommentarer={kommentarer} />
+        {/* Kommentarer — inne i kortet, kollapsbart, med inline input */}
+        {!tidligere && (
+          <KommentarerPaaKort
+            kommentarer={kommentarer}
+            scope={{ type: 'arrangement', id: arr.id }}
+          />
         )}
       </Card>
     </Link>
