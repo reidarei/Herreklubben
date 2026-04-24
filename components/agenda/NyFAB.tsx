@@ -74,13 +74,13 @@ export default function NyFAB() {
           role="menu"
           style={{
             position: 'absolute',
-            top: 'calc(100% + 8px)',
+            top: 'calc(100% + 10px)',
             right: 0,
-            minWidth: 180,
+            minWidth: 240,
             background: 'var(--bg-elevated)',
             border: '0.5px solid var(--border)',
             borderRadius: 'var(--radius-card)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
             overflow: 'hidden',
             zIndex: 20,
           }}
@@ -94,17 +94,17 @@ export default function NyFAB() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                padding: '12px 14px',
+                gap: 16,
+                padding: '18px 20px',
                 color: 'var(--text-primary)',
                 textDecoration: 'none',
                 fontFamily: 'var(--font-body)',
-                fontSize: 14,
+                fontSize: 17,
                 borderBottom:
                   i < VALG.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
               }}
             >
-              <Icon name={v.ikon} size={18} color="var(--accent)" strokeWidth={1.6} />
+              <Icon name={v.ikon} size={22} color="var(--accent)" strokeWidth={1.6} />
               {v.label}
             </Link>
           ))}
