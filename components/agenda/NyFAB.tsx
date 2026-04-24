@@ -41,8 +41,8 @@ export default function NyFAB() {
   }, [apen])
 
   const knappStil: CSSProperties = {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     borderRadius: '50%',
     background: 'var(--accent-soft)',
     border: '0.5px solid var(--border-strong)',
@@ -66,7 +66,7 @@ export default function NyFAB() {
         aria-haspopup="menu"
         style={knappStil}
       >
-        <Icon name="plus" size={20} color="var(--accent)" strokeWidth={1.8} />
+        <Icon name="plus" size={24} color="var(--accent)" strokeWidth={1.8} />
       </button>
 
       {apen && (
