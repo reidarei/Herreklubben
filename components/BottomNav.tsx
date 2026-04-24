@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
@@ -279,11 +280,15 @@ function ProfilDisk({
   }
 
   if (bildeUrl) {
+    // Rendres som 22 px — leverer en 44 px (2× DPR) optimalisert variant
+    // via Vercel i stedet for full Supabase-URL (~125 KB ellers).
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={bildeUrl}
         alt=""
+        width={22}
+        height={22}
+        sizes="44px"
         style={{ ...felles, objectFit: 'cover' }}
       />
     )
