@@ -3,7 +3,6 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { formaterDato, norskAar, norskDatoNaa } from '@/lib/dato'
 import { subMonths } from 'date-fns'
-import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import PushPaaminnelse from './PushPaaminnelse'
 import HighlightKort from '@/components/agenda/HighlightKort'
@@ -13,6 +12,7 @@ import BursdagKort from '@/components/agenda/BursdagKort'
 import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import PollKort from '@/components/agenda/PollKort'
+import NyFAB from '@/components/agenda/NyFAB'
 import type { KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import {
   byggAgenda,
@@ -237,25 +237,7 @@ export default async function Forside() {
           </h1>
         </div>
 
-        <Link
-          href="/arrangementer/ny"
-          aria-label="Nytt arrangement"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'var(--accent-soft)',
-            border: '0.5px solid var(--border-strong)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-        >
-          <Icon name="plus" size={20} color="var(--accent)" strokeWidth={1.8} />
-        </Link>
+        <NyFAB />
       </header>
 
       <PushPaaminnelse />

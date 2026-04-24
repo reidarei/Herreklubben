@@ -70,9 +70,14 @@ function defaultStart(purredato: string | null): string {
 type Props = {
   valg: MalValg[]
   initialKey: string
+  initialAnnetType?: 'moete' | 'tur'
 }
 
-export default function NyttArrangementSkjema({ valg, initialKey }: Props) {
+export default function NyttArrangementSkjema({
+  valg,
+  initialKey,
+  initialAnnetType = 'moete',
+}: Props) {
   const [valgtKey, setValgtKey] = useState(initialKey)
   const valgt = useMemo(
     () => valg.find(v => v.key === valgtKey) ?? valg[valg.length - 1],
@@ -80,7 +85,7 @@ export default function NyttArrangementSkjema({ valg, initialKey }: Props) {
   )
 
   // Type: hvis malen har type → bruk den. Ellers (Annet) → bruker velger.
-  const [annetType, setAnnetType] = useState<'moete' | 'tur'>('moete')
+  const [annetType, setAnnetType] = useState<'moete' | 'tur'>(initialAnnetType)
   const effektivType: 'moete' | 'tur' = valgt.type ?? annetType
   const erTur = effektivType === 'tur'
 

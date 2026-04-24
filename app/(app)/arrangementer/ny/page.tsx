@@ -3,7 +3,7 @@ import NyttArrangementSkjema from './NyttArrangementSkjema'
 import { hentMalValg } from '@/lib/mal-valg'
 
 type Props = {
-  searchParams: Promise<{ mal?: string; aar?: string }>
+  searchParams: Promise<{ mal?: string; aar?: string; type?: string }>
 }
 
 export default async function NyttArrangement({ searchParams }: Props) {
@@ -25,5 +25,17 @@ export default async function NyttArrangement({ searchParams }: Props) {
     }
   }
 
-  return <NyttArrangementSkjema valg={valg} initialKey={initialKey} />
+  // ?type=moete|tur (fra NyFAB på agenda) → forhåndsvelg Annet + type
+  const initialAnnetType: 'moete' | 'tur' = sp.type === 'tur' ? 'tur' : 'moete'
+  if (sp.type === 'moete' || sp.type === 'tur') {
+    initialKey = 'Annet::'
+  }
+
+  return (
+    <NyttArrangementSkjema
+      valg={valg}
+      initialKey={initialKey}
+      initialAnnetType={initialAnnetType}
+    />
+  )
 }
