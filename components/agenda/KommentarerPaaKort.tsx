@@ -111,7 +111,7 @@ export default function KommentarerPaaKort({
             alignItems: 'center',
             gap: 6,
             fontFamily: 'var(--font-mono)',
-            fontSize: 9,
+            fontSize: 10,
             color: 'var(--text-tertiary)',
             letterSpacing: '1.4px',
             textTransform: 'uppercase',
@@ -182,7 +182,7 @@ export default function KommentarerPaaKort({
                   <span
                     style={{
                       fontFamily: 'var(--font-mono)',
-                      fontSize: 8,
+                      fontSize: 10,
                       color: 'var(--text-tertiary)',
                       letterSpacing: '1px',
                       textTransform: 'uppercase',
@@ -194,9 +194,9 @@ export default function KommentarerPaaKort({
                 <div
                   style={{
                     fontFamily: 'var(--font-body)',
-                    fontSize: 12,
+                    fontSize: 13,
                     color: 'var(--text-secondary)',
-                    lineHeight: 1.35,
+                    lineHeight: 1.4,
                   }}
                 >
                   {snippet(k.innhold)}

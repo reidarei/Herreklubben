@@ -62,7 +62,7 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
             gap: 8,
             marginBottom: 8,
             fontFamily: 'var(--font-mono)',
-            fontSize: 10,
+            fontSize: 11,
             color: 'var(--text-tertiary)',
             letterSpacing: '1.6px',
             fontWeight: 600,
