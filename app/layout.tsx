@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import VitalsLogger from '@/components/VitalsLogger'
 import './globals.css'
 
 const inter = Inter({
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body>
         {children}
         <SpeedInsights />
+        <VitalsLogger />
       </body>
     </html>
   )

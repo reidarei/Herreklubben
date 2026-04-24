@@ -775,6 +775,36 @@ export type Database = {
           },
         ]
       }
+      vitals_logg: {
+        Row: {
+          device_type: string | null
+          id: string
+          metric: string
+          opprettet: string
+          rating: string | null
+          rute: string
+          verdi: number
+        }
+        Insert: {
+          device_type?: string | null
+          id?: string
+          metric: string
+          opprettet?: string
+          rating?: string | null
+          rute: string
+          verdi: number
+        }
+        Update: {
+          device_type?: string | null
+          id?: string
+          metric?: string
+          opprettet?: string
+          rating?: string | null
+          rute?: string
+          verdi?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

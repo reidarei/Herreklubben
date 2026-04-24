@@ -236,6 +236,32 @@ export default async function Innstillinger() {
         <SectionLabel>Varselhistorikk</SectionLabel>
         <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
       </section>
+
+      {/* Web vitals — ytelsesmålinger */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Ytelse</SectionLabel>
+        <Link
+          href="/innstillinger/vitals"
+          style={{
+            display: 'block',
+            padding: '14px 16px',
+            borderRadius: 12,
+            border: '0.5px solid var(--border-strong)',
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            textDecoration: 'none',
+          }}
+        >
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+            Web vitals →
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            LCP, INP, CLS og co. fra ekte brukere per rute og enhetstype.
+          </div>
+        </Link>
+      </section>
     </div>
   )
 }
