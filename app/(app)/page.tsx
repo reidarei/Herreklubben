@@ -76,24 +76,29 @@ export default async function Forside() {
       .gte('svarfrist', pollVinduStart)
       .order('svarfrist', { ascending: true }),
     // Siste kommentarer per arrangement og poll — vises inline på hvert kort.
-    // Henter bredt (siste 100 per tabell) og grupperer i app-laget. For vår
-    // skala er dette billig og unngår Postgres-window-functions.
+    // Henter siste 30 per tabell innenfor samme 3-mnd-vindu som arrangementer,
+    // og grupperer i app-laget. 30 rader dekker ~10 arrangementer med 3
+    // kommentarer hver — godt nok for det som er synlig på agenda.
+    // Tidligere hadde vi limit(100) som lastet unødvendig mye data og dro
+    // TTFB på agenda til rundt 2 sek.
     supabase
       .from('arrangement_chat')
       .select(
         `id, innhold, opprettet, arrangement_id,
          profiles (navn, bilde_url, rolle)`,
       )
+      .gte('opprettet', treMndSiden.toISOString())
       .order('opprettet', { ascending: false })
-      .limit(100),
+      .limit(30),
     supabase
       .from('poll_chat')
       .select(
         `id, innhold, opprettet, poll_id,
          profiles (navn, bilde_url, rolle)`,
       )
+      .gte('opprettet', treMndSiden.toISOString())
       .order('opprettet', { ascending: false })
-      .limit(100),
+      .limit(30),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
