@@ -10,10 +10,13 @@ import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 export default function BildeBytterKnapp({
   onBildeUrl,
   label = 'Bytt bilde',
+  bucket = 'arrangement-bilder',
   style,
 }: {
   onBildeUrl: (url: string) => void
   label?: string
+  /** Hvilken Supabase storage-bucket bildet skal lastes opp til. */
+  bucket?: 'arrangement-bilder' | 'melding-bilder'
   style?: React.CSSProperties
 }) {
   const [laster, setLaster] = useState(false)
@@ -36,13 +39,13 @@ export default function BildeBytterKnapp({
       const sti = `${user.id}/${filnavn}`
 
       const { error } = await supabase.storage
-        .from('arrangement-bilder')
+        .from(bucket)
         .upload(sti, komprimert, { contentType: 'image/jpeg' })
 
       if (error) throw new Error(error.message)
 
       const { data: { publicUrl } } = supabase.storage
-        .from('arrangement-bilder')
+        .from(bucket)
         .getPublicUrl(sti)
 
       onBildeUrl(publicUrl)

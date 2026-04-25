@@ -408,6 +408,7 @@ export type Database = {
       }
       meldinger: {
         Row: {
+          bilde_url: string | null
           id: string
           innhold: string
           opprettet: string
@@ -415,6 +416,7 @@ export type Database = {
           sist_aktivitet: string
         }
         Insert: {
+          bilde_url?: string | null
           id?: string
           innhold: string
           opprettet?: string
@@ -422,6 +424,7 @@ export type Database = {
           sist_aktivitet?: string
         }
         Update: {
+          bilde_url?: string | null
           id?: string
           innhold?: string
           opprettet?: string

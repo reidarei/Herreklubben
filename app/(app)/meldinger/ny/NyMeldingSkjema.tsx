@@ -2,9 +2,11 @@
 
 import { useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { opprettMelding } from '@/lib/actions/meldinger'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
+import BildeBytterKnapp from '@/components/BildeBytterKnapp'
 
 const inputStil: CSSProperties = {
   width: '100%',
@@ -24,6 +26,7 @@ const MAX_TEGN = 2000
 
 export default function NyMeldingSkjema() {
   const [innhold, setInnhold] = useState('')
+  const [bildeUrl, setBildeUrl] = useState<string | null>(null)
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -36,7 +39,7 @@ export default function NyMeldingSkjema() {
     }
     startTransition(async () => {
       try {
-        await opprettMelding(innhold)
+        await opprettMelding({ innhold, bilde_url: bildeUrl })
       } catch (err) {
         if (
           typeof err === 'object' &&
@@ -86,6 +89,53 @@ export default function NyMeldingSkjema() {
           >
             {tegnIgjen} tegn igjen
           </div>
+        </div>
+      </SkjemaSeksjon>
+
+      <SkjemaSeksjon label="Bilde (valgfritt)">
+        <div style={{ padding: '10px 4px' }}>
+          {bildeUrl ? (
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: 'var(--radius-card)', overflow: 'hidden' }}>
+                <Image
+                  src={bildeUrl}
+                  alt="Forhåndsvisning"
+                  fill
+                  sizes="(max-width: 512px) 100vw, 512px"
+                  style={{ objectFit: 'cover' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <BildeBytterKnapp
+                  bucket="melding-bilder"
+                  onBildeUrl={url => setBildeUrl(url)}
+                  label="Bytt bilde"
+                />
+                <button
+                  type="button"
+                  onClick={() => setBildeUrl(null)}
+                  style={{
+                    padding: '7px 14px',
+                    background: 'transparent',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 999,
+                    color: 'var(--danger)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Fjern bilde
+                </button>
+              </div>
+            </div>
+          ) : (
+            <BildeBytterKnapp
+              bucket="melding-bilder"
+              onBildeUrl={url => setBildeUrl(url)}
+              label="Legg til bilde"
+            />
+          )}
         </div>
       </SkjemaSeksjon>
 

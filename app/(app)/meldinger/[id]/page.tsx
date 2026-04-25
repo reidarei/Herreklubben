@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
@@ -13,6 +14,7 @@ type MeldingRad = {
   id: string
   innhold: string
   opprettet: string
+  bilde_url: string | null
   profil_id: string
   profiles: {
     navn: string | null
@@ -47,7 +49,7 @@ export default async function MeldingDetalj({
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle)',
+        'id, innhold, opprettet, bilde_url, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle)',
       )
       .eq('id', id)
       .single<MeldingRad>(),
@@ -143,6 +145,28 @@ export default async function MeldingDetalj({
         >
           {melding.innhold}
         </div>
+
+        {melding.bilde_url && (
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '4/3',
+              borderRadius: 'var(--radius-card)',
+              overflow: 'hidden',
+              marginBottom: 16,
+            }}
+          >
+            <Image
+              src={melding.bilde_url}
+              alt=""
+              fill
+              sizes="(max-width: 512px) 100vw, 512px"
+              style={{ objectFit: 'cover' }}
+              priority
+            />
+          </div>
+        )}
 
         <MeldingReaksjoner
           meldingId={melding.id}

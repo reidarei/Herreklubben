@@ -11,8 +11,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 const MIN_TEGN = 1
 const MAX_TEGN = 2000
 
-export async function opprettMelding(innhold: string) {
-  const tekst = innhold.trim()
+export async function opprettMelding(input: { innhold: string; bilde_url?: string | null }) {
+  const tekst = input.innhold.trim()
   if (tekst.length < MIN_TEGN || tekst.length > MAX_TEGN) {
     throw new Error(`Innholdet må være ${MIN_TEGN}–${MAX_TEGN} tegn`)
   }
@@ -23,7 +23,11 @@ export async function opprettMelding(innhold: string) {
 
   const { data, error } = await supabase
     .from('meldinger')
-    .insert({ profil_id: user.id, innhold: tekst })
+    .insert({
+      profil_id: user.id,
+      innhold: tekst,
+      bilde_url: input.bilde_url ?? null,
+    })
     .select('id')
     .single()
 

@@ -126,6 +126,7 @@ export type MeldingRaad = {
   innhold: string
   opprettet: string
   sist_aktivitet: string
+  bilde_url: string | null
   forfatter: {
     id: string
     navn: string
@@ -225,6 +226,7 @@ export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortD
     innhold: m.innhold,
     opprettet: m.opprettet,
     sist_aktivitet: m.sist_aktivitet,
+    bilde_url: m.bilde_url,
     forfatter: m.forfatter,
     reaksjoner: m.reaksjoner,
     antallKommentarer: m.antallKommentarer,

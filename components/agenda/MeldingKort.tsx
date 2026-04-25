@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRef, useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
@@ -14,6 +15,7 @@ export type MeldingKortData = {
   innhold: string
   opprettet: string
   sist_aktivitet: string
+  bilde_url: string | null
   forfatter: {
     id: string
     navn: string
@@ -170,12 +172,38 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
               lineHeight: 1.4,
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
-              marginBottom:
-                !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 8 : 0,
+              marginBottom: melding.bilde_url
+                ? 10
+                : !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen)
+                  ? 8
+                  : 0,
             }}
           >
             {melding.innhold}
           </div>
+
+          {/* Bilde (valgfritt) */}
+          {melding.bilde_url && (
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '4/3',
+                borderRadius: 'var(--radius-card)',
+                overflow: 'hidden',
+                marginBottom:
+                  !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0,
+              }}
+            >
+              <Image
+                src={melding.bilde_url}
+                alt=""
+                fill
+                sizes="(max-width: 512px) 100vw, 512px"
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
+          )}
 
           {/* Reaksjons-rad — vises kun hvis det finnes reaksjoner eller
               picker er åpen. Picker styres av long-press over. */}

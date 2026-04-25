@@ -111,7 +111,7 @@ export default async function Forside() {
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, sist_aktivitet, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle)',
+        'id, innhold, opprettet, sist_aktivitet, bilde_url, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle)',
       )
       .order('sist_aktivitet', { ascending: false })
       .limit(60),
@@ -248,6 +248,7 @@ export default async function Forside() {
     innhold: string
     opprettet: string
     sist_aktivitet: string
+    bilde_url: string | null
     profil_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
   }
@@ -263,6 +264,7 @@ export default async function Forside() {
       innhold: m.innhold,
       opprettet: m.opprettet,
       sist_aktivitet: m.sist_aktivitet,
+      bilde_url: m.bilde_url,
       forfatter: {
         id: m.profil_id,
         navn: m.profiles?.navn ?? 'Ukjent',
