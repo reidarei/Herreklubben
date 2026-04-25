@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useRef, useState, type CSSProperties } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
@@ -27,9 +30,10 @@ function relativTid(iso: string): string {
   return formatDistanceToNowStrict(new Date(iso), { locale: nb, addSuffix: true })
 }
 
+const LONG_PRESS_MS = 500
+
 type Props = {
   melding: MeldingKortData
-  /** Påloggede brukerens id — for å markere egne reaksjoner */
   brukerId: string
   kommentarer?: KommentarKortData[]
 }
@@ -39,11 +43,55 @@ type Props = {
  * Plasseres øverst på agenda i 7 dager (eller så lenge det er aktivitet
  * de siste 2 dagene). Etter det faller den ned i Tidligere-seksjonen
  * sortert på sist_aktivitet. Se lib/agenda-sortering.ts for regelverket.
+ *
+ * Long-press på selve innlegget åpner reaksjons-picker — samme mønster
+ * som chat-bobler bruker. Vanlig click navigerer til detaljsiden.
  */
 export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Props) {
+  const [pickerApen, setPickerApen] = useState(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressFired = useRef(false)
+
+  function startLongPress() {
+    if (melding.tidligere) return
+    longPressFired.current = false
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true
+      setPickerApen(true)
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate?.(15)
+      }
+    }, LONG_PRESS_MS)
+  }
+
+  function clearLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  function handleLinkClick(e: React.MouseEvent) {
+    // Hvis long-press fikk åpnet picker, hindre at samme tap navigerer
+    if (longPressFired.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      longPressFired.current = false
+    }
+  }
+
+  // Hindrer iOS-link-preview/callout og tekst-seleksjon ved long-press.
+  const longPressStyle: CSSProperties = {
+    WebkitTouchCallout: 'none',
+    WebkitUserSelect: 'none',
+    userSelect: 'none',
+  }
+
   return (
     <Link
       href={`/meldinger/${melding.id}`}
+      onClick={handleLinkClick}
       style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
     >
       <Card
@@ -56,24 +104,33 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
           borderRadius: 'var(--radius-card)',
         }}
       >
-        <div style={{ padding: '14px 16px' }}>
+        <div
+          onTouchStart={startLongPress}
+          onTouchEnd={clearLongPress}
+          onTouchMove={clearLongPress}
+          onTouchCancel={clearLongPress}
+          onMouseDown={startLongPress}
+          onMouseUp={clearLongPress}
+          onMouseLeave={clearLongPress}
+          style={{ padding: '10px 14px', ...longPressStyle }}
+        >
           {/* Forfatter-rad */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              marginBottom: 10,
+              gap: 8,
+              marginBottom: 6,
             }}
           >
             <Avatar
               name={melding.forfatter.navn}
-              size={32}
+              size={26}
               src={melding.forfatter.bilde_url}
               rolle={melding.forfatter.rolle}
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+              <span
                 style={{
                   fontFamily: 'var(--font-body)',
                   fontSize: 13,
@@ -82,19 +139,18 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
                 }}
               >
                 {melding.forfatter.navn}
-              </div>
-              <div
+              </span>
+              <span
                 style={{
                   fontFamily: 'var(--font-mono)',
-                  fontSize: 10,
+                  fontSize: 9,
                   color: 'var(--text-tertiary)',
-                  letterSpacing: '1px',
+                  letterSpacing: '0.8px',
                   textTransform: 'uppercase',
-                  marginTop: 1,
                 }}
               >
                 {relativTid(melding.opprettet)}
-              </div>
+              </span>
             </div>
           </div>
 
@@ -102,29 +158,32 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
           <div
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 15,
+              fontSize: 14,
               color: 'var(--text-primary)',
-              lineHeight: 1.45,
+              lineHeight: 1.4,
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
-              marginBottom: melding.reaksjoner.length > 0 || !melding.tidligere ? 12 : 0,
+              marginBottom:
+                !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 8 : 0,
             }}
           >
             {melding.innhold}
           </div>
 
-          {/* Reaksjons-rad */}
+          {/* Reaksjons-rad — vises kun hvis det finnes reaksjoner eller
+              picker er åpen. Picker styres av long-press over. */}
           {!melding.tidligere && (
             <MeldingReaksjoner
               meldingId={melding.id}
               brukerId={brukerId}
               reaksjoner={melding.reaksjoner}
+              pickerApen={pickerApen}
+              lukkPicker={() => setPickerApen(false)}
             />
           )}
         </div>
 
-        {/* Kommentarer — kun på levende meldinger. Tidligere kortes ned
-            til kun innholdet for å holde Tidligere-seksjonen ren. */}
+        {/* Kommentarer — kun på levende meldinger */}
         {!melding.tidligere && (
           <KommentarerPaaKort
             kommentarer={kommentarer}
