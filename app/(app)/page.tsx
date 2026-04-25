@@ -411,7 +411,7 @@ export default async function Forside() {
 
       {/* Lag avstemming */}
       <section style={{ marginBottom: 28 }}>
-        <SectionLabel>Lurer du på hva gutta mener?</SectionLabel>
+        <SectionLabel>Lurer du på noe?</SectionLabel>
         <Link
           href="/poll/ny"
           style={{
