@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { kanAdministrere } from '@/lib/roller'
+import { normaliserTelefon } from '@/lib/telefon'
 
 export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
   const supabase = await createServerClient()
@@ -14,7 +15,7 @@ export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: str
   const oppdatering: Record<string, unknown> = {
     navn: data.navn,
     visningsnavn: data.visningsnavn || data.navn,
-    telefon: data.telefon || null,
+    telefon: normaliserTelefon(data.telefon),
     fodselsdato: data.fodselsdato || null,
     oppdatert: new Date().toISOString(),
   }
@@ -41,7 +42,7 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
     .from('profiles')
-    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: data.telefon || null, fodselsdato: data.fodselsdato || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: new Date().toISOString() })
+    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: normaliserTelefon(data.telefon), fodselsdato: data.fodselsdato || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: new Date().toISOString() })
     .eq('id', id)
 
   if (error) throw new Error(error.message)
