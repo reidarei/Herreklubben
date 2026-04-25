@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   sendMelding,
@@ -415,22 +415,39 @@ export default function Chat({
     supabase,
   ])
 
-  // Hent reaksjoner for synlige meldinger + subscribe til endringer.
+  // Hent reaksjoner — kun for meldings-ID-er vi ikke har hentet før. På
+  // mount: fetch for alle. Ved scrollback (Vis eldre): fetch for nye
+  // gamle IDer. Når en ny melding kommer inn via send/realtime: fetcher
+  // for den ene IDen — typisk 0 rader, men billig og holder logikken
+  // homogen. Realtime-subscription under fanger nye reaksjoner uansett.
+  //
+  // Tidligere mønster fetch'et HELE settet hver gang meldinger.length
+  // endret seg, og erstattet reaksjons-state komplett → re-render av
+  // alle chat-bobler. Det dro INP merkbart.
+  const fetchedReaksjonsIder = useRef(new Set<string>())
   useEffect(() => {
-    const meldingIds = meldinger.map(m => m.id).filter(id => !id.startsWith('temp-'))
-    if (meldingIds.length === 0) {
-      setReaksjoner([])
-      return
-    }
+    const synlige = meldinger.map(m => m.id).filter(id => !id.startsWith('temp-'))
+    const nye = synlige.filter(id => !fetchedReaksjonsIder.current.has(id))
+    if (nye.length === 0) return
+    for (const id of nye) fetchedReaksjonsIder.current.add(id)
 
     let cancelled = false
     supabase
       .from('chat_reaksjoner')
       .select('melding_id, profil_id, emoji')
-      .in('melding_id', meldingIds)
+      .in('melding_id', nye)
       .then(({ data }) => {
-        if (cancelled || !data) return
-        setReaksjoner(data as Reaksjon[])
+        if (cancelled || !data || data.length === 0) return
+        setReaksjoner(prev => {
+          // Slå sammen — fjerne dubletter for samme (melding_id, profil_id, emoji)
+          const eksisterende = new Set(
+            prev.map(r => `${r.melding_id}|${r.profil_id}|${r.emoji}`),
+          )
+          const nye = (data as Reaksjon[]).filter(
+            r => !eksisterende.has(`${r.melding_id}|${r.profil_id}|${r.emoji}`),
+          )
+          return nye.length > 0 ? [...prev, ...nye] : prev
+        })
       })
 
     return () => {
@@ -438,6 +455,19 @@ export default function Chat({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meldinger.length])
+
+  // Reaksjoner gruppert per melding_id — kalkuleres én gang per
+  // render, ikke i hver boble. Sparer O(N×R) → O(N+R) når N meldinger
+  // og R reaksjoner.
+  const reaksjonerPerMelding = useMemo(() => {
+    const map = new Map<string, Reaksjon[]>()
+    for (const r of reaksjoner) {
+      const liste = map.get(r.melding_id)
+      if (liste) liste.push(r)
+      else map.set(r.melding_id, [r])
+    }
+    return map
+  }, [reaksjoner])
 
   // Realtime for reaksjoner — egen kanal siden vi ikke har filter per scope
   // (reaksjoner har ingen scope-kolonne; vi stoler på at bare synlige meldinger
@@ -958,8 +988,8 @@ export default function Chat({
                       kanten. Bottom-margin på .chat-boble (under) gir plass
                       til at de stikker ut. */}
                   {(() => {
-                    const mineReaksjoner = reaksjoner.filter(r => r.melding_id === m.id)
-                    if (mineReaksjoner.length === 0) return null
+                    const mineReaksjoner = reaksjonerPerMelding.get(m.id)
+                    if (!mineReaksjoner || mineReaksjoner.length === 0) return null
                     const grupper = new Map<string, { antall: number; minReaksjon: boolean }>()
                     for (const r of mineReaksjoner) {
                       const g = grupper.get(r.emoji) ?? { antall: 0, minReaksjon: false }
