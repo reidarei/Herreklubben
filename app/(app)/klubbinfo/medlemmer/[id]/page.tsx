@@ -1,16 +1,22 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
-import { getProfil } from '@/lib/auth-cache'
+import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import SectionLabel from '@/components/ui/SectionLabel'
+import SendMeldingKnapp from './SendMeldingKnapp'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere, tittelFor } from '@/lib/roller'
 
 export default async function MedlemProfil({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [supabase, meg] = await Promise.all([createServerClient(), getProfil()])
+  const [supabase, meg, megUser] = await Promise.all([
+    createServerClient(),
+    getProfil(),
+    getInnloggetBruker(),
+  ])
   const erAdmin = kanAdministrere(meg?.rolle)
+  const erMegSelv = megUser?.id === id
 
   const [
     { data: medlem },
@@ -141,25 +147,27 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
             {navn}
           </h1>
 
-          {erAdmin && (
-            <Link
-              href={`/klubbinfo/medlemmer/${id}/rediger`}
-              style={{
-                padding: '8px 14px',
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 999,
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 12,
-                fontWeight: 500,
-                textDecoration: 'none',
-                flexShrink: 0,
-              }}
-            >
-              Rediger
-            </Link>
-          )}
+          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+            {!erMegSelv && medlem?.aktiv && <SendMeldingKnapp motpartId={id} />}
+            {erAdmin && (
+              <Link
+                href={`/klubbinfo/medlemmer/${id}/rediger`}
+                style={{
+                  padding: '8px 14px',
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 999,
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                }}
+              >
+                Rediger
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 

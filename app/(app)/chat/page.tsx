@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Chat from '@/components/chat/Chat'
+import Icon from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
@@ -13,17 +15,26 @@ export default async function KlubbChatSide() {
     getProfil(),
   ])
 
-  const [{ data: siste }, { data: profiler }] = await Promise.all([
+  const [{ data: siste }, { data: profiler }, { count: ulestPrivat }] = await Promise.all([
     supabase
       .from('klubb_chat')
       .select('id, profil_id, innhold, opprettet')
       .order('opprettet', { ascending: false })
       .limit(30),
     supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),
+    // Antall uleste privatmeldinger til meg. RLS sørger for at vi kun
+    // teller meldinger i samtaler vi deltar i; profil_id != meg ekskluderer
+    // egne sendte meldinger.
+    supabase
+      .from('samtale_chat')
+      .select('id', { count: 'exact', head: true })
+      .eq('lest', false)
+      .neq('profil_id', user!.id),
   ])
 
   const erAdmin = kanAdministrere(profil?.rolle)
   const initialMeldinger = [...(siste ?? [])].reverse()
+  const ulest = ulestPrivat ?? 0
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
@@ -59,6 +70,57 @@ export default async function KlubbChatSide() {
           Samtalen
         </h1>
       </div>
+
+      {/* Lenke til private samtaler — vises alltid for at funksjonen skal
+          være oppdagbar. Ulest-badge til høyre når det finnes uleste. */}
+      <Link
+        href="/samtaler"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 14px',
+          marginBottom: 22,
+          background: 'var(--bg-elevated)',
+          border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-card)',
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
+        <Icon name="message" size={18} color="var(--accent)" strokeWidth={1.6} />
+        <span
+          style={{
+            flex: 1,
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            color: 'var(--text-primary)',
+          }}
+        >
+          Privatmeldinger
+        </span>
+        {ulest > 0 && (
+          <span
+            style={{
+              minWidth: 20,
+              height: 20,
+              padding: '0 7px',
+              borderRadius: 999,
+              background: 'var(--accent)',
+              color: '#0a0a0a',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {ulest}
+          </span>
+        )}
+        <Icon name="chevron" size={14} color="var(--text-tertiary)" />
+      </Link>
 
       <Chat
         scope={{ type: 'klubb' }}

@@ -703,6 +703,87 @@ export type Database = {
           },
         ]
       }
+      samtale: {
+        Row: {
+          id: string
+          opprettet: string
+          profil_a: string
+          profil_b: string
+          sist_aktivitet: string
+        }
+        Insert: {
+          id?: string
+          opprettet?: string
+          profil_a: string
+          profil_b: string
+          sist_aktivitet?: string
+        }
+        Update: {
+          id?: string
+          opprettet?: string
+          profil_a?: string
+          profil_b?: string
+          sist_aktivitet?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "samtale_profil_a_fkey"
+            columns: ["profil_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samtale_profil_b_fkey"
+            columns: ["profil_b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      samtale_chat: {
+        Row: {
+          id: string
+          innhold: string
+          lest: boolean
+          opprettet: string
+          profil_id: string
+          samtale_id: string
+        }
+        Insert: {
+          id?: string
+          innhold: string
+          lest?: boolean
+          opprettet?: string
+          profil_id: string
+          samtale_id: string
+        }
+        Update: {
+          id?: string
+          innhold?: string
+          lest?: boolean
+          opprettet?: string
+          profil_id?: string
+          samtale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "samtale_chat_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "samtale_chat_samtale_id_fkey"
+            columns: ["samtale_id"]
+            isOneToOne: false
+            referencedRelation: "samtale"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       varsel_innstillinger: {
         Row: {
           aktiv: boolean

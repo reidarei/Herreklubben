@@ -18,6 +18,11 @@ import {
   leggTilReaksjon,
   fjernReaksjon,
 } from '@/lib/actions/chat'
+import {
+  sendPrivatMelding,
+  slettPrivatMelding,
+  oppdaterPrivatMelding,
+} from '@/lib/actions/samtaler'
 import { formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
@@ -28,6 +33,7 @@ export type ChatScope =
   | { type: 'klubb' }
   | { type: 'poll'; pollId: string }
   | { type: 'melding'; meldingId: string }
+  | { type: 'privat'; samtaleId: string }
 
 export type ChatMelding = {
   id: string
@@ -125,7 +131,9 @@ export default function Chat({
         ? 'poll_chat'
         : scope.type === 'melding'
           ? 'melding_chat'
-          : 'arrangement_chat'
+          : scope.type === 'privat'
+            ? 'samtale_chat'
+            : 'arrangement_chat'
   const kanalNavn =
     scope.type === 'klubb'
       ? 'chat-klubb'
@@ -133,7 +141,9 @@ export default function Chat({
         ? `chat-poll-${scope.pollId}`
         : scope.type === 'melding'
           ? `chat-melding-${scope.meldingId}`
-          : `chat-arr-${scope.arrangementId}`
+          : scope.type === 'privat'
+            ? `chat-privat-${scope.samtaleId}`
+            : `chat-arr-${scope.arrangementId}`
 
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
@@ -171,6 +181,17 @@ export default function Chat({
         const { data } = await q
         return data ? [...data].reverse() : []
       }
+      if (scope.type === 'privat') {
+        let q = supabase
+          .from('samtale_chat')
+          .select('id, profil_id, innhold, opprettet')
+          .eq('samtale_id', scope.samtaleId)
+          .order('opprettet', { ascending: false })
+          .limit(SIDE_STORRELSE)
+        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+        const { data } = await q
+        return data ? [...data].reverse() : []
+      }
       let q = supabase
         .from('arrangement_chat')
         .select('id, profil_id, innhold, opprettet')
@@ -187,6 +208,7 @@ export default function Chat({
       scope.type === 'arrangement' ? scope.arrangementId : '',
       scope.type === 'poll' ? scope.pollId : '',
       scope.type === 'melding' ? scope.meldingId : '',
+      scope.type === 'privat' ? scope.samtaleId : '',
       supabase,
     ],
   )
@@ -303,7 +325,14 @@ export default function Chat({
                   table: tabell,
                   filter: `melding_id=eq.${scope.meldingId}`,
                 }
-              : { event: 'INSERT' as const, schema: 'public', table: tabell }
+              : scope.type === 'privat'
+                ? {
+                    event: 'INSERT' as const,
+                    schema: 'public',
+                    table: tabell,
+                    filter: `samtale_id=eq.${scope.samtaleId}`,
+                  }
+                : { event: 'INSERT' as const, schema: 'public', table: tabell }
 
       const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
       const updateConfig = { event: 'UPDATE' as const, schema: 'public', table: tabell }
@@ -354,6 +383,7 @@ export default function Chat({
     scope.type === 'arrangement' ? scope.arrangementId : '',
     scope.type === 'poll' ? scope.pollId : '',
     scope.type === 'melding' ? scope.meldingId : '',
+    scope.type === 'privat' ? scope.samtaleId : '',
     supabase,
   ])
 
@@ -495,6 +525,8 @@ export default function Chat({
         await sendPollMelding(scope.pollId, melding)
       } else if (scope.type === 'melding') {
         await sendMeldingKommentar(scope.meldingId, melding)
+      } else if (scope.type === 'privat') {
+        await sendPrivatMelding(scope.samtaleId, melding)
       } else {
         await sendKlubbMelding(melding)
       }
@@ -597,6 +629,8 @@ export default function Chat({
         await oppdaterPollMelding(id, ny)
       } else if (scope.type === 'melding') {
         await oppdaterMeldingKommentar(id, ny)
+      } else if (scope.type === 'privat') {
+        await oppdaterPrivatMelding(id, ny)
       } else {
         await oppdaterKlubbMelding(id, ny)
       }
@@ -622,6 +656,8 @@ export default function Chat({
         await slettPollMelding(id)
       } else if (scope.type === 'melding') {
         await slettMeldingKommentar(id)
+      } else if (scope.type === 'privat') {
+        await slettPrivatMelding(id)
       } else {
         await slettKlubbMelding(id)
       }
