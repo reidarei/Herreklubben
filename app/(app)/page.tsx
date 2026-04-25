@@ -106,9 +106,14 @@ export default async function Forside() {
       .limit(30),
     // Meldinger (#90, fjerde element-type). Vi henter relativt åpent (60)
     // for å fange både levende og de som er falt ned i Tidligere.
+    // FK-navn må spesifiseres på profiles-embed siden melding_reaksjon
+    // og melding_chat også har FK til profiles — uten det får vi
+    // «more than one relationship» fra PostgREST.
     supabase
       .from('meldinger')
-      .select('id, innhold, opprettet, sist_aktivitet, profil_id, profiles (navn, bilde_url, rolle)')
+      .select(
+        'id, innhold, opprettet, sist_aktivitet, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle)',
+      )
       .order('sist_aktivitet', { ascending: false })
       .limit(60),
     supabase
@@ -116,7 +121,9 @@ export default async function Forside() {
       .select('melding_id, profil_id, emoji'),
     supabase
       .from('melding_chat')
-      .select('id, innhold, opprettet, melding_id, profiles (navn, bilde_url, rolle)')
+      .select(
+        'id, innhold, opprettet, melding_id, profiles!melding_chat_profil_id_fkey (navn, bilde_url, rolle)',
+      )
       .order('opprettet', { ascending: false })
       .limit(60),
   ])

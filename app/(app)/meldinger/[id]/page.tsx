@@ -46,7 +46,9 @@ export default async function MeldingDetalj({
   ] = await Promise.all([
     supabase
       .from('meldinger')
-      .select('id, innhold, opprettet, profil_id, profiles(navn, bilde_url, rolle)')
+      .select(
+        'id, innhold, opprettet, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle)',
+      )
       .eq('id', id)
       .single<MeldingRad>(),
     supabase
