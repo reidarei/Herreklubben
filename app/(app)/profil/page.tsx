@@ -5,6 +5,7 @@ import { norskAar, formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import SectionLabel from '@/components/ui/SectionLabel'
 import VarslerInnstillinger from '@/components/VarslerInnstillinger'
+import PassInfoKort from '@/components/profil/PassInfoKort'
 import { tittelFor } from '@/lib/roller'
 import LoggUtKnapp from './LoggUtKnapp'
 
@@ -20,6 +21,7 @@ export default async function Profil() {
     { data: ansvar },
     { data: varselPref },
     { data: varsler },
+    { data: passInfo },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -52,6 +54,13 @@ export default async function Profil() {
       .eq('profil_id', user!.id)
       .order('opprettet', { ascending: false })
       .limit(10),
+    // RLS sørger for at vi kun får egen rad. maybeSingle siden raden
+    // ikke nødvendigvis finnes ennå.
+    supabase
+      .from('pass_info')
+      .select('nummer, utloper')
+      .eq('profil_id', user!.id)
+      .maybeSingle(),
   ])
 
   const navn = profil?.navn ?? 'Ukjent'
@@ -209,6 +218,15 @@ export default async function Profil() {
           ))}
         </div>
       </div>
+
+      {/* Pass-info — synlig kun for eier (RLS) */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Pass</SectionLabel>
+        <PassInfoKort
+          nummer={passInfo?.nummer ?? null}
+          utloper={passInfo?.utloper ?? null}
+        />
+      </section>
 
       {/* Arrangøransvar */}
       {ansvar && ansvar.length > 0 && (

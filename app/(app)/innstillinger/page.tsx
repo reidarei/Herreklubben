@@ -31,6 +31,7 @@ export default async function Innstillinger() {
     { data: logg, count: varselTotal },
     { count: pushCount },
     { data: innstillinger },
+    { count: passVentende },
   ] = await Promise.all([
     admin
       .from('varsel_logg')
@@ -42,6 +43,10 @@ export default async function Innstillinger() {
       .from('varsel_innstillinger')
       .select('noekkel, aktiv, beskrivelse')
       .order('noekkel'),
+    admin
+      .from('pass_tilgang_forespørsel')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'venter'),
   ])
 
   const { data: maler } = await admin
@@ -223,6 +228,49 @@ export default async function Innstillinger() {
       <section style={{ marginBottom: 24 }}>
         <SectionLabel>Kåringer</SectionLabel>
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
+      </section>
+
+      {/* Pass-godkjenninger */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel count={passVentende ?? undefined}>Pass-godkjenninger</SectionLabel>
+        <Link
+          href="/innstillinger/pass-godkjenninger"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 16px',
+            borderRadius: 12,
+            border: '0.5px solid var(--border-strong)',
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            textDecoration: 'none',
+          }}
+        >
+          <span>Ventende forespørsler om passinfo</span>
+          {(passVentende ?? 0) > 0 && (
+            <span
+              style={{
+                minWidth: 20,
+                height: 20,
+                padding: '0 7px',
+                borderRadius: 999,
+                background: 'var(--accent)',
+                color: '#0a0a0a',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {passVentende}
+            </span>
+          )}
+        </Link>
       </section>
 
       {/* Ønsker fra brukerne */}

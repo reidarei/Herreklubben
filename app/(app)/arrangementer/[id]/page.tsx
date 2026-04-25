@@ -10,6 +10,7 @@ import SladdetFelt from '@/components/SladdetFelt'
 import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
+import PassListe, { type PassListeDeltaker } from '@/components/arrangement/PassListe'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
 
@@ -43,7 +44,13 @@ export default async function ArrangementDetaljer({
     getProfil(),
   ])
 
-  const [{ data: arr }, { data: chatMeldinger }, { data: chatProfiler }] = await Promise.all([
+  const [
+    { data: arr },
+    { data: chatMeldinger },
+    { data: chatProfiler },
+    { data: passInfoRader },
+    { data: passForespørsler },
+  ] = await Promise.all([
     supabase
       .from('arrangementer')
       .select(
@@ -65,6 +72,16 @@ export default async function ArrangementDetaljer({
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
+    // Pass-data (#75). RLS filtrerer pass_info til kun de jeg har gyldig
+    // dagstilgang til. Forespørsler ser kun mine egne (soker_id = meg)
+    // for dette arrangementet.
+    supabase.from('pass_info').select('profil_id, nummer, utloper'),
+    supabase
+      .from('pass_tilgang_forespørsel')
+      .select('eier_id, status, gyldig_til, opprettet')
+      .eq('arrangement_id', id)
+      .eq('soker_id', user!.id)
+      .order('opprettet', { ascending: false }),
   ])
 
   if (!arr) notFound()
@@ -92,6 +109,53 @@ export default async function ArrangementDetaljer({
     ? arr.opprettet_profil[0]
     : arr.opprettet_profil
   const opprettetAvNavn = opprettetProfil?.navn ?? 'Ukjent'
+
+  // Pass-listen vises kun for arrangøren av en kommende tur.
+  const visPassListe =
+    erTur && erArrangoer && new Date(arr.start_tidspunkt) > new Date()
+
+  // Bygg deltaker-data for PassListe: kombiner pass_info (godkjent
+  // dagstilgang) med siste forespørsel-status per eier.
+  type PassRad = { profil_id: string; nummer: string; utloper: string }
+  type ForespørselRad = {
+    eier_id: string
+    status: 'venter' | 'godkjent' | 'avslatt'
+    gyldig_til: string | null
+    opprettet: string
+  }
+  const passMap = new Map<string, PassRad>()
+  for (const p of (passInfoRader ?? []) as PassRad[]) {
+    passMap.set(p.profil_id, p)
+  }
+  const sisteForespørselPerEier = new Map<string, ForespørselRad>()
+  for (const f of (passForespørsler ?? []) as ForespørselRad[]) {
+    if (!sisteForespørselPerEier.has(f.eier_id)) sisteForespørselPerEier.set(f.eier_id, f)
+  }
+  const passDeltakere: PassListeDeltaker[] = visPassListe
+    ? jaListe
+        .filter(p => p.profil_id !== user!.id) // ikke spør om eget pass
+        .map(p => {
+          const pass = passMap.get(p.profil_id)
+          const siste = sisteForespørselPerEier.get(p.profil_id)
+          // Hvis pass-info finnes → vi har tilgang nå. Hvis siste status
+          // er 'godkjent' men pass_info mangler → tilgangen har utløpt,
+          // la arrangøren be på nytt (status: null).
+          let status: PassListeDeltaker['forespørselStatus'] = null
+          if (!pass && siste) {
+            if (siste.status === 'venter') status = 'venter'
+            else if (siste.status === 'avslatt') status = 'avslatt'
+            // 'godkjent' uten pass-info = utløpt → null (kan be på nytt)
+          }
+          return {
+            id: p.profil_id,
+            navn: p.profiles?.navn ?? 'Ukjent',
+            bilde_url: p.profiles?.bilde_url ?? null,
+            rolle: p.profiles?.rolle ?? null,
+            pass: pass ? { nummer: pass.nummer, utloper: pass.utloper } : null,
+            forespørselStatus: status,
+          }
+        })
+    : []
 
   return (
     <div style={{ padding: '0 0 140px' }}>
@@ -475,6 +539,37 @@ export default async function ArrangementDetaljer({
               )}
             </div>
           </>
+        )}
+
+        {/* Pass-info for deltakere — kun for arrangør på kommende tur */}
+        {visPassListe && passDeltakere.length > 0 && (
+          <section style={{ marginBottom: 28 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '1.6px',
+                textTransform: 'uppercase',
+                marginBottom: 10,
+              }}
+            >
+              Pass-info for deltakere
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+                marginBottom: 12,
+              }}
+            >
+              Trykk «Be om passinfo» for hver deltaker du trenger pass for.
+              Generalsekretæren godkjenner — du får tilgang i 24 timer.
+            </div>
+            <PassListe arrangementId={id} deltakere={passDeltakere} />
+          </section>
         )}
 
         {/* Kommentarer */}

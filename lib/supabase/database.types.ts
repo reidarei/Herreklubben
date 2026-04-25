@@ -474,6 +474,100 @@ export type Database = {
           },
         ]
       }
+      pass_info: {
+        Row: {
+          nummer: string | null
+          oppdatert: string
+          profil_id: string
+          utloper: string | null
+        }
+        Insert: {
+          nummer?: string | null
+          oppdatert?: string
+          profil_id: string
+          utloper?: string | null
+        }
+        Update: {
+          nummer?: string | null
+          oppdatert?: string
+          profil_id?: string
+          utloper?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pass_info_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pass_tilgang_forespørsel: {
+        Row: {
+          arrangement_id: string
+          besluttet_av: string | null
+          besluttet_paa: string | null
+          eier_id: string
+          gyldig_til: string | null
+          id: string
+          opprettet: string
+          soker_id: string
+          status: string
+        }
+        Insert: {
+          arrangement_id: string
+          besluttet_av?: string | null
+          besluttet_paa?: string | null
+          eier_id: string
+          gyldig_til?: string | null
+          id?: string
+          opprettet?: string
+          soker_id: string
+          status?: string
+        }
+        Update: {
+          arrangement_id?: string
+          besluttet_av?: string | null
+          besluttet_paa?: string | null
+          eier_id?: string
+          gyldig_til?: string | null
+          id?: string
+          opprettet?: string
+          soker_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pass_tilgang_forespørsel_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "arrangementer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pass_tilgang_forespørsel_besluttet_av_fkey"
+            columns: ["besluttet_av"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pass_tilgang_forespørsel_eier_id_fkey"
+            columns: ["eier_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pass_tilgang_forespørsel_soker_id_fkey"
+            columns: ["soker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poll: {
         Row: {
           flervalg: boolean
@@ -1000,6 +1094,7 @@ export type Database = {
     Functions: {
       er_admin: { Args: never; Returns: boolean }
       get_statistikk: { Args: never; Returns: Json }
+      har_pass_tilgang: { Args: { eier: string }; Returns: boolean }
     }
     Enums: {
       arrangementstype: "moete" | "tur"
