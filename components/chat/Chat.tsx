@@ -952,7 +952,11 @@ export default function Chat({
                     {renderMedMentions(m.innhold)}
                   </div>
                   )}
-                  {/* Reaksjons-chips */}
+                  {/* Reaksjons-chips — flyter på bunnkanten av bobla, ikke
+                      egen linje. Negativ margin trekker dem opp slik at de
+                      overlapper bobla, padding holder dem litt inn fra
+                      kanten. Bottom-margin på .chat-boble (under) gir plass
+                      til at de stikker ut. */}
                   {(() => {
                     const mineReaksjoner = reaksjoner.filter(r => r.melding_id === m.id)
                     if (mineReaksjoner.length === 0) return null
@@ -968,8 +972,12 @@ export default function Chat({
                         style={{
                           display: 'flex',
                           flexWrap: 'wrap',
-                          gap: 4,
-                          marginTop: 4,
+                          gap: 2,
+                          marginTop: -10,
+                          paddingLeft: erEgen ? 0 : 8,
+                          paddingRight: erEgen ? 8 : 0,
+                          position: 'relative',
+                          zIndex: 1,
                           justifyContent: erEgen ? 'flex-end' : 'flex-start',
                         }}
                       >
@@ -981,12 +989,13 @@ export default function Chat({
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 4,
-                              padding: '2px 8px',
+                              gap: 3,
+                              padding: '1px 6px',
                               borderRadius: 999,
-                              border: `0.5px solid ${minReaksjon ? 'var(--accent)' : 'var(--border-subtle)'}`,
-                              background: minReaksjon ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-                              fontSize: 12,
+                              border: `0.5px solid ${minReaksjon ? 'var(--accent)' : 'var(--border)'}`,
+                              background: 'var(--bg-elevated-2)',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                              fontSize: 11,
                               lineHeight: 1.2,
                               color: 'var(--text-primary)',
                               cursor: 'pointer',
@@ -995,16 +1004,18 @@ export default function Chat({
                             aria-label={`${emoji} ${antall} ${minReaksjon ? '(fjern din reaksjon)' : '(reager også)'}`}
                           >
                             <span>{emoji}</span>
-                            <span
-                              style={{
-                                fontFamily: 'var(--font-mono)',
-                                fontSize: 10,
-                                color: minReaksjon ? 'var(--accent)' : 'var(--text-secondary)',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {antall}
-                            </span>
+                            {antall > 1 && (
+                              <span
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: 9,
+                                  color: minReaksjon ? 'var(--accent)' : 'var(--text-secondary)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {antall}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
