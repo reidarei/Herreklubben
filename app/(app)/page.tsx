@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { formaterDato, norskAar, norskDatoNaa } from '@/lib/dato'
@@ -407,31 +406,6 @@ export default async function Forside() {
             </p>
           )}
         </div>
-      </section>
-
-      {/* Lag avstemming */}
-      <section style={{ marginBottom: 28 }}>
-        <SectionLabel>Lurer du på noe?</SectionLabel>
-        <Link
-          href="/poll/ny"
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '14px 0',
-            textAlign: 'center',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: 999,
-            color: 'var(--accent)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 14,
-            fontWeight: 500,
-            letterSpacing: '0.2px',
-            textDecoration: 'none',
-          }}
-        >
-          Lag avstemming
-        </Link>
       </section>
 
       {/* Innspill */}
