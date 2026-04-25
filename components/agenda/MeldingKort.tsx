@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef, useState, type CSSProperties } from 'react'
+import { useRef, useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
@@ -30,7 +30,9 @@ function relativTid(iso: string): string {
   return formatDistanceToNowStrict(new Date(iso), { locale: nb, addSuffix: true })
 }
 
-const LONG_PRESS_MS = 500
+// 350 ms vinner kappløpet mot iOS sin innebygde link-preview (~500 ms).
+// Hadde vi ligget på 500 ms ville Safari-menyen kunne dukke opp først.
+const LONG_PRESS_MS = 350
 
 type Props = {
   melding: MeldingKortData
@@ -81,18 +83,19 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
     }
   }
 
-  // Hindrer iOS-link-preview/callout og tekst-seleksjon ved long-press.
-  const longPressStyle: CSSProperties = {
-    WebkitTouchCallout: 'none',
-    WebkitUserSelect: 'none',
-    userSelect: 'none',
-  }
-
+  // iOS sin link-preview trigges på selve <a>-tagen — touch-callout
+  // settes derfor på Link. Vi unngår user-select: none på Link siden
+  // det vil blokkere tekst-seleksjon i kommentar-inputen lenger nede.
   return (
     <Link
       href={`/meldinger/${melding.id}`}
       onClick={handleLinkClick}
-      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      style={{
+        textDecoration: 'none',
+        color: 'inherit',
+        display: 'block',
+        WebkitTouchCallout: 'none',
+      }}
     >
       <Card
         padding={false}
@@ -112,7 +115,11 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
           onMouseDown={startLongPress}
           onMouseUp={clearLongPress}
           onMouseLeave={clearLongPress}
-          style={{ padding: '10px 14px', ...longPressStyle }}
+          style={{
+            padding: '10px 14px',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+          }}
         >
           {/* Forfatter-rad */}
           <div
