@@ -270,22 +270,50 @@ export default function Chat({
     if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
-  // Skjul bottom-nav når input har fokus (tastatur åpent på mobil)
+  // Skjul bottom-nav når tastaturet er åpent på mobil. Vi sporer faktisk
+  // viewport-høyde via visualViewport — fokus-events alene er upålitelige
+  // siden iOS fyrer fokus uten å åpne tastaturet etter en programmatisk
+  // .focus()-call, og lar input være fokusert selv når tastaturet
+  // forsvinner. Da blir docken hengende skjult. Med visualViewport som
+  // sannhetskilde kommer docken tilbake så fort tastaturet er borte.
   useEffect(() => {
-    function handleFocus() {
-      document.documentElement.classList.add('chat-input-fokus')
+    const KLASSE = 'chat-input-fokus'
+    const html = document.documentElement
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+
+    function settKlasse(synlig: boolean) {
+      if (synlig) html.classList.add(KLASSE)
+      else html.classList.remove(KLASSE)
     }
-    function handleBlur() {
-      document.documentElement.classList.remove('chat-input-fokus')
+
+    function vurderTastatur() {
+      if (!vv) return
+      // Tastatur tar typisk 30–50 % av skjermen. Terskel 0.85 unngår at
+      // adresse-baren som glir inn/ut feilaktig trigger.
+      const ratio = vv.height / window.innerHeight
+      settKlasse(ratio < 0.85)
     }
-    const input = inputRef.current
-    if (!input) return
-    input.addEventListener('focus', handleFocus)
-    input.addEventListener('blur', handleBlur)
+
+    if (vv) {
+      vv.addEventListener('resize', vurderTastatur)
+      vurderTastatur()
+    } else {
+      // Fallback (svært gamle nettlesere): hold fokus/blur-mønsteret
+      const input = inputRef.current
+      function handleFocus() { settKlasse(true) }
+      function handleBlur() { settKlasse(false) }
+      input?.addEventListener('focus', handleFocus)
+      input?.addEventListener('blur', handleBlur)
+      return () => {
+        input?.removeEventListener('focus', handleFocus)
+        input?.removeEventListener('blur', handleBlur)
+        settKlasse(false)
+      }
+    }
+
     return () => {
-      input.removeEventListener('focus', handleFocus)
-      input.removeEventListener('blur', handleBlur)
-      document.documentElement.classList.remove('chat-input-fokus')
+      vv?.removeEventListener('resize', vurderTastatur)
+      settKlasse(false)
     }
   }, [])
 
