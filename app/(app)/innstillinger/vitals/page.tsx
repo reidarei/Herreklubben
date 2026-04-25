@@ -186,6 +186,100 @@ export default async function VitalsAdmin({ searchParams }: Props) {
           </div>
         </section>
       )}
+
+      {/* Forklaring av forkortelsene */}
+      <section style={{ marginTop: 28 }}>
+        <SectionLabel>Forklaring</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            {
+              kort: 'LCP',
+              navn: 'Largest Contentful Paint',
+              tekst: 'tid til største synlige element er tegnet',
+            },
+            {
+              kort: 'INP',
+              navn: 'Interaction to Next Paint',
+              tekst: 'svartid fra brukeren trykker til appen reagerer',
+            },
+            {
+              kort: 'CLS',
+              navn: 'Cumulative Layout Shift',
+              tekst: 'hvor mye innholdet hopper rundt under lasting',
+            },
+            {
+              kort: 'FCP',
+              navn: 'First Contentful Paint',
+              tekst: 'tid til første synlige innhold på skjermen',
+            },
+            {
+              kort: 'TTFB',
+              navn: 'Time to First Byte',
+              tekst: 'tid før serveren begynner å svare',
+            },
+          ].map(m => (
+            <div
+              key={m.kort}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr',
+                alignItems: 'baseline',
+                gap: 10,
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: 'var(--bg-elevated)',
+                border: '0.5px solid var(--border-subtle)',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: '1.2px',
+                  color: 'var(--accent)',
+                }}
+              >
+                {m.kort}
+              </span>
+              <div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 12,
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {m.navn}
+                </div>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 11.5,
+                    color: 'var(--text-tertiary)',
+                    lineHeight: 1.4,
+                    marginTop: 2,
+                  }}
+                >
+                  {m.tekst}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            marginTop: 10,
+            fontFamily: 'var(--font-body)',
+            fontSize: 11.5,
+            color: 'var(--text-tertiary)',
+            lineHeight: 1.45,
+          }}
+        >
+          Fargene følger Googles terskler — grønt er bra, gult er sånn passe,
+          rødt bør fikses. p75 = 75 % av brukerne hadde det bedre eller likt.
+        </div>
+      </section>
     </div>
   )
 }
