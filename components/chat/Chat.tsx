@@ -12,6 +12,9 @@ import {
   sendPollMelding,
   slettPollMelding,
   oppdaterPollMelding,
+  sendMeldingKommentar,
+  slettMeldingKommentar,
+  oppdaterMeldingKommentar,
   leggTilReaksjon,
   fjernReaksjon,
 } from '@/lib/actions/chat'
@@ -24,6 +27,7 @@ export type ChatScope =
   | { type: 'arrangement'; arrangementId: string }
   | { type: 'klubb' }
   | { type: 'poll'; pollId: string }
+  | { type: 'melding'; meldingId: string }
 
 export type ChatMelding = {
   id: string
@@ -119,13 +123,17 @@ export default function Chat({
       ? 'klubb_chat'
       : scope.type === 'poll'
         ? 'poll_chat'
-        : 'arrangement_chat'
+        : scope.type === 'melding'
+          ? 'melding_chat'
+          : 'arrangement_chat'
   const kanalNavn =
     scope.type === 'klubb'
       ? 'chat-klubb'
       : scope.type === 'poll'
         ? `chat-poll-${scope.pollId}`
-        : `chat-arr-${scope.arrangementId}`
+        : scope.type === 'melding'
+          ? `chat-melding-${scope.meldingId}`
+          : `chat-arr-${scope.arrangementId}`
 
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
@@ -152,6 +160,17 @@ export default function Chat({
         const { data } = await q
         return data ? [...data].reverse() : []
       }
+      if (scope.type === 'melding') {
+        let q = supabase
+          .from('melding_chat')
+          .select('id, profil_id, innhold, opprettet')
+          .eq('melding_id', scope.meldingId)
+          .order('opprettet', { ascending: false })
+          .limit(SIDE_STORRELSE)
+        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+        const { data } = await q
+        return data ? [...data].reverse() : []
+      }
       let q = supabase
         .from('arrangement_chat')
         .select('id, profil_id, innhold, opprettet')
@@ -167,6 +186,7 @@ export default function Chat({
       scope.type,
       scope.type === 'arrangement' ? scope.arrangementId : '',
       scope.type === 'poll' ? scope.pollId : '',
+      scope.type === 'melding' ? scope.meldingId : '',
       supabase,
     ],
   )
@@ -276,7 +296,14 @@ export default function Chat({
                 table: tabell,
                 filter: `poll_id=eq.${scope.pollId}`,
               }
-            : { event: 'INSERT' as const, schema: 'public', table: tabell }
+            : scope.type === 'melding'
+              ? {
+                  event: 'INSERT' as const,
+                  schema: 'public',
+                  table: tabell,
+                  filter: `melding_id=eq.${scope.meldingId}`,
+                }
+              : { event: 'INSERT' as const, schema: 'public', table: tabell }
 
       const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
       const updateConfig = { event: 'UPDATE' as const, schema: 'public', table: tabell }
@@ -326,6 +353,7 @@ export default function Chat({
     scope.type,
     scope.type === 'arrangement' ? scope.arrangementId : '',
     scope.type === 'poll' ? scope.pollId : '',
+    scope.type === 'melding' ? scope.meldingId : '',
     supabase,
   ])
 
@@ -465,6 +493,8 @@ export default function Chat({
         await sendMelding(scope.arrangementId, melding)
       } else if (scope.type === 'poll') {
         await sendPollMelding(scope.pollId, melding)
+      } else if (scope.type === 'melding') {
+        await sendMeldingKommentar(scope.meldingId, melding)
       } else {
         await sendKlubbMelding(melding)
       }
@@ -565,6 +595,8 @@ export default function Chat({
         await oppdaterMelding(id, ny)
       } else if (scope.type === 'poll') {
         await oppdaterPollMelding(id, ny)
+      } else if (scope.type === 'melding') {
+        await oppdaterMeldingKommentar(id, ny)
       } else {
         await oppdaterKlubbMelding(id, ny)
       }
@@ -588,6 +620,8 @@ export default function Chat({
         await slettMelding(id)
       } else if (scope.type === 'poll') {
         await slettPollMelding(id)
+      } else if (scope.type === 'melding') {
+        await slettMeldingKommentar(id)
       } else {
         await slettKlubbMelding(id)
       }

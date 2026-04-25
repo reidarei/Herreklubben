@@ -4,7 +4,7 @@ import { useState, useTransition, type MouseEvent, type KeyboardEvent } from 're
 import { useRouter } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
-import { sendMelding, sendPollMelding } from '@/lib/actions/chat'
+import { sendMelding, sendPollMelding, sendMeldingKommentar } from '@/lib/actions/chat'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -22,6 +22,7 @@ export type KommentarKortData = {
 export type KommentarScope =
   | { type: 'arrangement'; id: string }
   | { type: 'poll'; id: string }
+  | { type: 'melding'; id: string }
 
 function snippet(tekst: string, maks = 90): string {
   const rensket = tekst.replace(/\s+/g, ' ').trim()
@@ -77,8 +78,10 @@ export default function KommentarerPaaKort({
       try {
         if (scope.type === 'arrangement') {
           await sendMelding(scope.id, melding)
-        } else {
+        } else if (scope.type === 'poll') {
           await sendPollMelding(scope.id, melding)
+        } else {
+          await sendMeldingKommentar(scope.id, melding)
         }
         router.refresh()
       } catch {

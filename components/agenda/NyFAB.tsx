@@ -10,10 +10,14 @@ type Valg = {
   ikon: IkonNavn
 }
 
+// De fire typene element som kan opprettes på agenda. Speiler typene
+// definert i lib/agenda-sortering.ts (Møte/Tur er underkategorier av
+// arrangement, Poll og Melding er egne tabeller).
 const VALG: Valg[] = [
   { label: 'Møte', href: '/arrangementer/ny?type=moete', ikon: 'calendar' },
   { label: 'Tur', href: '/arrangementer/ny?type=tur', ikon: 'plane' },
   { label: 'Poll', href: '/poll/ny', ikon: 'chart' },
+  { label: 'Melding', href: '/meldinger/ny', ikon: 'message' },
 ]
 
 /**

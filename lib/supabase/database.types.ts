@@ -331,6 +331,113 @@ export type Database = {
           },
         ]
       }
+      melding_chat: {
+        Row: {
+          id: string
+          innhold: string
+          melding_id: string
+          opprettet: string
+          profil_id: string
+        }
+        Insert: {
+          id?: string
+          innhold: string
+          melding_id: string
+          opprettet?: string
+          profil_id: string
+        }
+        Update: {
+          id?: string
+          innhold?: string
+          melding_id?: string
+          opprettet?: string
+          profil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melding_chat_melding_id_fkey"
+            columns: ["melding_id"]
+            isOneToOne: false
+            referencedRelation: "meldinger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melding_chat_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melding_reaksjon: {
+        Row: {
+          emoji: string
+          melding_id: string
+          opprettet: string
+          profil_id: string
+        }
+        Insert: {
+          emoji: string
+          melding_id: string
+          opprettet?: string
+          profil_id: string
+        }
+        Update: {
+          emoji?: string
+          melding_id?: string
+          opprettet?: string
+          profil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melding_reaksjon_melding_id_fkey"
+            columns: ["melding_id"]
+            isOneToOne: false
+            referencedRelation: "meldinger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melding_reaksjon_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meldinger: {
+        Row: {
+          id: string
+          innhold: string
+          opprettet: string
+          profil_id: string
+          sist_aktivitet: string
+        }
+        Insert: {
+          id?: string
+          innhold: string
+          opprettet?: string
+          profil_id: string
+          sist_aktivitet?: string
+        }
+        Update: {
+          id?: string
+          innhold?: string
+          opprettet?: string
+          profil_id?: string
+          sist_aktivitet?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meldinger_profil_id_fkey"
+            columns: ["profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       paameldinger: {
         Row: {
           arrangement_id: string

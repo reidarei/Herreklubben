@@ -12,6 +12,7 @@ import BursdagKort from '@/components/agenda/BursdagKort'
 import KlubbJubileumKort from '@/components/agenda/KlubbJubileumKort'
 import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import PollKort from '@/components/agenda/PollKort'
+import MeldingKort from '@/components/agenda/MeldingKort'
 import NyFAB from '@/components/agenda/NyFAB'
 import type { KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import {
@@ -20,6 +21,7 @@ import {
   type UtkastRaad,
   type ProfilMedBursdag,
   type PollRaad,
+  type MeldingRaad,
 } from '@/lib/agenda-sortering'
 import { subDays } from 'date-fns'
 
@@ -46,6 +48,9 @@ export default async function Forside() {
     { data: pollerRaad },
     { data: arrKommentarer },
     { data: pollKommentarer },
+    { data: meldingerRaad },
+    { data: meldingReaksjoner },
+    { data: meldingKommentarer },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -99,6 +104,21 @@ export default async function Forside() {
       .gte('opprettet', treMndSiden.toISOString())
       .order('opprettet', { ascending: false })
       .limit(30),
+    // Meldinger (#90, fjerde element-type). Vi henter relativt åpent (60)
+    // for å fange både levende og de som er falt ned i Tidligere.
+    supabase
+      .from('meldinger')
+      .select('id, innhold, opprettet, sist_aktivitet, profil_id, profiles (navn, bilde_url, rolle)')
+      .order('sist_aktivitet', { ascending: false })
+      .limit(60),
+    supabase
+      .from('melding_reaksjon')
+      .select('melding_id, profil_id, emoji'),
+    supabase
+      .from('melding_chat')
+      .select('id, innhold, opprettet, melding_id, profiles (navn, bilde_url, rolle)')
+      .order('opprettet', { ascending: false })
+      .limit(60),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -184,11 +204,76 @@ export default async function Forside() {
     r => r.poll_id,
   )
 
-  const { idag, kommende, tidligere } = byggAgenda({
+  // === Meldinger: bygg MeldingRaad med reaksjoner og kommentar-antall =
+  type RawMeldKomm = {
+    id: string
+    innhold: string
+    opprettet: string
+    melding_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+  }
+  const kommentarerPerMelding = grupperKommentarer(
+    (meldingKommentarer ?? []) as unknown as RawMeldKomm[],
+    r => r.melding_id,
+  )
+
+  // Antall kommentarer er ikke nødvendigvis det samme som top-3 vi har
+  // hentet — men 60 rader fordelt på sist_aktivitet dekker normalt antallet
+  // på agenda. For nøyaktige tall ville vi trengt en separat count-query;
+  // her aksepterer vi at antall = `min(faktisk antall, 60 / antall_meldinger)`.
+  const antallKommPerMelding = new Map<string, number>()
+  for (const k of (meldingKommentarer ?? []) as unknown as RawMeldKomm[]) {
+    antallKommPerMelding.set(k.melding_id, (antallKommPerMelding.get(k.melding_id) ?? 0) + 1)
+  }
+
+  // Aggreger reaksjoner per melding+emoji
+  type RawReaksjon = { melding_id: string; profil_id: string; emoji: string }
+  const reaksjonerPerMelding = new Map<string, Map<string, string[]>>()
+  for (const r of (meldingReaksjoner ?? []) as RawReaksjon[]) {
+    const perEmoji = reaksjonerPerMelding.get(r.melding_id) ?? new Map<string, string[]>()
+    const profilIder = perEmoji.get(r.emoji) ?? []
+    profilIder.push(r.profil_id)
+    perEmoji.set(r.emoji, profilIder)
+    reaksjonerPerMelding.set(r.melding_id, perEmoji)
+  }
+
+  type RawMelding = {
+    id: string
+    innhold: string
+    opprettet: string
+    sist_aktivitet: string
+    profil_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+  }
+
+  const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
+    const reaksjonMap = reaksjonerPerMelding.get(m.id) ?? new Map()
+    const reaksjoner = [...reaksjonMap.entries()].map(([emoji, profilIder]) => ({
+      emoji,
+      profilIder,
+    }))
+    return {
+      id: m.id,
+      innhold: m.innhold,
+      opprettet: m.opprettet,
+      sist_aktivitet: m.sist_aktivitet,
+      forfatter: {
+        id: m.profil_id,
+        navn: m.profiles?.navn ?? 'Ukjent',
+        bilde_url: m.profiles?.bilde_url ?? null,
+        rolle: m.profiles?.rolle ?? null,
+      },
+      reaksjoner,
+      antallKommentarer: antallKommPerMelding.get(m.id) ?? 0,
+    }
+  })
+
+  const { meldinger, idag, kommende, tidligere } = byggAgenda({
     arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
     ansvar: (ansvar ?? []) as unknown as UtkastRaad[],
     profilerMedBursdag: (profilerMedBursdag ?? []) as ProfilMedBursdag[],
     poller,
+    meldinger: meldingerForAgenda,
     meg: user!.id,
     naa,
     aar,
@@ -242,6 +327,26 @@ export default async function Forside() {
 
       <PushPaaminnelse />
 
+      {/* Levende meldinger — fjerde element-type, øverst på agenda */}
+      {meldinger.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <SectionLabel>Nytt fra gutta</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {meldinger.map(i => {
+              if (i.kind !== 'melding') return null
+              return (
+                <MeldingKort
+                  key={i.data.id}
+                  melding={i.data}
+                  brukerId={user!.id}
+                  kommentarer={kommentarerPerMelding.get(i.data.id) ?? []}
+                />
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       {/* I kveld */}
       {idag.length > 0 && (
         <section style={{ marginBottom: 28 }}>
@@ -256,7 +361,10 @@ export default async function Forside() {
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
               if (i.kind === 'poll')
                 return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
-              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
+              if (i.kind === 'arrangement')
+                return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
+              // Meldinger plasseres kun i toppseksjonen (eller Tidligere) — ikke her
+              return null
             })}
           </div>
         </section>
@@ -274,7 +382,9 @@ export default async function Forside() {
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
             if (i.kind === 'poll')
               return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
-            return <HighlightKort key={i.data.id} arr={i.data} />
+            if (i.kind === 'highlight') return <HighlightKort key={i.data.id} arr={i.data} />
+            // Meldinger plasseres kun i toppseksjonen eller Tidligere
+            return null
           })}
           {kommende.length === 0 && (
             <p
@@ -325,11 +435,12 @@ export default async function Forside() {
         <section style={{ marginBottom: 28 }}>
           <SectionLabel>Tidligere</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tidligere.map(t =>
-              t.kind === 'arrangement'
-                ? <ArrangementKort key={t.data.id} arr={t.data} tidligere />
-                : <PollKort key={t.data.id} poll={t.data} tidligere />,
-            )}
+            {tidligere.map(t => {
+              if (t.kind === 'arrangement')
+                return <ArrangementKort key={t.data.id} arr={t.data} tidligere />
+              if (t.kind === 'poll') return <PollKort key={t.data.id} poll={t.data} tidligere />
+              return <MeldingKort key={t.data.id} melding={t.data} brukerId={user!.id} />
+            })}
           </div>
         </section>
       )}

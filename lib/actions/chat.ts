@@ -273,6 +273,91 @@ export async function slettPollMelding(meldingId: string) {
   if (error) throw new Error(error.message)
 }
 
+// === Kommentarer på meldinger (#90) =================================
+// Speiler poll-varianten. melding_chat-tabellen har trigger som oppdaterer
+// meldinger.sist_aktivitet — som driver agenda-sorteringen.
+
+export async function sendMeldingKommentar(meldingId: string, innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { error } = await supabase
+    .from('melding_chat')
+    .insert({ melding_id: meldingId, profil_id: user.id, innhold: tekst })
+
+  if (error) throw new Error(error.message)
+
+  sendMeldingMentionVarsler(meldingId, tekst, user.id).catch(console.error)
+}
+
+async function sendMeldingMentionVarsler(meldingId: string, tekst: string, avsenderId: string) {
+  const mentionPattern = /@([\wæøåÆØÅ][\w æøåÆØÅ-]*)/g
+  const mentions = [...tekst.matchAll(mentionPattern)].map(m => m[1].trim().toLowerCase())
+  if (mentions.length === 0) return
+
+  const admin = createAdminClient()
+
+  const { data: profiler } = await admin
+    .from('profiles')
+    .select('id, navn, visningsnavn, epost')
+    .eq('aktiv', true)
+
+  if (!profiler) return
+
+  const erAlle = mentions.includes('alle')
+  const nevnte = erAlle
+    ? profiler.filter(p => p.id !== avsenderId)
+    : profiler.filter(p => {
+        if (p.id === avsenderId) return false
+        return mentions.some(m =>
+          p.navn?.toLowerCase().includes(m) ||
+          p.visningsnavn?.toLowerCase().includes(m)
+        )
+      })
+
+  if (nevnte.length === 0) return
+
+  const avsender = profiler.find(p => p.id === avsenderId)
+  const avsenderNavn = avsender?.visningsnavn ?? avsender?.navn ?? 'Noen'
+
+  await sendVarsel({
+    mottakere: nevnte.map(p => p.id),
+    tittel: `Kommentar i innlegg`,
+    melding: `${avsenderNavn}: ${tekst.length > 80 ? tekst.slice(0, 77) + '...' : tekst}`,
+    url: `${BASE_URL}/meldinger/${meldingId}`,
+    knappTekst: 'Åpne innlegget',
+    type: 'mention',
+    tillatDuplikat: true,
+  })
+}
+
+export async function oppdaterMeldingKommentar(kommentarId: string, innhold: string) {
+  const tekst = innhold.trim()
+  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('melding_chat')
+    .update({ innhold: tekst })
+    .eq('id', kommentarId)
+
+  if (error) throw new Error(error.message)
+}
+
+export async function slettMeldingKommentar(kommentarId: string) {
+  const supabase = await createServerClient()
+  const { error } = await supabase
+    .from('melding_chat')
+    .delete()
+    .eq('id', kommentarId)
+
+  if (error) throw new Error(error.message)
+}
+
 // Reaksjoner — samme flyt for arrangement-chat og klubb-chat. melding_id
 // peker til id i enten arrangement_chat eller klubb_chat. RLS håndhever at
 // brukeren kun kan legge til/fjerne egne reaksjoner.
