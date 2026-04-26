@@ -469,6 +469,47 @@ export default async function Profil() {
         </section>
       )}
 
+      {/* Om appen */}
+      <section style={{ marginTop: 28, marginBottom: 24 }}>
+        <SectionLabel>Om</SectionLabel>
+        <Link
+          href="/om-appen"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 4px',
+            textDecoration: 'none',
+            color: 'inherit',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 16,
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.2px',
+              }}
+            >
+              Om appen
+            </div>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                marginTop: 3,
+              }}
+            >
+              Sikkerhet, personvern og hvordan dette er bygget
+            </div>
+          </div>
+          <span style={{ fontSize: 18, color: 'var(--text-tertiary)' }}>→</span>
+        </Link>
+      </section>
+
       {/* Logg ut */}
       <div style={{ marginTop: 28 }}>
         <LoggUtKnapp />
