@@ -72,11 +72,12 @@ export default function OmAppen() {
           stund med inaktivitet. Hvis du mistenker at noen har kommet inn
           på kontoen din, bytt passord under «Rediger profil».
         </Avsnitt>
-        <Avsnitt overskrift="Hva som ikke er bygget enda" siste>
-          Tofaktor (2FA) og passkey-støtte er på radaren. End-to-end-
-          kryptering (à la Signal/WhatsApp) er vurdert, men gevinsten er
-          liten for en lukket gruppe på 17 venner — kostnaden i UX og
-          komplexitet er stor.
+        <Avsnitt overskrift="Hvorfor det ikke er mer enn dette" siste>
+          End-to-end-kryptering (à la Signal/WhatsApp) og tofaktor er
+          vurdert. Gevinsten er liten for en lukket gruppe på 17 venner
+          som kjenner hverandre — de fleste reelle truslene fikses uansett
+          ikke av disse tiltakene, og kostnaden i daglig bruk er
+          merkbar. Holdes derfor på dagens nivå.
         </Avsnitt>
       </section>
 
