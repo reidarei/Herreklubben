@@ -270,12 +270,15 @@ export default function Chat({
     if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
-  // Skjul bottom-nav når tastaturet er åpent på mobil. Vi sporer faktisk
-  // viewport-høyde via visualViewport — fokus-events alene er upålitelige
-  // siden iOS fyrer fokus uten å åpne tastaturet etter en programmatisk
-  // .focus()-call, og lar input være fokusert selv når tastaturet
-  // forsvinner. Da blir docken hengende skjult. Med visualViewport som
-  // sannhetskilde kommer docken tilbake så fort tastaturet er borte.
+  // Skjul bottom-nav når tastaturet er åpent på mobil. Vi krever BÅDE
+  // at viewport er smalere (visualViewport) OG at en chat-input er
+  // fokusert — slik at swipe-back-gesten på iOS som transient krymper
+  // viewporten ikke trigger feilaktig.
+  //
+  // Tidligere brukte vi bare visualViewport, men da blir docken hengende
+  // skjult når brukeren sveiper tilbake fra en chat-side: iOS endrer
+  // viewport-høyde under animasjonen, og hvis cleanup ikke rekker å
+  // kjøre i tide blir klassen liggende.
   useEffect(() => {
     const KLASSE = 'chat-input-fokus'
     const html = document.documentElement
@@ -286,17 +289,28 @@ export default function Chat({
       else html.classList.remove(KLASSE)
     }
 
-    function vurderTastatur() {
+    function chatInputErFokusert(): boolean {
+      const aktiv = document.activeElement
+      return !!aktiv && aktiv instanceof HTMLElement && aktiv.dataset.chatInput === 'true'
+    }
+
+    function vurder() {
       if (!vv) return
-      // Tastatur tar typisk 30–50 % av skjermen. Terskel 0.85 unngår at
-      // adresse-baren som glir inn/ut feilaktig trigger.
       const ratio = vv.height / window.innerHeight
-      settKlasse(ratio < 0.85)
+      // Hvis chat-input ikke er fokusert har vi ingen grunn til å skjule
+      // docken — selv om viewport-en av en eller annen grunn er smalere
+      // (swipe-overgang, system-prompt, osv).
+      settKlasse(ratio < 0.85 && chatInputErFokusert())
     }
 
     if (vv) {
-      vv.addEventListener('resize', vurderTastatur)
-      vurderTastatur()
+      vv.addEventListener('resize', vurder)
+      // focusin/focusout fyrer på document-nivå når fokus endres på
+      // ethvert element under — vi reagerer slik at klassen kommer på/av
+      // umiddelbart ved fokus-bytte, ikke bare ved viewport-endringer.
+      document.addEventListener('focusin', vurder)
+      document.addEventListener('focusout', vurder)
+      vurder()
     } else {
       // Fallback (svært gamle nettlesere): hold fokus/blur-mønsteret
       const input = inputRef.current
@@ -312,7 +326,9 @@ export default function Chat({
     }
 
     return () => {
-      vv?.removeEventListener('resize', vurderTastatur)
+      vv?.removeEventListener('resize', vurder)
+      document.removeEventListener('focusin', vurder)
+      document.removeEventListener('focusout', vurder)
       settKlasse(false)
     }
   }, [])
@@ -1236,6 +1252,7 @@ export default function Chat({
         <input
           ref={inputRef}
           type="text"
+          data-chat-input="true"
           value={tekst}
           onChange={e => {
             setTekst(e.target.value)
