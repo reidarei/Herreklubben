@@ -126,7 +126,7 @@ export default function VarslerInnstillinger({
 
   return (
     <section style={{ marginBottom: 20 }}>
-      <SectionLabel>Varsler</SectionLabel>
+      <SectionLabel>Varselinnstillinger</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {rader.map((r, i) => (
           <div
