@@ -42,7 +42,7 @@ describe('sendVarsel – kanalvalg', () => {
   it('sender kun epost når push er deaktivert', async () => {
     setupMock({
       varsel_logg: [],
-      varsel_innstillinger: { aktiv: false, beskrivelse: null },
+      varsel_innstillinger: { aktiv: true, beskrivelse: null },
       profiles: [{ id: 'user1', navn: 'Ola', epost: 'ola@test.no' }],
       varsel_preferanser: [{ profil_id: 'user1', push_aktiv: false, epost_aktiv: true }],
       push_subscriptions: [],
@@ -62,7 +62,7 @@ describe('sendVarsel – kanalvalg', () => {
   it('sender begge kanaler når bruker har push + epost aktivert', async () => {
     setupMock({
       varsel_logg: [],
-      varsel_innstillinger: { aktiv: false, beskrivelse: null },
+      varsel_innstillinger: { aktiv: true, beskrivelse: null },
       profiles: [{ id: 'user1', navn: 'Ola', epost: 'ola@test.no' }],
       varsel_preferanser: [{ profil_id: 'user1', push_aktiv: true, epost_aktiv: true }],
       push_subscriptions: [{ profil_id: 'user1', endpoint: 'https://push.example.com', p256dh: 'key', auth: 'auth' }],
@@ -82,7 +82,7 @@ describe('sendVarsel – kanalvalg', () => {
   it('skipper bruker uten noen kanal aktiv', async () => {
     setupMock({
       varsel_logg: [],
-      varsel_innstillinger: { aktiv: false, beskrivelse: null },
+      varsel_innstillinger: { aktiv: true, beskrivelse: null },
       profiles: [{ id: 'user1', navn: 'Ola', epost: null }],
       varsel_preferanser: [{ profil_id: 'user1', push_aktiv: false, epost_aktiv: false }],
       push_subscriptions: [],
@@ -104,7 +104,7 @@ describe('sendVarsel – dedup', () => {
   it('blokkerer duplikat-varsler med samme type + arrangementId', async () => {
     setupMock({
       varsel_logg: [{ id: 'eksisterende' }],
-      varsel_innstillinger: { aktiv: false, beskrivelse: null },
+      varsel_innstillinger: { aktiv: true, beskrivelse: null },
       profiles: [{ id: 'user1', navn: 'Ola', epost: 'ola@test.no' }],
       varsel_preferanser: [],
       push_subscriptions: [],
@@ -126,7 +126,7 @@ describe('sendVarsel – dedup', () => {
   it('tillater duplikat når tillatDuplikat=true', async () => {
     setupMock({
       varsel_logg: [{ id: 'eksisterende' }],
-      varsel_innstillinger: { aktiv: false, beskrivelse: null },
+      varsel_innstillinger: { aktiv: true, beskrivelse: null },
       profiles: [{ id: 'user1', navn: 'Ola', epost: 'ola@test.no' }],
       varsel_preferanser: [{ profil_id: 'user1', push_aktiv: false, epost_aktiv: true }],
       push_subscriptions: [],

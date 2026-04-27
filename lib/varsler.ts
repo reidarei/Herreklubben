@@ -23,6 +23,16 @@ const TILLAT_LOKAL = process.env.ALLOW_LOCAL_NOTIFICATIONS === 'true'
 const ER_UNIT_TEST = !!process.env.VITEST
 const BLOKKER_UTSENDING = ER_LOKAL_BASE && !TILLAT_LOKAL && !ER_UNIT_TEST
 
+// Mapping fra type (slik den lagres i varsel_logg) til noekkel
+// (slik den ligger i varsel_innstillinger). Historisk har de fått
+// litt forskjellige navn; mapping holder det fra å bli rotete.
+function typeTilNoekkel(type: string): string {
+  if (type === 'paaminne_7') return 'paaminnelse_7d'
+  if (type === 'paaminne_1') return 'paaminnelse_1d'
+  if (type === 'purring') return 'purring_aktiv'
+  return type
+}
+
 // Sjekk om en varseltype er aktivert i admin-innstillinger
 async function erVarselAktiv(noekkel: string): Promise<boolean> {
   const supabase = createAdminClient()
@@ -32,6 +42,12 @@ async function erVarselAktiv(noekkel: string): Promise<boolean> {
     .eq('noekkel', noekkel)
     .maybeSingle()
   return data?.aktiv ?? true
+}
+
+// Eksportert variant for sendVarsel-flyten — bruker mapping og en
+// snill default (true) hvis nøkkelen mangler.
+async function erTypeAktiv(type: string): Promise<boolean> {
+  return erVarselAktiv(typeTilNoekkel(type))
 }
 
 // Sjekk om test-modus er aktiv — returnerer test-epost eller null
@@ -110,6 +126,13 @@ export async function sendVarsel({
       `Varselet '${tittel}' (type=${type}) ble IKKE sendt. ` +
       `Sett NEXT_PUBLIC_BASE_URL til prod-URL eller ALLOW_LOCAL_NOTIFICATIONS=true for å overstyre.`
     )
+    return
+  }
+
+  // 0. Sjekk admin-kontrollpanelet — admin kan slå av en hel varseltype
+  // sentralt. Manglende nøkkel teller som «aktiv» (default true).
+  if (!(await erTypeAktiv(type))) {
+    console.log(`[varsler] Type '${type}' er deaktivert i admin-innstillinger — varsel ikke sendt`)
     return
   }
 

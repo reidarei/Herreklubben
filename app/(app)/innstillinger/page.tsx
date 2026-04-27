@@ -12,14 +12,52 @@ import KaaringMalAdmin from '@/components/KaaringMalAdmin'
 import { kanAdministrere } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
-  nytt_arrangement: 'Varsel ved nytt arrangement',
-  ny_poll: 'Varsel ved ny avstemming',
+  // Arrangementer
+  nytt_arrangement: 'Nytt arrangement opprettet',
+  oppdatert: 'Arrangement endret eller oppdatert',
   paaminnelse_7d: 'Påminnelse 7 dager før',
-  paaminnelse_1d: 'Påminnelse 1 dag før',
-  purring_aktiv: 'Purring til de som ikke har svart (3 dager før)',
-  arrangor_purring: 'Purring til arrangøransvarlige som ikke har opprettet arrangement',
-  test_modus: 'Testmodus — varsler sendes kun til Reidar',
+  paaminnelse_1d: 'Påminnelse dagen før',
+  purring_aktiv: 'Purring til de som ikke har svart (3 d før)',
+  arrangor_purring: 'Auto-purring til arrangøransvarlige',
+  purring_ansvar: 'Manuell purring fra «purr»-knapp',
+  // Poll og innlegg
+  ny_poll: 'Ny avstemming',
+  'melding-ny': 'Nytt innlegg på agenda',
+  // Chat
+  mention: '@-mention i chat',
+  'privat-melding': 'Ny privatmelding',
+  // Pass
+  'pass-forespørsel': 'Forespørsel om pass-info (til generalsekretær)',
+  'pass-godkjent': 'Pass-tilgang godkjent (til søker)',
+  'pass-avslatt': 'Pass-tilgang avslått (til søker)',
+  // Innspill
+  ønske_ny: 'Nytt innspill (til admin)',
+  ønske_lukket: 'Ditt innspill er håndtert',
+  // Drift
+  test_modus: 'Testmodus — varsler kun til Reidar',
 }
+
+// Foretrukket rekkefølge for visning. Noekler som ikke er i lista
+// havner sist (alfabetisk).
+const VARSEL_REKKEFOLGE = [
+  'nytt_arrangement',
+  'oppdatert',
+  'paaminnelse_7d',
+  'paaminnelse_1d',
+  'purring_aktiv',
+  'arrangor_purring',
+  'purring_ansvar',
+  'ny_poll',
+  'melding-ny',
+  'mention',
+  'privat-melding',
+  'pass-forespørsel',
+  'pass-godkjent',
+  'pass-avslatt',
+  'ønske_ny',
+  'ønske_lukket',
+  'test_modus',
+]
 
 export default async function Innstillinger() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -203,20 +241,44 @@ export default async function Innstillinger() {
       </section>
 
       {/* Varsler-togglere */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Varsler</SectionLabel>
-        <div>
-          {(innstillinger ?? []).map((inn, i, arr) => (
-            <VarselToggle
-              key={inn.noekkel}
-              noekkel={inn.noekkel}
-              aktiv={inn.aktiv}
-              beskrivelse={innstillingLabels[inn.noekkel] ?? inn.beskrivelse ?? inn.noekkel}
-              last={i === arr.length - 1}
-            />
-          ))}
-        </div>
-      </section>
+      {(() => {
+        const sortert = [...(innstillinger ?? [])].sort((a, b) => {
+          const ia = VARSEL_REKKEFOLGE.indexOf(a.noekkel)
+          const ib = VARSEL_REKKEFOLGE.indexOf(b.noekkel)
+          if (ia === -1 && ib === -1) return a.noekkel.localeCompare(b.noekkel)
+          if (ia === -1) return 1
+          if (ib === -1) return -1
+          return ia - ib
+        })
+        return (
+          <section style={{ marginBottom: 24 }}>
+            <SectionLabel count={sortert.length}>Varsler — kontrollpanel</SectionLabel>
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                color: 'var(--text-tertiary)',
+                lineHeight: 1.45,
+                margin: '0 0 12px',
+              }}
+            >
+              Hver type kan skrus av sentralt — påvirker alle medlemmer.
+              Brukerens egne push/epost-innstillinger gjelder i tillegg.
+            </p>
+            <div>
+              {sortert.map((inn, i, arr) => (
+                <VarselToggle
+                  key={inn.noekkel}
+                  noekkel={inn.noekkel}
+                  aktiv={inn.aktiv}
+                  beskrivelse={innstillingLabels[inn.noekkel] ?? inn.beskrivelse ?? inn.noekkel}
+                  last={i === arr.length - 1}
+                />
+              ))}
+            </div>
+          </section>
+        )
+      })()}
 
       {/* Faste arrangementer */}
       <section style={{ marginBottom: 24 }}>
