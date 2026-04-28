@@ -14,7 +14,7 @@ import { kanAdministrere } from '@/lib/roller'
 const innstillingLabels: Record<string, string> = {
   // Arrangementer
   nytt_arrangement: 'Nytt arrangement opprettet',
-  oppdatert: 'Arrangement endret eller oppdatert',
+  oppdatert: '«Varsle nå»-knapp på arrangement',
   paaminnelse_7d: 'Påminnelse 7 dager før',
   paaminnelse_1d: 'Påminnelse dagen før',
   purring_aktiv: 'Purring til de som ikke har svart (3 d før)',
