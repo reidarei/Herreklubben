@@ -385,16 +385,28 @@ export default async function Innstillinger() {
       </InnstillingsKort>
 
       {/* Ønsker fra brukerne */}
-      <InnstillingsKort
-        tittel="Ønsker fra brukerne"
-        oppsummering={
-          aapneIssues.length === 0
-            ? 'Ingen åpne'
-            : `${aapneIssues.length} ${aapneIssues.length === 1 ? 'åpent ønske' : 'åpne ønsker'}`
+      {(() => {
+        const antall = aapneIssues.length
+        let oppsummering = 'Ingen åpne'
+        if (antall > 0) {
+          // Issues kommer sortert nyest først (sort=created&direction=desc)
+          const sisteIso = aapneIssues[0]?.created_at
+          if (sisteIso) {
+            const ms = Date.now() - new Date(sisteIso).getTime()
+            const dager = Math.floor(ms / (24 * 60 * 60 * 1000))
+            const sidenTekst =
+              dager === 0 ? 'i dag' : dager === 1 ? '1 dag siden' : `${dager} dager siden`
+            oppsummering = `${antall} ${antall === 1 ? 'åpent ønske' : 'åpne ønsker'} · siste ${sidenTekst}`
+          } else {
+            oppsummering = `${antall} ${antall === 1 ? 'åpent ønske' : 'åpne ønsker'}`
+          }
         }
-      >
-        <IssuesListe aapne={aapneIssues} />
-      </InnstillingsKort>
+        return (
+          <InnstillingsKort tittel="Ønsker fra brukerne" oppsummering={oppsummering}>
+            <IssuesListe aapne={aapneIssues} />
+          </InnstillingsKort>
+        )
+      })()}
 
       {/* Varselhistorikk */}
       <InnstillingsKort
