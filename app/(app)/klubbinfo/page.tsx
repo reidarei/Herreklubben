@@ -22,7 +22,6 @@ export default async function Klubbinfo() {
   const antallAar = norskAar() - KLUBBEN_START_AAR + 1
 
   type Rad = {
-    nr: string
     icon: IkonNavn
     title: string
     sub: string
@@ -33,7 +32,6 @@ export default async function Klubbinfo() {
 
   const rader: Rad[] = [
     {
-      nr: '01',
       icon: 'users',
       title: 'Medlemmer',
       sub: `${antallMedlemmer ?? 0} aktive`,
@@ -41,35 +39,30 @@ export default async function Klubbinfo() {
       href: '/klubbinfo/medlemmer',
     },
     {
-      nr: '02',
       icon: 'list',
       title: 'Arrangøransvar',
       sub: `Hvem tar hva i ${norskAar()}`,
       href: '/arrangoransvar',
     },
     {
-      nr: '03',
       icon: 'trophy',
       title: 'Kåringer',
       sub: 'Årets hederspriser',
       href: '/kaaringer',
     },
     {
-      nr: '04',
       icon: 'doc',
       title: 'Vedtekter',
       sub: 'Regler og kvotering',
       href: '/klubbinfo/vedtekter/vedtekter',
     },
     {
-      nr: '05',
       icon: 'chart',
       title: 'Statistikk',
       sub: 'Deltakelse og rekorder',
       href: '/klubbinfo/statistikk',
     },
     {
-      nr: '06',
       icon: 'cog',
       title: 'Innstillinger',
       sub: 'Varsler og admin',
@@ -209,16 +202,18 @@ export default async function Klubbinfo() {
           >
             <div
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '1.6px',
-                fontWeight: 600,
-                width: 22,
+                width: 32,
+                height: 32,
                 flexShrink: 0,
+                borderRadius: '50%',
+                background: 'var(--accent-soft)',
+                border: '0.5px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {r.nr}
+              <Icon name={r.icon} size={16} color="var(--accent)" strokeWidth={1.5} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
