@@ -3,13 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import SectionLabel from '@/components/ui/SectionLabel'
 import VarselToggle from '@/components/VarselToggle'
 import IssuesListe from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
-import KollapsbarSeksjon from '@/components/innstillinger/KollapsbarSeksjon'
+import InnstillingsKort from '@/components/innstillinger/InnstillingsKort'
 import { kanAdministrere } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
@@ -66,11 +65,13 @@ export default async function Innstillinger() {
   if (!kanAdministrere(profil?.rolle)) notFound()
 
   const admin = createAdminClient()
+  const sisteDognIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const [
     { data: logg, count: varselTotal },
     { count: pushCount },
     { data: innstillinger },
     { count: passVentende },
+    { count: varselSisteDogn },
   ] = await Promise.all([
     admin
       .from('varsel_logg')
@@ -86,6 +87,10 @@ export default async function Innstillinger() {
       .from('pass_tilgang_forespørsel')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'venter'),
+    admin
+      .from('varsel_logg')
+      .select('id', { count: 'exact', head: true })
+      .gte('opprettet', sisteDognIso),
   ])
 
   const { data: maler } = await admin
@@ -214,34 +219,26 @@ export default async function Innstillinger() {
         </div>
       </div>
 
-      {/* Push-status */}
-      <section style={{ marginBottom: 20 }}>
-        <SectionLabel>Push-varsler</SectionLabel>
-        <div
+      {/* Push-varsler */}
+      <InnstillingsKort
+        tittel="Push-varsler"
+        oppsummering={`${pushCount ?? 0} enhet${(pushCount ?? 0) !== 1 ? 'er' : ''} registrert`}
+        alltidAapen
+      >
+        <p
           style={{
-            padding: '12px 4px',
             fontFamily: 'var(--font-body)',
-            fontSize: 13,
-            color: 'var(--text-primary)',
+            fontSize: 12,
+            color: 'var(--text-tertiary)',
+            lineHeight: 1.45,
+            margin: 0,
           }}
         >
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 18,
-              color: 'var(--accent)',
-              marginRight: 6,
-            }}
-          >
-            {pushCount ?? 0}
-          </span>
-          <span style={{ color: 'var(--text-secondary)' }}>
-            enhet{(pushCount ?? 0) !== 1 ? 'er' : ''} registrert
-          </span>
-        </div>
-      </section>
+          Antall enheter som har skrudd på push-varsler.
+        </p>
+      </InnstillingsKort>
 
-      {/* Varsler-togglere — kollapsbar (mange elementer) */}
+      {/* Varsler-kontrollpanel */}
       {(() => {
         const sortert = [...(innstillinger ?? [])].sort((a, b) => {
           const ia = VARSEL_REKKEFOLGE.indexOf(a.noekkel)
@@ -251,10 +248,11 @@ export default async function Innstillinger() {
           if (ib === -1) return -1
           return ia - ib
         })
+        const aktiveCount = sortert.filter(s => s.aktiv).length
         return (
-          <KollapsbarSeksjon
+          <InnstillingsKort
             tittel="Varsler — kontrollpanel"
-            antall={sortert.length}
+            oppsummering={`${aktiveCount} av ${sortert.length} typer aktive`}
             beskrivelse="Hver type kan skrus av sentralt — påvirker alle medlemmer. Brukerens egne push/epost-innstillinger gjelder i tillegg."
           >
             <div>
@@ -268,98 +266,115 @@ export default async function Innstillinger() {
                 />
               ))}
             </div>
-          </KollapsbarSeksjon>
+          </InnstillingsKort>
         )
       })()}
 
-      {/* Faste arrangementer — kollapsbar */}
-      <KollapsbarSeksjon tittel="Faste arrangementer" antall={maler?.length}>
+      {/* Faste arrangementer */}
+      <InnstillingsKort
+        tittel="Faste arrangementer"
+        oppsummering={`${maler?.length ?? 0} ${(maler?.length ?? 0) === 1 ? 'mal' : 'maler'}`}
+      >
         <ArrangementmalerAdmin maler={maler ?? []} />
-      </KollapsbarSeksjon>
+      </InnstillingsKort>
 
-      {/* Kåringer — kollapsbar */}
-      <KollapsbarSeksjon tittel="Kåringer" antall={kaaringmaler?.length}>
+      {/* Kåringer */}
+      <InnstillingsKort
+        tittel="Kåringer"
+        oppsummering={`${kaaringmaler?.length ?? 0} ${(kaaringmaler?.length ?? 0) === 1 ? 'mal' : 'maler'}`}
+      >
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
-      </KollapsbarSeksjon>
+      </InnstillingsKort>
 
-      {/* Pass-godkjenninger — ett element, ikke kollapsbar */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel count={passVentende ?? undefined}>Pass-godkjenninger</SectionLabel>
-        <Link
-          href="/innstillinger/pass-godkjenninger"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 16px',
-            borderRadius: 12,
-            border: '0.5px solid var(--border-strong)',
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 13,
-            textDecoration: 'none',
-          }}
+      {/* Pass-godkjenninger — egen lenke */}
+      <Link
+        href="/innstillinger/pass-godkjenninger"
+        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      >
+        <InnstillingsKort
+          tittel="Pass-godkjenninger →"
+          oppsummering={
+            (passVentende ?? 0) === 0
+              ? 'Ingen ventende'
+              : `${passVentende} ${passVentende === 1 ? 'venter' : 'venter'} på godkjenning`
+          }
+          badge={
+            (passVentende ?? 0) > 0 ? (
+              <span
+                style={{
+                  minWidth: 22,
+                  height: 22,
+                  padding: '0 8px',
+                  borderRadius: 999,
+                  background: 'var(--accent)',
+                  color: '#0a0a0a',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {passVentende}
+              </span>
+            ) : null
+          }
+          alltidAapen
         >
-          <span>Ventende forespørsler om passinfo</span>
-          {(passVentende ?? 0) > 0 && (
-            <span
-              style={{
-                minWidth: 20,
-                height: 20,
-                padding: '0 7px',
-                borderRadius: 999,
-                background: 'var(--accent)',
-                color: '#0a0a0a',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 700,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {passVentende}
-            </span>
-          )}
-        </Link>
-      </section>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 12,
+              color: 'var(--text-tertiary)',
+              lineHeight: 1.45,
+              margin: 0,
+            }}
+          >
+            Trykk for å gjennomgå forespørsler om dagstilgang til passinfo.
+          </p>
+        </InnstillingsKort>
+      </Link>
 
-      {/* Ønsker fra brukerne — kollapsbar */}
-      <KollapsbarSeksjon tittel="Ønsker fra brukerne">
+      {/* Ønsker fra brukerne */}
+      <InnstillingsKort tittel="Ønsker fra brukerne">
         <IssuesListe />
-      </KollapsbarSeksjon>
+      </InnstillingsKort>
 
-      {/* Varselhistorikk — kollapsbar */}
-      <KollapsbarSeksjon tittel="Varselhistorikk" antall={varselTotal ?? undefined}>
+      {/* Varselhistorikk */}
+      <InnstillingsKort
+        tittel="Varselhistorikk"
+        oppsummering={
+          `${varselTotal ?? 0} totalt · ${varselSisteDogn ?? 0} siste døgn`
+        }
+      >
         <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
-      </KollapsbarSeksjon>
+      </InnstillingsKort>
 
-      {/* Web vitals — ett element (lenke), ikke kollapsbar */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Ytelse</SectionLabel>
-        <Link
-          href="/innstillinger/vitals"
-          style={{
-            display: 'block',
-            padding: '14px 16px',
-            borderRadius: 12,
-            border: '0.5px solid var(--border-strong)',
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 13,
-            textDecoration: 'none',
-          }}
+      {/* Web vitals */}
+      <Link
+        href="/innstillinger/vitals"
+        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      >
+        <InnstillingsKort
+          tittel="Ytelse →"
+          oppsummering="LCP, INP, CLS m.fl. per rute og enhet"
+          alltidAapen
         >
-          <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
-            Web vitals →
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
-            LCP, INP, CLS og co. fra ekte brukere per rute og enhetstype.
-          </div>
-        </Link>
-      </section>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 12,
+              color: 'var(--text-tertiary)',
+              lineHeight: 1.45,
+              margin: 0,
+            }}
+          >
+            Trykk for vitals fra ekte brukere — viser hvordan appen oppleves
+            på mobil og desktop.
+          </p>
+        </InnstillingsKort>
+      </Link>
     </div>
   )
 }
