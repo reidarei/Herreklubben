@@ -1,6 +1,6 @@
 import IssuesListeKlient from './IssuesListeKlient'
 
-type GitHubIssue = {
+export type GitHubIssue = {
   number: number
   title: string
   state: string
@@ -9,7 +9,7 @@ type GitHubIssue = {
   labels: { name: string }[]
 }
 
-async function hentAapneIssues(): Promise<GitHubIssue[]> {
+export async function hentAapneIssues(): Promise<GitHubIssue[]> {
   const token = process.env.GITHUB_TOKEN
   if (!token) return []
 
@@ -28,8 +28,9 @@ async function hentAapneIssues(): Promise<GitHubIssue[]> {
   return res.json()
 }
 
-export default async function IssuesListe() {
-  const aapne = await hentAapneIssues()
-
-  return <IssuesListeKlient aapne={aapne} />
+export default async function IssuesListe({ aapne }: { aapne?: GitHubIssue[] }) {
+  // Hvis foreldreren allerede har hentet listen, bruker vi den.
+  // Ellers henter vi selv (bakoverkompatibel).
+  const liste = aapne ?? (await hentAapneIssues())
+  return <IssuesListeKlient aapne={liste} />
 }

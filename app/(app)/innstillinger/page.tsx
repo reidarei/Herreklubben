@@ -4,7 +4,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import VarselToggle from '@/components/VarselToggle'
-import IssuesListe from './IssuesListe'
+import IssuesListe, { hentAapneIssues } from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
@@ -130,14 +130,11 @@ export default async function Innstillinger() {
     })
     .filter(Boolean) as { metric: string; verdi: string; fargenavn: 'god' | 'ok' | 'darlig'; n: number }[]
 
-  const { data: maler } = await admin
-    .from('arrangementmaler')
-    .select('*')
-    .order('rekkefølge')
-  const { data: kaaringmaler } = await admin
-    .from('kaaringmaler')
-    .select('id, navn, rekkefolge')
-    .order('rekkefolge')
+  const [{ data: maler }, { data: kaaringmaler }, aapneIssues] = await Promise.all([
+    admin.from('arrangementmaler').select('*').order('rekkefølge'),
+    admin.from('kaaringmaler').select('id, navn, rekkefolge').order('rekkefolge'),
+    hentAapneIssues(),
+  ])
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
@@ -388,8 +385,15 @@ export default async function Innstillinger() {
       </InnstillingsKort>
 
       {/* Ønsker fra brukerne */}
-      <InnstillingsKort tittel="Ønsker fra brukerne">
-        <IssuesListe />
+      <InnstillingsKort
+        tittel="Ønsker fra brukerne"
+        oppsummering={
+          aapneIssues.length === 0
+            ? 'Ingen åpne'
+            : `${aapneIssues.length} ${aapneIssues.length === 1 ? 'åpent ønske' : 'åpne ønsker'}`
+        }
+      >
+        <IssuesListe aapne={aapneIssues} />
       </InnstillingsKort>
 
       {/* Varselhistorikk */}
