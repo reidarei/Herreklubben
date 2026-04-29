@@ -66,12 +66,14 @@ export default async function Innstillinger() {
 
   const admin = createAdminClient()
   const sisteDognIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const sjuDagerIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const [
     { data: logg, count: varselTotal },
     { count: pushCount },
     { data: innstillinger },
     { count: passVentende },
     { count: varselSisteDogn },
+    { data: vitalsRader },
   ] = await Promise.all([
     admin
       .from('varsel_logg')
@@ -91,7 +93,42 @@ export default async function Innstillinger() {
       .from('varsel_logg')
       .select('id', { count: 'exact', head: true })
       .gte('opprettet', sisteDognIso),
+    admin
+      .from('vitals_logg')
+      .select('metric, verdi, device_type')
+      .gte('opprettet', sjuDagerIso)
+      .eq('device_type', 'mobile')
+      .limit(5000),
   ])
+
+  // Aggreger vitals — p75 per metric for mobil siste 7 dager
+  type VitalsRow = { metric: string; verdi: number }
+  const verdierPerMetric = new Map<string, number[]>()
+  for (const r of (vitalsRader ?? []) as VitalsRow[]) {
+    const liste = verdierPerMetric.get(r.metric) ?? []
+    liste.push(r.verdi)
+    verdierPerMetric.set(r.metric, liste)
+  }
+  const VITALS_TERSKEL: Record<string, { god: number; ok: number; enhet: string }> = {
+    LCP: { god: 2500, ok: 4000, enhet: 'ms' },
+    INP: { god: 200, ok: 500, enhet: 'ms' },
+    CLS: { god: 0.1, ok: 0.25, enhet: '' },
+    FCP: { god: 1800, ok: 3000, enhet: 'ms' },
+    TTFB: { god: 800, ok: 1800, enhet: 'ms' },
+  }
+  const vitalsSammendrag = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB']
+    .map(metric => {
+      const v = verdierPerMetric.get(metric) ?? []
+      if (v.length === 0) return null
+      const sortert = [...v].sort((a, b) => a - b)
+      const p75 = sortert[Math.floor((sortert.length - 1) * 0.75)]
+      const t = VITALS_TERSKEL[metric]
+      const fargenavn: 'god' | 'ok' | 'darlig' =
+        p75 <= t.god ? 'god' : p75 <= t.ok ? 'ok' : 'darlig'
+      const verdi = metric === 'CLS' ? p75.toFixed(3) : `${Math.round(p75)} ${t.enhet}`
+      return { metric, verdi, fargenavn, n: v.length }
+    })
+    .filter(Boolean) as { metric: string; verdi: string; fargenavn: 'god' | 'ok' | 'darlig'; n: number }[]
 
   const { data: maler } = await admin
     .from('arrangementmaler')
@@ -223,18 +260,18 @@ export default async function Innstillinger() {
       <InnstillingsKort
         tittel="Push-varsler"
         oppsummering={`${pushCount ?? 0} enhet${(pushCount ?? 0) !== 1 ? 'er' : ''} registrert`}
-        alltidAapen
       >
         <p
           style={{
             fontFamily: 'var(--font-body)',
-            fontSize: 12,
-            color: 'var(--text-tertiary)',
-            lineHeight: 1.45,
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
             margin: 0,
           }}
         >
-          Antall enheter som har skrudd på push-varsler.
+          Antall enheter som har skrudd på push-varsler. Hvert medlem kan ha
+          push på flere enheter — telleren reflekterer summen av alle.
         </p>
       </InnstillingsKort>
 
@@ -286,55 +323,69 @@ export default async function Innstillinger() {
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
       </InnstillingsKort>
 
-      {/* Pass-godkjenninger — egen lenke */}
-      <Link
-        href="/innstillinger/pass-godkjenninger"
-        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      {/* Pass-godkjenninger */}
+      <InnstillingsKort
+        tittel="Pass-godkjenninger"
+        oppsummering={
+          (passVentende ?? 0) === 0
+            ? 'Ingen ventende'
+            : `${passVentende} venter på godkjenning`
+        }
+        badge={
+          (passVentende ?? 0) > 0 ? (
+            <span
+              style={{
+                minWidth: 22,
+                height: 22,
+                padding: '0 8px',
+                borderRadius: 999,
+                background: 'var(--accent)',
+                color: '#0a0a0a',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {passVentende}
+            </span>
+          ) : null
+        }
       >
-        <InnstillingsKort
-          tittel="Pass-godkjenninger →"
-          oppsummering={
-            (passVentende ?? 0) === 0
-              ? 'Ingen ventende'
-              : `${passVentende} ${passVentende === 1 ? 'venter' : 'venter'} på godkjenning`
-          }
-          badge={
-            (passVentende ?? 0) > 0 ? (
-              <span
-                style={{
-                  minWidth: 22,
-                  height: 22,
-                  padding: '0 8px',
-                  borderRadius: 999,
-                  background: 'var(--accent)',
-                  color: '#0a0a0a',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {passVentende}
-              </span>
-            ) : null
-          }
-          alltidAapen
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            margin: '0 0 12px',
+          }}
         >
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              color: 'var(--text-tertiary)',
-              lineHeight: 1.45,
-              margin: 0,
-            }}
-          >
-            Trykk for å gjennomgå forespørsler om dagstilgang til passinfo.
-          </p>
-        </InnstillingsKort>
-      </Link>
+          Tur-arrangører ber her om dagstilgang til passinfo. Forespørselen
+          godkjennes eller avslås — godkjent gir 24 timers tilgang.
+        </p>
+        <Link
+          href="/innstillinger/pass-godkjenninger"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            background: 'var(--accent-soft)',
+            border: '0.5px solid var(--accent)',
+            borderRadius: 999,
+            color: 'var(--accent)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 12,
+            fontWeight: 500,
+            textDecoration: 'none',
+          }}
+        >
+          Åpne forespørsel-side →
+        </Link>
+      </InnstillingsKort>
 
       {/* Ønsker fra brukerne */}
       <InnstillingsKort tittel="Ønsker fra brukerne">
@@ -351,30 +402,130 @@ export default async function Innstillinger() {
         <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
       </InnstillingsKort>
 
-      {/* Web vitals */}
-      <Link
-        href="/innstillinger/vitals"
-        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      {/* Ytelse — vitals inline */}
+      <InnstillingsKort
+        tittel="Ytelse"
+        oppsummering={
+          vitalsSammendrag.length === 0
+            ? 'Ingen målinger siste uke'
+            : `${vitalsSammendrag.length} av 5 metrics målt · mobil siste 7 d`
+        }
       >
-        <InnstillingsKort
-          tittel="Ytelse →"
-          oppsummering="LCP, INP, CLS m.fl. per rute og enhet"
-          alltidAapen
-        >
+        {vitalsSammendrag.length === 0 ? (
           <p
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              color: 'var(--text-tertiary)',
-              lineHeight: 1.45,
+              fontSize: 13,
+              color: 'var(--text-secondary)',
+              lineHeight: 1.5,
               margin: 0,
             }}
           >
-            Trykk for vitals fra ekte brukere — viser hvordan appen oppleves
-            på mobil og desktop.
+            Ingen vitals-målinger den siste uka. Brukerne må besøke appen for
+            at det samles inn data.
           </p>
-        </InnstillingsKort>
-      </Link>
+        ) : (
+          <>
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 12.5,
+                color: 'var(--text-secondary)',
+                lineHeight: 1.5,
+                margin: '0 0 12px',
+              }}
+            >
+              p75-verdier (mobil, siste 7 dager) — grønn = bra, gul = mellomlag, rød = bør fikses.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {vitalsSammendrag.map((v, i) => {
+                const farge =
+                  v.fargenavn === 'god'
+                    ? 'var(--success)'
+                    : v.fargenavn === 'ok'
+                      ? 'var(--accent)'
+                      : 'var(--danger)'
+                return (
+                  <div
+                    key={v.metric}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 4px',
+                      borderBottom:
+                        i < vitalsSammendrag.length - 1
+                          ? '0.5px solid var(--border-subtle)'
+                          : 'none',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: farge,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 11,
+                        color: 'var(--text-secondary)',
+                        letterSpacing: '1px',
+                        fontWeight: 600,
+                        width: 50,
+                      }}
+                    >
+                      {v.metric}
+                    </span>
+                    <span
+                      style={{
+                        flex: 1,
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 13,
+                        color: farge,
+                      }}
+                    >
+                      {v.verdi}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      n={v.n}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <Link
+              href="/innstillinger/vitals"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                marginTop: 14,
+                padding: '8px 14px',
+                background: 'var(--accent-soft)',
+                border: '0.5px solid var(--accent)',
+                borderRadius: 999,
+                color: 'var(--accent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 12,
+                fontWeight: 500,
+                textDecoration: 'none',
+              }}
+            >
+              Per rute, enhet og filter →
+            </Link>
+          </>
+        )}
+      </InnstillingsKort>
     </div>
   )
 }

@@ -8,86 +8,27 @@ type Props = {
   oppsummering?: ReactNode
   /** Liten markering til høyre (f.eks. ulest-antall). Vises alltid. */
   badge?: ReactNode
-  /** Hvis satt vises beskrivelsen som hjelpetekst når åpent. */
+  /** Hjelpetekst som vises på toppen når kortet er åpent. */
   beskrivelse?: string
-  /** Hvis true er kortet ikke kollapsbart — children rendres alltid. */
-  alltidAapen?: boolean
   defaultApen?: boolean
   children: ReactNode
 }
 
 /**
- * Kort på innstillinger-siden. Header-raden er alltid synlig med
- * tittel og kort oppsummering. Klikk for å ekspandere full visning.
- * Kort med `alltidAapen` har ingen toggle og rendrer children direkte.
+ * Standard-kort for innstillinger-siden. Header er alltid synlig med
+ * tittel + kort oppsummering. Klikk for å ekspandere full visning.
+ * Alle kort har samme oppførsel — også de som «bare» fungerer som
+ * lenker eller har ett element. Det gjør siden jevn og forutsigbar.
  */
 export default function InnstillingsKort({
   tittel,
   oppsummering,
   badge,
   beskrivelse,
-  alltidAapen = false,
   defaultApen = false,
   children,
 }: Props) {
   const [apen, setApen] = useState(defaultApen)
-  const erAapen = alltidAapen || apen
-
-  const headerInnhold = (
-    <>
-      {!alltidAapen && (
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{
-            transform: erAapen ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 160ms ease-out',
-            flexShrink: 0,
-            color: 'var(--text-tertiary)',
-          }}
-          aria-hidden="true"
-        >
-          <path d="M9 6l6 6-6 6" />
-        </svg>
-      )}
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 15,
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.2px',
-            lineHeight: 1.2,
-          }}
-        >
-          {tittel}
-        </div>
-        {oppsummering && (
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10.5,
-              color: 'var(--text-tertiary)',
-              letterSpacing: '0.6px',
-              marginTop: 3,
-            }}
-          >
-            {oppsummering}
-          </div>
-        )}
-      </div>
-
-      {badge && <div style={{ flexShrink: 0 }}>{badge}</div>}
-    </>
-  )
 
   return (
     <div
@@ -99,43 +40,78 @@ export default function InnstillingsKort({
         overflow: 'hidden',
       }}
     >
-      {alltidAapen ? (
-        <div
+      <button
+        type="button"
+        onClick={() => setApen(v => !v)}
+        aria-expanded={apen}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          width: '100%',
+          padding: '14px 16px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '14px 16px',
+            transform: apen ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 160ms ease-out',
+            flexShrink: 0,
+            color: 'var(--text-tertiary)',
           }}
+          aria-hidden="true"
         >
-          {headerInnhold}
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setApen(v => !v)}
-          aria-expanded={apen}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            width: '100%',
-            padding: '14px 16px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-          }}
-        >
-          {headerInnhold}
-        </button>
-      )}
+          <path d="M9 6l6 6-6 6" />
+        </svg>
 
-      {erAapen && (
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 15,
+              fontWeight: 500,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.2px',
+              lineHeight: 1.2,
+            }}
+          >
+            {tittel}
+          </div>
+          {oppsummering && (
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10.5,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.6px',
+                marginTop: 3,
+              }}
+            >
+              {oppsummering}
+            </div>
+          )}
+        </div>
+
+        {badge && <div style={{ flexShrink: 0 }}>{badge}</div>}
+      </button>
+
+      {apen && (
         <div
           style={{
-            padding: alltidAapen ? '0 16px 14px' : '4px 16px 16px',
-            borderTop: alltidAapen ? 'none' : '0.5px solid var(--border-subtle)',
+            padding: '4px 16px 16px',
+            borderTop: '0.5px solid var(--border-subtle)',
           }}
         >
           {beskrivelse && (
