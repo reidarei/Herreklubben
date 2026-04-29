@@ -9,6 +9,7 @@ import IssuesListe from './IssuesListe'
 import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
+import KollapsbarSeksjon from '@/components/innstillinger/KollapsbarSeksjon'
 import { kanAdministrere } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
@@ -240,7 +241,7 @@ export default async function Innstillinger() {
         </div>
       </section>
 
-      {/* Varsler-togglere */}
+      {/* Varsler-togglere — kollapsbar (mange elementer) */}
       {(() => {
         const sortert = [...(innstillinger ?? [])].sort((a, b) => {
           const ia = VARSEL_REKKEFOLGE.indexOf(a.noekkel)
@@ -251,20 +252,11 @@ export default async function Innstillinger() {
           return ia - ib
         })
         return (
-          <section style={{ marginBottom: 24 }}>
-            <SectionLabel count={sortert.length}>Varsler — kontrollpanel</SectionLabel>
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 12,
-                color: 'var(--text-tertiary)',
-                lineHeight: 1.45,
-                margin: '0 0 12px',
-              }}
-            >
-              Hver type kan skrus av sentralt — påvirker alle medlemmer.
-              Brukerens egne push/epost-innstillinger gjelder i tillegg.
-            </p>
+          <KollapsbarSeksjon
+            tittel="Varsler — kontrollpanel"
+            antall={sortert.length}
+            beskrivelse="Hver type kan skrus av sentralt — påvirker alle medlemmer. Brukerens egne push/epost-innstillinger gjelder i tillegg."
+          >
             <div>
               {sortert.map((inn, i, arr) => (
                 <VarselToggle
@@ -276,23 +268,21 @@ export default async function Innstillinger() {
                 />
               ))}
             </div>
-          </section>
+          </KollapsbarSeksjon>
         )
       })()}
 
-      {/* Faste arrangementer */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Faste arrangementer</SectionLabel>
+      {/* Faste arrangementer — kollapsbar */}
+      <KollapsbarSeksjon tittel="Faste arrangementer" antall={maler?.length}>
         <ArrangementmalerAdmin maler={maler ?? []} />
-      </section>
+      </KollapsbarSeksjon>
 
-      {/* Kåringer */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Kåringer</SectionLabel>
+      {/* Kåringer — kollapsbar */}
+      <KollapsbarSeksjon tittel="Kåringer" antall={kaaringmaler?.length}>
         <KaaringMalAdmin maler={kaaringmaler ?? []} />
-      </section>
+      </KollapsbarSeksjon>
 
-      {/* Pass-godkjenninger */}
+      {/* Pass-godkjenninger — ett element, ikke kollapsbar */}
       <section style={{ marginBottom: 24 }}>
         <SectionLabel count={passVentende ?? undefined}>Pass-godkjenninger</SectionLabel>
         <Link
@@ -335,19 +325,17 @@ export default async function Innstillinger() {
         </Link>
       </section>
 
-      {/* Ønsker fra brukerne */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Ønsker fra brukerne</SectionLabel>
+      {/* Ønsker fra brukerne — kollapsbar */}
+      <KollapsbarSeksjon tittel="Ønsker fra brukerne">
         <IssuesListe />
-      </section>
+      </KollapsbarSeksjon>
 
-      {/* Varselhistorikk */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Varselhistorikk</SectionLabel>
+      {/* Varselhistorikk — kollapsbar */}
+      <KollapsbarSeksjon tittel="Varselhistorikk" antall={varselTotal ?? undefined}>
         <VarselLogg initial={logg ?? []} total={varselTotal ?? 0} />
-      </section>
+      </KollapsbarSeksjon>
 
-      {/* Web vitals — ytelsesmålinger */}
+      {/* Web vitals — ett element (lenke), ikke kollapsbar */}
       <section style={{ marginBottom: 24 }}>
         <SectionLabel>Ytelse</SectionLabel>
         <Link
