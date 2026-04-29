@@ -379,3 +379,116 @@ export async function sendPurringVarsler({
     arrangementId,
   })
 }
+
+// ─── @-MENTION I CHAT ───────────────────────────────────────────────────────
+// Sentralisert mention-handler for alle chat-scopes. Tidligere lå det
+// fire nesten-identiske kopier i lib/actions/chat.ts; en regex-bug
+// (28. april 2026) traff alle fire steder fordi de var kopiert. Holdes
+// her sammen med øvrig varsling for å forhindre repetisjon.
+
+export type MentionScope =
+  | { type: 'arrangement'; id: string }
+  | { type: 'klubb' }
+  | { type: 'poll'; id: string }
+  | { type: 'melding'; id: string }
+
+// Regex stopper ved space — `@alle andre` matches som `'alle'`, ikke
+// `'alle andre'`. Flerords-navn håndteres fortsatt riktig fordi
+// matching-funksjonen bruker `.includes()` på fullt profilnavn:
+// `@Reidar` treffer «Reidar Eik Haavik», og `@Reidar Haavik` treffer
+// også (etternavnet blir bare vanlig tekst i meldingen).
+const MENTION_REGEX = /@([\wæøåÆØÅ-]+)/g
+
+function utdrag(tekst: string, maks = 80): string {
+  return tekst.length > maks ? tekst.slice(0, maks - 3) + '...' : tekst
+}
+
+async function hentScopeInnhold(
+  scope: MentionScope,
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<{ tittel: string; url: string; knappTekst: string }> {
+  if (scope.type === 'klubb') {
+    return {
+      tittel: 'Klubbchat',
+      url: `${BASE_URL}/chat`,
+      knappTekst: 'Åpne chatten',
+    }
+  }
+  if (scope.type === 'arrangement') {
+    const { data } = await admin
+      .from('arrangementer')
+      .select('tittel')
+      .eq('id', scope.id)
+      .single()
+    return {
+      tittel: `Chat: ${data?.tittel ?? 'et arrangement'}`,
+      url: `${BASE_URL}/arrangementer/${scope.id}`,
+      knappTekst: 'Åpne chatten',
+    }
+  }
+  if (scope.type === 'poll') {
+    const { data } = await admin
+      .from('poll')
+      .select('spoersmaal')
+      .eq('id', scope.id)
+      .single()
+    return {
+      tittel: `Kommentar: ${data?.spoersmaal ?? 'en avstemming'}`,
+      url: `${BASE_URL}/poll/${scope.id}`,
+      knappTekst: 'Åpne avstemmingen',
+    }
+  }
+  // melding
+  return {
+    tittel: 'Kommentar i innlegg',
+    url: `${BASE_URL}/meldinger/${scope.id}`,
+    knappTekst: 'Åpne innlegget',
+  }
+}
+
+export async function sendChatMentionVarsler(
+  scope: MentionScope,
+  tekst: string,
+  avsenderId: string,
+) {
+  const mentions = [...tekst.matchAll(MENTION_REGEX)].map(m =>
+    m[1].trim().toLowerCase(),
+  )
+  if (mentions.length === 0) return
+
+  const admin = createAdminClient()
+
+  const { data: profiler } = await admin
+    .from('profiles')
+    .select('id, navn, visningsnavn, epost')
+    .eq('aktiv', true)
+  if (!profiler) return
+
+  const erAlle = mentions.includes('alle')
+  const nevnte = erAlle
+    ? profiler.filter(p => p.id !== avsenderId)
+    : profiler.filter(p => {
+        if (p.id === avsenderId) return false
+        return mentions.some(
+          m =>
+            p.navn?.toLowerCase().includes(m) ||
+            p.visningsnavn?.toLowerCase().includes(m),
+        )
+      })
+  if (nevnte.length === 0) return
+
+  const avsender = profiler.find(p => p.id === avsenderId)
+  const avsenderNavn = avsender?.visningsnavn ?? avsender?.navn ?? 'Noen'
+
+  const innhold = await hentScopeInnhold(scope, admin)
+
+  await sendVarsel({
+    mottakere: nevnte.map(p => p.id),
+    tittel: innhold.tittel,
+    melding: `${avsenderNavn}: ${utdrag(tekst)}`,
+    url: innhold.url,
+    knappTekst: innhold.knappTekst,
+    type: 'mention',
+    tillatDuplikat: true,
+  })
+}
