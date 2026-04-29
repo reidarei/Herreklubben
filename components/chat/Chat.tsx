@@ -722,6 +722,7 @@ export default function Chat({
   }
 
   async function handleSlett(id: string) {
+    if (!confirm('Slette denne meldingen?')) return
     setMeldinger(prev => prev.filter(m => m.id !== id))
     try {
       if (scope.type === 'arrangement') {
@@ -799,11 +800,9 @@ export default function Chat({
           // og navn/tid-header på fortsettelses-meldinger.
           const erFortsettelse = forrige?.profil_id === m.profil_id
           const erEgen = m.profil_id === brukerId
-          // Slett-knappen er bevisst deaktivert — det var for lett å mistrykke
-          // og ingen skal egentlig kunne slette chat-meldinger. Server-actionene
-          // (slettMelding / slettKlubbMelding) finnes fortsatt for manuelle
-          // databaseinngrep. Flipp tilbake til `erEgen || erAdmin` ved behov.
-          const kanSlette = false
+          // Slett-knapp: egen melding eller admin. Beskyttet mot mistrykk
+          // med en confirm()-dialog i handleSlett.
+          const kanSlette = erEgen || erAdmin
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
           const bilde = bildeMap.get(m.profil_id)
           const rolle = rolleMap.get(m.profil_id) ?? null
