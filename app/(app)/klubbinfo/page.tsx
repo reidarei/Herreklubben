@@ -35,7 +35,6 @@ export default async function Klubbinfo() {
       icon: 'users',
       title: 'Medlemmer',
       sub: `${antallMedlemmer ?? 0} aktive`,
-      meta: String(antallMedlemmer ?? 0),
       href: '/klubbinfo/medlemmer',
     },
     {
