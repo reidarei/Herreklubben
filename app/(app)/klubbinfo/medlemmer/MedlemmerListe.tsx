@@ -108,7 +108,7 @@ export default function MedlemmerListe({
 
       {/* Aktive */}
       <div style={{ marginBottom: 34 }}>
-        <SectionLabel count={aktive.length}>Aktive</SectionLabel>
+        <SectionLabel>Aktive</SectionLabel>
         {aktive.map((m, i) => (
           <MedlemRad
             key={m.id}
