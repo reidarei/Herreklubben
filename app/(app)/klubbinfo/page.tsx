@@ -201,18 +201,14 @@ export default async function Klubbinfo() {
           >
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 22,
                 flexShrink: 0,
-                borderRadius: '50%',
-                background: 'var(--accent-soft)',
-                border: '0.5px solid var(--border-subtle)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
               }}
             >
-              <Icon name={r.icon} size={16} color="var(--accent)" strokeWidth={1.5} />
+              <Icon name={r.icon} size={18} color="var(--text-secondary)" strokeWidth={1.4} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
