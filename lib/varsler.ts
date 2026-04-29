@@ -187,50 +187,50 @@ export async function sendVarsel({
     subsByProfil.set(s.profil_id, arr)
   }
 
-  // 5. For hver mottaker: bestem kanal, send, logg
-  for (const profil of profiler) {
-    const pref = prefs.get(profil.id)
-    const pushAktiv = pref ? pref.push_aktiv : false
-    const epostAktiv = pref ? pref.epost_aktiv : true
-    const profilSubs = subsByProfil.get(profil.id) ?? []
+  // 5. For hver mottaker — parallelt. Sekvensiell loop tok ~7 sek
+  // per mottaker pga epost-roundtrip, og med Vercel Hobbys 10s
+  // funksjons-timeout ble bakgrunnsjobben kuttet etter 1–2 mottakere
+  // når @alle ble brukt. Promise.all gjør at alle 16+ går samtidig.
+  await Promise.all(
+    profiler.map(async profil => {
+      const pref = prefs.get(profil.id)
+      const pushAktiv = pref ? pref.push_aktiv : false
+      const epostAktiv = pref ? pref.epost_aktiv : true
+      const profilSubs = subsByProfil.get(profil.id) ?? []
 
-    // Insert i varsel_logg først (for å få ID til URL)
-    const kanPush = pushAktiv && profilSubs.length > 0
-    const kanEpost = epostAktiv && !!profil.epost
-    const kanal = kanPush && kanEpost ? 'begge' : kanPush ? 'push' : kanEpost ? 'epost' : null
+      const kanPush = pushAktiv && profilSubs.length > 0
+      const kanEpost = epostAktiv && !!profil.epost
+      const kanal = kanPush && kanEpost ? 'begge' : kanPush ? 'push' : kanEpost ? 'epost' : null
+      if (!kanal) return
 
-    if (!kanal) continue // Ingen kanal aktiv
+      const { data: loggRad } = await supabase
+        .from('varsel_logg')
+        .insert({
+          profil_id: profil.id,
+          tittel,
+          melding,
+          type,
+          kanal,
+          url: url ?? null,
+          arrangement_id: arrangementId ?? null,
+        })
+        .select('id')
+        .single()
 
-    const { data: loggRad } = await supabase
-      .from('varsel_logg')
-      .insert({
-        profil_id: profil.id,
-        tittel,
-        melding,
-        type,
-        kanal,
-        url: url ?? null,
-        arrangement_id: arrangementId ?? null,
-      })
-      .select('id')
-      .single()
+      const varselUrl = url ?? (loggRad ? `${BASE_URL}/varsler/${loggRad.id}` : BASE_URL)
 
-    // URL: bruk oppgitt url, eller fall tilbake til varsel-detaljsiden
-    const varselUrl = url ?? (loggRad ? `${BASE_URL}/varsler/${loggRad.id}` : BASE_URL)
+      if (kanPush) {
+        await Promise.all(
+          profilSubs.map(s => sendPush(s, { tittel, melding, url: varselUrl })),
+        )
+      }
 
-    // Send push
-    if (kanPush) {
-      await Promise.all(profilSubs.map(s =>
-        sendPush(s, { tittel, melding, url: varselUrl })
-      ))
-    }
-
-    // Send epost
-    if (kanEpost) {
-      const html = arrangementEpostHtml({ tittel, tekst: melding, url: varselUrl, knappTekst })
-      await sendEpost({ til: profil.epost!, emne: tittel, html })
-    }
-  }
+      if (kanEpost) {
+        const html = arrangementEpostHtml({ tittel, tekst: melding, url: varselUrl, knappTekst })
+        await sendEpost({ til: profil.epost!, emne: tittel, html })
+      }
+    }),
+  )
 }
 
 // ─── WRAPPER-FUNKSJONER ─────────────────────────────────────────────────────
