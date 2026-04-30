@@ -17,12 +17,19 @@ export async function sendMelding(arrangementId: string, innhold: string) {
 
   if (error) throw new Error(error.message)
 
-  // @-mention-varsler kjøres i bakgrunnen så chat-svaret ikke blokkeres
-  sendChatMentionVarsler(
-    { type: 'arrangement', id: arrangementId },
-    tekst,
-    user.id,
-  ).catch(console.error)
+  // @-mention-varsler MÅ awaites — fire-and-forget kuttes av Vercel
+  // når server action returnerer (CLAUDE.md: «Bruk aldri after()…
+  // Bruk await direkte»). Promise.all internt gjør utsendingen
+  // parallell, så latency er kort selv med mange mottakere.
+  try {
+    await sendChatMentionVarsler(
+      { type: 'arrangement', id: arrangementId },
+      tekst,
+      user.id,
+    )
+  } catch (err) {
+    console.error('mention-varsler feilet:', err)
+  }
 }
 
 export async function oppdaterMelding(meldingId: string, innhold: string) {
@@ -66,7 +73,11 @@ export async function sendKlubbMelding(innhold: string) {
 
   if (error) throw new Error(error.message)
 
-  sendChatMentionVarsler({ type: 'klubb' }, tekst, user.id).catch(console.error)
+  try {
+    await sendChatMentionVarsler({ type: 'klubb' }, tekst, user.id)
+  } catch (err) {
+    console.error('mention-varsler feilet:', err)
+  }
 }
 
 export async function oppdaterKlubbMelding(meldingId: string, innhold: string) {
@@ -109,7 +120,11 @@ export async function sendPollMelding(pollId: string, innhold: string) {
 
   if (error) throw new Error(error.message)
 
-  sendChatMentionVarsler({ type: 'poll', id: pollId }, tekst, user.id).catch(console.error)
+  try {
+    await sendChatMentionVarsler({ type: 'poll', id: pollId }, tekst, user.id)
+  } catch (err) {
+    console.error('mention-varsler feilet:', err)
+  }
 }
 
 export async function oppdaterPollMelding(meldingId: string, innhold: string) {
@@ -153,7 +168,11 @@ export async function sendMeldingKommentar(meldingId: string, innhold: string) {
 
   if (error) throw new Error(error.message)
 
-  sendChatMentionVarsler({ type: 'melding', id: meldingId }, tekst, user.id).catch(console.error)
+  try {
+    await sendChatMentionVarsler({ type: 'melding', id: meldingId }, tekst, user.id)
+  } catch (err) {
+    console.error('mention-varsler feilet:', err)
+  }
 }
 
 export async function oppdaterMeldingKommentar(kommentarId: string, innhold: string) {
