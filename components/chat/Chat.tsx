@@ -255,9 +255,14 @@ export default function Chat({
   }
 
   const scrollTilBunn = useCallback((instant = false) => {
-    bunnenRef.current?.scrollIntoView({
+    // scrollIntoView legger elementet ved viewport-bunnen, men der ligger
+    // docken (fixed) oppå — så meldingen blir skjult bak. Vi scroller
+    // i stedet hele siden helt nederst. Input-pillet under bunnenRef gir
+    // naturlig avstand mellom siste melding og docken.
+    if (typeof window === 'undefined') return
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
       behavior: instant ? 'auto' : 'smooth',
-      block: 'end',
     })
   }, [])
 
