@@ -254,19 +254,30 @@ export default function Chat({
     inputRef.current?.focus()
   }
 
-  const scrollTilBunn = useCallback(() => {
-    bunnenRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  const scrollTilBunn = useCallback((instant = false) => {
+    bunnenRef.current?.scrollIntoView({
+      behavior: instant ? 'auto' : 'smooth',
+      block: 'end',
+    })
   }, [])
 
-  // Scroll til bunn når listen endres, men ikke når vi har prependet eldre
-  // meldinger (da skal vi ikke flytte synsvinkelen).
+  // Scroll til bunn ved første mount (instant), og når nye meldinger
+  // dukker opp i bunnen (smooth). Ikke ved paginering (store diff)
+  // eller når listen krymper.
   const forrigeLengde = useRef(meldinger.length)
+  const harMountet = useRef(false)
   useEffect(() => {
     const lengdeForDenneEffekten = meldinger.length
     const diff = lengdeForDenneEffekten - forrigeLengde.current
     forrigeLengde.current = lengdeForDenneEffekten
+
+    if (!harMountet.current) {
+      harMountet.current = true
+      // requestAnimationFrame så DOM er rendret før vi måler/scroller
+      requestAnimationFrame(() => scrollTilBunn(true))
+      return
+    }
     // Bare scroll hvis nye meldinger dukker opp i bunnen (positive diff <= 3)
-    // Store differ (= paginering) scroller vi ikke for.
     if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
