@@ -1,42 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* Bakgrunn — Obsidian kjølig blåsvart */
-  --bg: #060608;
+  /* Bakgrunn — Obsidian, men løftet for bedre kontrast og mer pust.
+   * Endret 2026-05-01: --bg løftet fra #060608 til #0e0f13 (~3 lyshet),
+   * elevated-flatene gjort tydelig lysere og mer opake så kort separerer
+   * klart fra bakgrunnen. Bevarer kjølig blåsvart karakter. */
+  --bg: #0e0f13;
   --bg-gradient:
-    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(100, 130, 200, 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(90, 70, 180, 0.07) 0%, transparent 60%),
-    linear-gradient(180deg, #0a0a0c 0%, #060608 100%);
-  --bg-elevated: rgba(24, 24, 28, 0.90);
-  --bg-elevated-2: rgba(32, 32, 38, 0.94);
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(120, 145, 210, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 0% 100%, rgba(100, 80, 195, 0.09) 0%, transparent 60%),
+    linear-gradient(180deg, #14161c 0%, #0e0f13 100%);
+  --bg-elevated: rgba(40, 42, 50, 0.95);
+  --bg-elevated-2: rgba(54, 56, 64, 0.97);
 
-  /* Kantlinjer */
-  --border: rgba(255, 255, 255, 0.12);
-  --border-strong: rgba(255, 255, 255, 0.20);
-  --border-subtle: rgba(255, 255, 255, 0.04);
+  /* Kantlinjer — boostet så kort/skiller faktisk synes mot ny base */
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.26);
+  --border-subtle: rgba(255, 255, 255, 0.06);
 
-  /* Tekst — kontrastløftet 2026-04-24 (runde 2) etter ny tilbakemelding
-   * om dårlig lesbarhet. Tertiary løftet fra #9094a0 (~4.6:1) til
-   * #b0b4be (~6.5:1), secondary fra #c2c4cc (~10:1) til #d4d6dc
-   * (~12.5:1). Går bevisst ikke hele veien til AAA (7:1) for å unngå at
-   * tertiær-tekst drukner primære — 6.5:1 er sollyssikkert nok. */
+  /* Tekst — kontrastløftet 2026-05-01 (runde 3). Tertiary ytterligere
+   * løftet fra #b0b4be til #c0c4cc nå som bakgrunnen er lysere; samlet
+   * hierarki holder seg pent men puster mer. */
   --text-primary: #f5f5f7;
-  --text-secondary: #d4d6dc;
-  --text-tertiary: #b0b4be;
+  --text-secondary: #dadce2;
+  --text-tertiary: #c0c4cc;
 
   /* Aksent — kremgul, ikke gull */
   --accent: #e8d9b5;
-  --accent-soft: rgba(232, 217, 181, 0.14);
+  --accent-soft: rgba(232, 217, 181, 0.16);
   --accent-hot: #f5e8c8;
 
   /* Semantisk */
   --success: #7cc99a;
-  --success-soft: rgba(110, 170, 120, 0.12);
-  --success-border: rgba(110, 170, 120, 0.30);
+  --success-soft: rgba(110, 170, 120, 0.14);
+  --success-border: rgba(110, 170, 120, 0.34);
   --danger: #d97a6c;
   --danger-alt: #e87060;
-  --danger-soft: rgba(200, 90, 80, 0.12);
-  --danger-border: rgba(200, 90, 80, 0.30);
+  --danger-soft: rgba(200, 90, 80, 0.14);
+  --danger-border: rgba(200, 90, 80, 0.34);
 
   /* Fonter */
   --font-display: var(--font-instrument), Georgia, serif;
