@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { ensureAdmin } from '@/lib/auth'
+import { naa } from '@/lib/dato'
 
 interface VinnerData {
   profil_id?: string
@@ -30,7 +31,7 @@ export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: V
         profil_id: vinner.profil_id || null,
         arrangement_id: vinner.arrangement_id || null,
         begrunnelse: vinner.begrunnelse || null,
-        oppdatert: new Date().toISOString()
+        oppdatert: naa()
       })
       .eq('mal_id', malId)
       .eq('aar', aar)

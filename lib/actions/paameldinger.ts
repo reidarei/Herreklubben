@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { naa } from '@/lib/dato'
 
 export async function oppdaterPaamelding(
   arrangementId: string,
@@ -17,7 +18,7 @@ export async function oppdaterPaamelding(
       arrangement_id: arrangementId,
       profil_id: user.id,
       status,
-      oppdatert: new Date().toISOString(),
+      oppdatert: naa(),
     })
 
   if (error) throw new Error(error.message)

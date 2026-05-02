@@ -4,9 +4,8 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
 import { BASE_URL } from '@/lib/config'
-
-// Tilgangsvinduet etter godkjenning. Reidar har eksplisitt sagt 1 dag.
-const TILGANG_TIMER = 24
+import { naa } from '@/lib/dato'
+import { PASS_TILGANG_TIMER } from '@/lib/konstanter'
 
 /**
  * Lagre eller oppdatere passinfo for innlogget bruker. Validerer ikke
@@ -24,7 +23,7 @@ export async function lagrePassInfo(input: { nummer: string; utloper: string }) 
 
   const { error } = await supabase
     .from('pass_info')
-    .upsert({ profil_id: user.id, nummer, utloper, oppdatert: new Date().toISOString() })
+    .upsert({ profil_id: user.id, nummer, utloper, oppdatert: naa() })
 
   if (error) throw new Error(error.message)
 }
@@ -107,15 +106,15 @@ export async function godkjennPassTilgang(forespørselId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
 
-  const naa = new Date()
-  const utloper = new Date(naa.getTime() + TILGANG_TIMER * 60 * 60 * 1000)
+  const naDate = new Date()
+  const utloper = new Date(naDate.getTime() + PASS_TILGANG_TIMER * 60 * 60 * 1000)
 
   const { data: oppdatert, error } = await supabase
     .from('pass_tilgang_forespørsel')
     .update({
       status: 'godkjent',
       besluttet_av: user.id,
-      besluttet_paa: naa.toISOString(),
+      besluttet_paa: naDate.toISOString(),
       gyldig_til: utloper.toISOString(),
     })
     .eq('id', forespørselId)
@@ -156,7 +155,7 @@ export async function avslaaPassTilgang(forespørselId: string) {
     .update({
       status: 'avslatt',
       besluttet_av: user.id,
-      besluttet_paa: new Date().toISOString(),
+      besluttet_paa: naa(),
     })
     .eq('id', forespørselId)
     .eq('status', 'venter')

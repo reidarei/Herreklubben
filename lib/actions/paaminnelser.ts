@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns'
 import { norskDatoNaa } from '@/lib/dato'
 import { sendPaaminneVarsler, sendPurringVarsler, sendArrangorPurringVarsler } from '@/lib/varsler'
+import { PAAMINNELSE_DAGER } from '@/lib/konstanter'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -33,9 +34,9 @@ async function hentArrangorPurringer(admin: Admin, dag: string) {
 export async function kjorPaaminnelser(admin: Admin) {
   const idag = norskDatoNaa()
   const idagStr = dagStreng(idag)
-  const dag7 = dagStreng(addDays(idag, 7))
-  const dag3 = dagStreng(addDays(idag, 3))
-  const dag1 = dagStreng(addDays(idag, 1))
+  const dag7 = dagStreng(addDays(idag, PAAMINNELSE_DAGER.LANG))
+  const dag3 = dagStreng(addDays(idag, PAAMINNELSE_DAGER.PURRING))
+  const dag1 = dagStreng(addDays(idag, PAAMINNELSE_DAGER.KORT))
 
   const [arr_7, arr_1, arr_3, arrangorPurringer] = await Promise.all([
     hentForDag(admin, dag7),

@@ -4,9 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendVarsel } from '@/lib/varsler'
 import { redirect } from 'next/navigation'
 import { BASE_URL } from '@/lib/config'
-
-const MIN_TEGN = 1
-const MAX_TEGN = 2000
+import { INNLEGG_MAKS_LENGDE, INNLEGG_MIN_LENGDE } from '@/lib/konstanter'
 
 /**
  * Finn eller opprett samtalen mellom innlogget bruker og motpart.
@@ -51,8 +49,8 @@ export async function aapneSamtale(motpartId: string) {
 
 export async function sendPrivatMelding(samtaleId: string, innhold: string) {
   const tekst = innhold.trim()
-  if (tekst.length < MIN_TEGN || tekst.length > MAX_TEGN) {
-    throw new Error(`Meldingen må være ${MIN_TEGN}–${MAX_TEGN} tegn`)
+  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
+    throw new Error(`Meldingen må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
 
   const supabase = await createServerClient()
@@ -126,8 +124,8 @@ export async function markerSamtaleLest(samtaleId: string) {
 
 export async function oppdaterPrivatMelding(meldingId: string, innhold: string) {
   const tekst = innhold.trim()
-  if (tekst.length < MIN_TEGN || tekst.length > MAX_TEGN) {
-    throw new Error(`Meldingen må være ${MIN_TEGN}–${MAX_TEGN} tegn`)
+  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
+    throw new Error(`Meldingen må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
 
   const supabase = await createServerClient()

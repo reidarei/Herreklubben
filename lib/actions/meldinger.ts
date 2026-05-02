@@ -4,16 +4,12 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendVarsel } from '@/lib/varsler'
 import { redirect } from 'next/navigation'
 import { BASE_URL } from '@/lib/config'
-
-// Tegnegrenser for innlegg. Korte nok til å holde feeden lesbar, lange
-// nok til å si litt mer enn en tweet. DB håndhever også via check-constraint.
-const MIN_TEGN = 1
-const MAX_TEGN = 2000
+import { INNLEGG_MAKS_LENGDE, INNLEGG_MIN_LENGDE } from '@/lib/konstanter'
 
 export async function opprettMelding(input: { innhold: string; bilde_url?: string | null }) {
   const tekst = input.innhold.trim()
-  if (tekst.length < MIN_TEGN || tekst.length > MAX_TEGN) {
-    throw new Error(`Innholdet må være ${MIN_TEGN}–${MAX_TEGN} tegn`)
+  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
+    throw new Error(`Innholdet må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
 
   const supabase = await createServerClient()
@@ -67,8 +63,8 @@ export async function slettMelding(meldingId: string) {
 
 export async function oppdaterMeldingPost(meldingId: string, innhold: string) {
   const tekst = innhold.trim()
-  if (tekst.length < MIN_TEGN || tekst.length > MAX_TEGN) {
-    throw new Error(`Innholdet må være ${MIN_TEGN}–${MAX_TEGN} tegn`)
+  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
+    throw new Error(`Innholdet må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
   const supabase = await createServerClient()
   const { error } = await supabase

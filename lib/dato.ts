@@ -17,6 +17,16 @@ export function formaterDato(iso: string, formatStr: string): string {
 }
 
 /**
+ * Nå-tidsstempel som ISO-streng (UTC). Bruk denne i stedet for
+ * `new Date().toISOString()` direkte i kolonner som `oppdatert`,
+ * `besluttet_paa` o.l. — gjør det åpenbart at vi mener "nå" og holder
+ * en åpning hvis vi senere vil mocke tid i tester.
+ */
+export function naa(): string {
+  return new Date().toISOString()
+}
+
+/**
  * Returner "nå" som Date i norsk tidssone-kontekst.
  * Nyttig for sammenligninger som "er dette i dag?" der
  * "i dag" skal bety norsk dato, ikke UTC.

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
+import { naa } from '@/lib/dato'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -116,7 +117,7 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
     .from('arrangementer')
     .update({
       ...arrFelter,
-      oppdatert: new Date().toISOString(),
+      oppdatert: naa(),
     })
     .eq('id', id)
   if (error) throw new Error(error.message)

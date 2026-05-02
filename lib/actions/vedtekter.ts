@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { ensureAdmin } from '@/lib/auth'
+import { naa } from '@/lib/dato'
 
 export async function oppdaterVedtekt(data: {
   slug: string
@@ -32,7 +33,7 @@ export async function oppdaterVedtekt(data: {
   // Oppdater gjeldende innhold
   await supabase
     .from('vedtekter')
-    .update({ innhold: data.nyttInnhold, oppdatert: new Date().toISOString() })
+    .update({ innhold: data.nyttInnhold, oppdatert: naa() })
     .eq('slug', data.slug)
 
   revalidatePath(`/klubbinfo/vedtekter/${data.slug}`)

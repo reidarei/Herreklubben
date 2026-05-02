@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { isBefore } from 'date-fns'
 import { useEffect, useRef, useState } from 'react'
-import { formaterDato, norskDag, norskDatoNaa } from '@/lib/dato'
+import { formaterDato, norskAar, norskDag, norskDatoNaa } from '@/lib/dato'
 import { MapPinIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import SladdetFelt from './SladdetFelt'
 import Badge from './ui/Badge'
@@ -141,7 +141,7 @@ export default function ArrangementTidslinje({
     ...ikkePlanlagt.map(p => ({ type: 'ikke-planlagt' as const, data: p })),
   ]
 
-  const iAar = formaterDato(new Date().toISOString(), 'yyyy')
+  const iAar = String(norskAar())
 
   const tidligereItems = alleItems
     .filter(item => erItemPast(item))

@@ -2,10 +2,20 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { sendChatMentionVarsler } from '@/lib/varsler'
+import { CHAT_MAKS_LENGDE, CHAT_MIN_LENGDE } from '@/lib/konstanter'
+
+// Trimmer og validerer chat-tekst. Speiler check-constraint i DB; lar oss
+// returnere en lesbar feil før vi går til DB.
+function valider(innhold: string): string {
+  const tekst = innhold.trim()
+  if (tekst.length < CHAT_MIN_LENGDE || tekst.length > CHAT_MAKS_LENGDE) {
+    throw new Error(`Meldingen må være ${CHAT_MIN_LENGDE}–${CHAT_MAKS_LENGDE} tegn`)
+  }
+  return tekst
+}
 
 export async function sendMelding(arrangementId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -33,8 +43,7 @@ export async function sendMelding(arrangementId: string, innhold: string) {
 }
 
 export async function oppdaterMelding(meldingId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -60,8 +69,7 @@ export async function slettMelding(meldingId: string) {
 // som arrangement-chatten, men uten arrangement-referanse.
 
 export async function sendKlubbMelding(innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -81,8 +89,7 @@ export async function sendKlubbMelding(innhold: string) {
 }
 
 export async function oppdaterKlubbMelding(meldingId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -107,8 +114,7 @@ export async function slettKlubbMelding(meldingId: string) {
 // Kommentarer per poll. Speiler arrangement-chat med @mention-varsler.
 
 export async function sendPollMelding(pollId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -128,8 +134,7 @@ export async function sendPollMelding(pollId: string, innhold: string) {
 }
 
 export async function oppdaterPollMelding(meldingId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -155,8 +160,7 @@ export async function slettPollMelding(meldingId: string) {
 // meldinger.sist_aktivitet — som driver agenda-sorteringen.
 
 export async function sendMeldingKommentar(meldingId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -176,8 +180,7 @@ export async function sendMeldingKommentar(meldingId: string, innhold: string) {
 }
 
 export async function oppdaterMeldingKommentar(kommentarId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < 1 || tekst.length > 500) throw new Error('Meldingen må være 1–500 tegn')
+  const tekst = valider(innhold)
 
   const supabase = await createServerClient()
   const { error } = await supabase
