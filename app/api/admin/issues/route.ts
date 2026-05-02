@@ -1,6 +1,7 @@
 import { getProfil } from '@/lib/auth-cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { kanAdministrere } from '@/lib/roller'
+import { githubIssuesUrl } from '@/lib/config'
 
 export async function GET(req: NextRequest) {
   const profil = await getProfil()
@@ -11,10 +12,10 @@ export async function GET(req: NextRequest) {
 
   const page = parseInt(req.nextUrl.searchParams.get('page') ?? '1')
   const perPage = parseInt(req.nextUrl.searchParams.get('per_page') ?? '10')
-  const state = req.nextUrl.searchParams.get('state') ?? 'closed'
+  const state = (req.nextUrl.searchParams.get('state') ?? 'closed') as 'open' | 'closed' | 'all'
 
   const res = await fetch(
-    `https://api.github.com/repos/reidarei/Herreklubben/issues?labels=%C3%B8nske&state=${state}&sort=created&direction=desc&per_page=${perPage}&page=${page}`,
+    githubIssuesUrl({ state, perPage, page }),
     {
       headers: {
         Authorization: `Bearer ${token}`,

@@ -1,4 +1,5 @@
 import IssuesListeKlient from './IssuesListeKlient'
+import { githubIssuesUrl } from '@/lib/config'
 
 export type GitHubIssue = {
   number: number
@@ -14,7 +15,7 @@ export async function hentAapneIssues(): Promise<GitHubIssue[]> {
   if (!token) return []
 
   const res = await fetch(
-    'https://api.github.com/repos/reidarei/Herreklubben/issues?labels=%C3%B8nske&state=open&sort=created&direction=desc&per_page=50',
+    githubIssuesUrl({ state: 'open', perPage: 50 }),
     {
       headers: {
         Authorization: `Bearer ${token}`,

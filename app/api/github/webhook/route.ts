@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
 import { formaterDato } from '@/lib/dato'
 import { rollerMed } from '@/lib/roller'
-import { BASE_URL } from '@/lib/config'
+import { BASE_URL, GITHUB_ONSKE_LABEL } from '@/lib/config'
 import crypto from 'crypto'
 
 const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET
@@ -33,8 +33,10 @@ export async function POST(request: Request) {
   const issue = payload.issue
   if (!issue) return NextResponse.json({ ok: true, skipped: 'no-issue' })
 
-  const harLabel = issue.labels?.some((l: { name: string }) => l.name.toLowerCase() === 'ønske')
-  if (!harLabel) return NextResponse.json({ ok: true, skipped: 'no-ønske-label' })
+  const harLabel = issue.labels?.some(
+    (l: { name: string }) => l.name.toLowerCase() === GITHUB_ONSKE_LABEL,
+  )
+  if (!harLabel) return NextResponse.json({ ok: true, skipped: `no-${GITHUB_ONSKE_LABEL}-label` })
 
   const admin = createAdminClient()
 

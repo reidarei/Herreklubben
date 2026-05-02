@@ -1,8 +1,8 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { GITHUB_REPO, GITHUB_ONSKE_LABEL } from '@/lib/config'
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
-const REPO = 'reidarei/Herreklubben'
 
 export async function POST(request: Request) {
   const supabase = await createServerClient()
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ feil: 'Ønsket er for kort' }, { status: 400 })
   }
 
-  const res = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         ? tekst.trim().slice(0, 77) + '...'
         : tekst.trim(),
       body: `## Ønske fra ${navn}\n\n${tekst.trim()}\n\n<!-- profil_id:${user.id} -->`,
-      labels: ['ønske'],
+      labels: [GITHUB_ONSKE_LABEL],
     }),
   })
 

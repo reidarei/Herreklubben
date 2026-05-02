@@ -22,3 +22,25 @@ export const BASE_URL = getBaseUrl()
 // ved misbruk eller tekniske problemer. Må være reell og nåbar.
 export const VAPID_CONTACT_EMAIL =
   process.env.VAPID_CONTACT_EMAIL ?? 'reidar.haavik@gmail.com'
+
+// GitHub-repo som backer «innspill»-funksjonen. Issues med label
+// GITHUB_ONSKE_LABEL behandles som brukerønsker.
+export const GITHUB_REPO = 'reidarei/Herreklubben'
+export const GITHUB_ONSKE_LABEL = 'ønske'
+
+// Bygg GitHub Issues-list URL med ønske-label og gitt state.
+export function githubIssuesUrl(params: {
+  state: 'open' | 'closed' | 'all'
+  perPage?: number
+  page?: number
+}): string {
+  const sp = new URLSearchParams({
+    labels: GITHUB_ONSKE_LABEL,
+    state: params.state,
+    sort: 'created',
+    direction: 'desc',
+    per_page: String(params.perPage ?? 100),
+    page: String(params.page ?? 1),
+  })
+  return `https://api.github.com/repos/${GITHUB_REPO}/issues?${sp}`
+}

@@ -2,7 +2,8 @@
 // Filtrerer på `ønske`-label og plukker ut profil_id fra HTML-kommentar i
 // issue-body (samme mønster som webhooken bruker).
 
-const REPO = 'reidarei/Herreklubben'
+import { githubIssuesUrl } from '@/lib/config'
+
 const TOKEN = process.env.GITHUB_TOKEN
 
 export type GitHubIssue = {
@@ -67,7 +68,7 @@ export async function hentInnspill(profilId?: string): Promise<Innspill[]> {
   if (!TOKEN) return []
 
   const res = await fetch(
-    `https://api.github.com/repos/${REPO}/issues?labels=%C3%B8nske&state=all&sort=created&direction=desc&per_page=100`,
+    githubIssuesUrl({ state: 'all' }),
     { headers: githubHeaders(), next: { revalidate: 60 } },
   )
   if (!res.ok) return []

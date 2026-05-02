@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
@@ -74,7 +75,13 @@ export default function BildeVelger({
 
       {bildeUrl ? (
         <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
-          <img src={bildeUrl} alt="" className="w-full h-full object-cover" />
+          <Image
+            src={bildeUrl}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 600px"
+            className="object-cover"
+          />
           <button
             type="button"
             onClick={fjernBilde}
