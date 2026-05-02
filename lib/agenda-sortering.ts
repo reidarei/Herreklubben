@@ -55,7 +55,7 @@ export const STIFTET_DATO = { maaned: 11, dag: 24, aar: 2007 } as const
 // øverst) så lenge det er mindre enn MELDING_LEVENDE_DAGER siden siste
 // aktivitet. sist_aktivitet starter ved opprettelse og bumpes av nye
 // kommentarer (ikke reaksjoner — de er for lette).
-export const MELDING_LEVENDE_DAGER = 7
+export const MELDING_LEVENDE_DAGER = 5
 
 // === Rådata-typer (speiler Supabase-queryene i forsiden) ==========
 

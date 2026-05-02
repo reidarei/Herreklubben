@@ -44,9 +44,9 @@ type Props = {
 
 /**
  * Fjerde type element på agendaen — innlegg à la Facebook-status.
- * Plasseres øverst på agenda i 7 dager (eller så lenge det er aktivitet
- * de siste 2 dagene). Etter det faller den ned i Tidligere-seksjonen
- * sortert på sist_aktivitet. Se lib/agenda-sortering.ts for regelverket.
+ * Plasseres øverst på agenda i 5 dager fra siste kommentar (reaksjoner
+ * teller ikke). Etter det faller den ned i Tidligere-seksjonen sortert
+ * på sist_aktivitet. Se lib/agenda-sortering.ts for regelverket.
  *
  * Long-press på selve innlegget åpner reaksjons-picker — samme mønster
  * som chat-bobler bruker. Vanlig click navigerer til detaljsiden.
