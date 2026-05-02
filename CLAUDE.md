@@ -44,6 +44,12 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Avatarer:** Alle profil-avatarer rendres via `components/ui/Avatar.tsx`. Komponenten holdes bevisst enkel — utvid ikke med nye props, lag heller lokale wrappere. Se **Policy: Avatar** nedenfor.
 
+**Konfig:** Miljø-avhengige verdier (BASE_URL, VAPID-kontakt, GitHub-repo/label) sentraliseres i `lib/config.ts`. **Aldri** hardkode `mortensrudherreklubb.no` eller lese `process.env.NEXT_PUBLIC_BASE_URL` direkte i actions/route handlers — importér fra `lib/config`. Se **Policy: Konfig** nedenfor.
+
+**Auth:** Server actions og route handlers bruker `ensureAdmin()` / `ensureInnlogget()` fra `lib/auth.ts` for autorisasjons-sjekker. **Aldri** dupliser `getUser()` + rolle-oppslag inline. Se **Policy: Auth** nedenfor.
+
+**Domene-konstanter:** Tegnegrenser, dag-vinduer, levetider o.l. ligger i `lib/konstanter.ts`. **Aldri** hardkode magiske tall som 500/2000/7/24 — referer konstanten. Se **Policy: Konstanter** nedenfor.
+
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
 **Produksjon:** Appen kjører på [mortensrudherreklubb.no](https://mortensrudherreklubb.no) (Vercel, Dublin-region). Domenet er kjøpt via Domeneshop og DNS peker til Vercel.
@@ -128,11 +134,47 @@ All tidshåndtering skal gå gjennom `lib/dato.ts`. **Aldri** bruk `new Date()` 
 - **Visning av dato/tid:** Bruk `formaterDato(iso, format)` — konverterer automatisk fra UTC til `Europe/Oslo`
 - **"Er dette i dag/fortid?":** Bruk `norskDatoNaa()` og `norskDag(iso)` for sammenligning
 - **Hvilket år er det?:** Bruk `norskAar()`
-- **Lagring i database:** Alltid UTC via `.toISOString()` — dette er korrekt
+- **Lagring i database:** Alltid UTC. Bruk `naa()` fra `lib/dato.ts` for "nå"-tidsstempler i timestamp-kolonner (`oppdatert`, `besluttet_paa` osv.) i stedet for `new Date().toISOString()` direkte
 - **Cron/datoberegning:** Bruk `norskDatoNaa()` som utgangspunkt, `addDays()` for å beregne fremtidige datoer
-- **`new Date()` er OK for:** tidsstempler til DB (`.toISOString()`), elapsed time-beregninger, unike ID-er
+- **`new Date()` er OK for:** elapsed time-beregninger, unike ID-er, og når du trenger en `Date`-instans (ikke ISO-streng)
 
 **Tidssone:** `Europe/Oslo` (eksportert som `TIDSSONE` fra `lib/dato.ts`). Håndterer automatisk sommertid/vintertid via `date-fns-tz`.
+
+## Policy: Konfig
+
+Miljø-avhengige verdier samles i `lib/config.ts`. **Aldri** hardkode `https://mortensrudherreklubb.no` eller lese `process.env.NEXT_PUBLIC_BASE_URL` direkte i actions/route handlers/komponenter — importér fra `lib/config`.
+
+**Eksporterer:**
+- `BASE_URL` — applikasjonens base-URL. Kjenner Vercel-preview (`VERCEL_URL`), prod-default og dev-default. Brukes i absolutte URL-er for varsler, ICS-filer, GitHub-webhook-lenker.
+- `getBaseUrl()` — funksjons-form av samme; bruk denne hvis du trenger å resolve på kall-tidspunkt heller enn modul-load
+- `VAPID_CONTACT_EMAIL` — kontakt for push-tjenester (env-overridable)
+- `GITHUB_REPO`, `GITHUB_ONSKE_LABEL`, `githubIssuesUrl({state, perPage, page})` — for innspill-funksjonen mot GitHub Issues
+
+**Når du legger til ny miljø-avhengig verdi:** legg den i `lib/config.ts` med fornuftig default + env-override. Ikke spred `process.env.X ?? 'fallback'`-mønsteret rundt i kodebasen.
+
+## Policy: Auth
+
+Server actions og route handlers skal bruke `ensureAdmin()` eller `ensureInnlogget()` fra `lib/auth.ts` for autorisasjons-sjekker. **Aldri** dupliser `supabase.auth.getUser()` + `from('profiles').select('rolle')` + `kanAdministrere(...)` inline i nye actions.
+
+**Hjelpere:**
+- `ensureAdmin()` → `{ supabase, user, profil }` — kaster ved manglende auth eller manglende admin-rolle. Returnerer samme supabase-klient for videre spørringer (RLS-kontekst bevart).
+- `ensureInnlogget()` → `{ supabase, user }` — kaster kun ved manglende auth.
+
+**Route handlers med status-koder:** Hvis du trenger å returnere 401/403 i stedet for å kaste, kan du fortsatt bruke inline-mønsteret (ensureAdmin kaster generisk Error). Vurder om try/catch rundt ensureAdmin er nok for ditt formål.
+
+**RLS er fortsatt sannheten:** `ensureAdmin()` er en raskere/penere feilmelding — sikkerhetsmessig stoles det fortsatt på `er_admin()`-policyer i Postgres.
+
+## Policy: Konstanter
+
+Domene-konstanter (tegnegrenser, dag-vinduer, levetider) ligger i `lib/konstanter.ts`. **Aldri** hardkode magiske tall som 500/2000/7/24 i actions eller komponenter — importér konstanten.
+
+**Eksporterer:**
+- `CHAT_MIN_LENGDE` / `CHAT_MAKS_LENGDE` (1, 500) — for arrangement-, klubb-, poll- og melding-chat
+- `INNLEGG_MIN_LENGDE` / `INNLEGG_MAKS_LENGDE` (1, 2000) — for samtaler og meldinger på vegglignende feed
+- `PAAMINNELSE_DAGER` `{ LANG: 7, KORT: 1, PURRING: 3 }` — dager før et arrangement vi sender hver type påminnelse
+- `PASS_TILGANG_TIMER` (24) — tilgangsvinduet etter pass-godkjenning
+
+**Når du legger til ny konstant:** Hvis verdien speiler en DB check-constraint (f.eks. tegnegrenser), nevn det i kommentaren og oppdater migrasjonsfilen ved endring.
 
 ## Policy: Arrangøransvar-kobling
 
