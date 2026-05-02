@@ -13,8 +13,8 @@
 //   4. Melding     — egen tabell `meldinger`       → MeldingKort  (ny — #90)
 //
 // === Seksjons-regler (i prioritert rekkefølge) =======================
-//   0. «Meldinger»  = levende meldinger (se MELDING_LEVENDE_DAGER /
-//                     MELDING_AKTIVITET_DAGER under). Plassert øverst på
+//   0. «Meldinger»  = levende meldinger (se MELDING_LEVENDE_DAGER
+//                     under). Plassert øverst på
 //                     agenda, sortert etter sist_aktivitet (nyeste først).
 //   1. «I kveld»    = items hvis sortIso faller på samme norske dag som naa
 //   2. «Kommende»   = alt annet som ikke er tidligere (sortert stigende
@@ -52,12 +52,10 @@ import type { MeldingKortData } from '@/components/agenda/MeldingKort'
 export const STIFTET_DATO = { maaned: 11, dag: 24, aar: 2007 } as const
 
 // Levetidsregler for meldinger på agenda. En melding er «levende» (vises
-// øverst) så lenge:
-//   (nå - opprettet) ≤ MELDING_LEVENDE_DAGER  ELLER
-//   (nå - sist_aktivitet) < MELDING_AKTIVITET_DAGER
-// Ellers faller den til «Tidligere»-seksjonen, sortert på sist_aktivitet.
+// øverst) så lenge det er mindre enn MELDING_LEVENDE_DAGER siden siste
+// aktivitet. sist_aktivitet starter ved opprettelse og bumpes av nye
+// kommentarer (ikke reaksjoner — de er for lette).
 export const MELDING_LEVENDE_DAGER = 7
-export const MELDING_AKTIVITET_DAGER = 2
 
 // === Rådata-typer (speiler Supabase-queryene i forsiden) ==========
 
@@ -235,19 +233,12 @@ export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortD
 }
 
 // Avgjør om en melding fortsatt skal vises som «levende» øverst på agenda.
-// Levende = opprettet for ≤ 7 dager siden ELLER siste aktivitet (kommentar
-// eller reaksjon) for < 2 dager siden. Eksportert for test.
+// Levende = mindre enn 7 dager siden siste kommentar (eller opprettelse,
+// hvis ingen kommentarer). Reaksjoner teller ikke. Eksportert for test.
 export function erMeldingLevende(m: MeldingRaad, naa: Date): boolean {
-  const naaMs = naa.getTime()
-  const opprettetMs = new Date(m.opprettet).getTime()
-  const aktivitetMs = new Date(m.sist_aktivitet).getTime()
   const dag = 24 * 60 * 60 * 1000
-  const opprettetAlder = naaMs - opprettetMs
-  const aktivitetAlder = naaMs - aktivitetMs
-  return (
-    opprettetAlder <= MELDING_LEVENDE_DAGER * dag ||
-    aktivitetAlder < MELDING_AKTIVITET_DAGER * dag
-  )
+  const aktivitetAlder = naa.getTime() - new Date(m.sist_aktivitet).getTime()
+  return aktivitetAlder <= MELDING_LEVENDE_DAGER * dag
 }
 
 // Mapper et PollRaad til PollKortData. `avsluttet` styrer visningen —
