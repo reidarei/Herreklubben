@@ -3,8 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+import { BASE_URL } from '@/lib/config'
 
 // Tilgangsvinduet etter godkjenning. Reidar har eksplisitt sagt 1 dag.
 const TILGANG_TIMER = 24

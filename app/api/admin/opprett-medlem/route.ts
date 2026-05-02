@@ -3,8 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendEpost, velkommenEpostHtml } from '@/lib/epost'
 import { NextResponse } from 'next/server'
 import { kanAdministrere } from '@/lib/roller'
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://mortensrudherreklubb.no'
+import { BASE_URL } from '@/lib/config'
 
 function genererPassord() {
   const tegn = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'

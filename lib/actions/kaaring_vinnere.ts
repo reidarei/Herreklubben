@@ -1,17 +1,8 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { kanAdministrere } from '@/lib/roller'
-
-async function sjekkAdmin() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
-}
+import { ensureAdmin } from '@/lib/auth'
 
 interface VinnerData {
   profil_id?: string
@@ -20,11 +11,7 @@ interface VinnerData {
 }
 
 export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: VinnerData) {
-  await sjekkAdmin()
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
+  const { user } = await ensureAdmin()
   const admin = createAdminClient()
 
   // Check if vinner already exists for this mal_id and aar
@@ -68,7 +55,7 @@ export async function settVinnerPaaKaaring(malId: string, aar: number, vinner: V
 }
 
 export async function fjernVinnerFraKaaring(malId: string, aar: number) {
-  await sjekkAdmin()
+  await ensureAdmin()
   const admin = createAdminClient()
 
   const { error } = await admin

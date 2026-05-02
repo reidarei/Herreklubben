@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { formaterDato, TIDSSONE } from '@/lib/dato'
+import { BASE_URL } from '@/lib/config'
 
 // Escape for .ics TEXT-verdier: backslash, semikolon, komma og linjeskift
 function escapeIcs(s: string): string {
@@ -33,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const beskrivelseDeler: string[] = []
   if (arr.beskrivelse) beskrivelseDeler.push(arr.beskrivelse)
   if (arr.type === 'tur' && arr.destinasjon) beskrivelseDeler.push(`Destinasjon: ${arr.destinasjon}`)
-  beskrivelseDeler.push(`https://mortensrudherreklubb.no/arrangementer/${id}`)
+  beskrivelseDeler.push(`${BASE_URL}/arrangementer/${id}`)
 
   const linjer = [
     'BEGIN:VCALENDAR',

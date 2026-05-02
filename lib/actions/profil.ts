@@ -1,16 +1,13 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { kanAdministrere } from '@/lib/roller'
+import { ensureAdmin, ensureInnlogget } from '@/lib/auth'
 import { normaliserTelefon } from '@/lib/telefon'
 
 export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const oppdatering: Record<string, unknown> = {
     navn: data.navn,
@@ -32,12 +29,7 @@ export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: str
 }
 
 export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visningsnavn: string; telefon: string; rolle: string; aktiv: boolean; fodselsdato?: string }) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
+  const { supabase } = await ensureAdmin()
 
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
@@ -50,12 +42,7 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
 }
 
 export async function slettMedlem(id: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
+  const { user } = await ensureAdmin()
   if (id === user.id) throw new Error('Kan ikke slette seg selv')
 
   const admin = createAdminClient()

@@ -1,11 +1,12 @@
 import webpush from 'web-push'
+import { VAPID_CONTACT_EMAIL } from '@/lib/config'
 
 let initialisert = false
 
 function init() {
   if (initialisert) return
   webpush.setVapidDetails(
-    'mailto:admin@mortensrudherreklubb.no',
+    `mailto:${VAPID_CONTACT_EMAIL}`,
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
     process.env.VAPID_PRIVATE_KEY!
   )

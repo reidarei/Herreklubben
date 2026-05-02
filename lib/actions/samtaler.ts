@@ -3,8 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { sendVarsel } from '@/lib/varsler'
 import { redirect } from 'next/navigation'
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+import { BASE_URL } from '@/lib/config'
 
 const MIN_TEGN = 1
 const MAX_TEGN = 2000

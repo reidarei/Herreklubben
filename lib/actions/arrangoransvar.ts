@@ -1,19 +1,9 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendVarsel } from '@/lib/varsler'
-import { kanAdministrere } from '@/lib/roller'
-
-async function sjekkAdmin() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
-  return supabase
-}
+import { ensureAdmin, ensureInnlogget } from '@/lib/auth'
 
 // Slå opp purredato fra arrangementmaler og sett riktig år
 async function hentPurredato(arrangementNavn: string, aar: number): Promise<string | null> {
@@ -33,7 +23,7 @@ export async function leggTilAnsvarlig(data: {
   arrangement_navn: string
   ansvarlig_id: string
 }) {
-  const supabase = await sjekkAdmin()
+  const { supabase } = await ensureAdmin()
   const purredato = await hentPurredato(data.arrangement_navn, data.aar)
 
   // Arv arrangement_id fra eventuell søsken-rad. Hvis noen andre allerede
@@ -65,7 +55,7 @@ export async function leggTilAnsvarlig(data: {
 }
 
 export async function fjernAnsvarlig(ansvarId: string) {
-  const supabase = await sjekkAdmin()
+  const { supabase } = await ensureAdmin()
 
   const { error } = await supabase
     .from('arrangoransvar')
@@ -79,10 +69,7 @@ export async function fjernAnsvarlig(ansvarId: string) {
 // Purre ansvarlig — kalles av et vanlig medlem. Sender varsel via sendVarsel
 // (som respekterer push_aktiv/epost_aktiv). Dedup unngår purre-spam.
 export async function purreAnsvarlig(ansvarId: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
+  const { user } = await ensureInnlogget()
   const admin = createAdminClient()
   const { data: ansvar } = await admin
     .from('arrangoransvar')

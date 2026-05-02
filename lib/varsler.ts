@@ -2,10 +2,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
 import { formaterDato, FORMAT_DATO_KLOKKE } from '@/lib/dato'
+import { BASE_URL } from '@/lib/config'
 
 const formaterDatoKlokke = (iso: string) => formaterDato(iso, FORMAT_DATO_KLOKKE)
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
 // Sikkerhetsvakt: hvis BASE_URL peker til localhost, betyr det at vi kjører
 // i dev og sannsynligvis mot prod-databasen. Push-varsler med lokal URL
