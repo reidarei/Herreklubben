@@ -7,6 +7,7 @@ import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
 import { naa } from '@/lib/dato'
+import { r2StiFraUrl, slettR2 } from '@/lib/r2'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -96,12 +97,27 @@ export async function opprettArrangement(data: ArrangementInput) {
 
 export async function slettArrangement(id: string) {
   const supabase = await createServerClient()
+
+  // Hent bilde_url først så vi kan rydde i R2 etter at arrangementet er
+  // slettet. Hvis dette feiler er det ikke kritisk — orphan i R2 er bedre
+  // enn at sletting feiler.
+  const { data: arr } = await supabase
+    .from('arrangementer')
+    .select('bilde_url')
+    .eq('id', id)
+    .maybeSingle()
+
   // Løsne ansvar-rader før sletting slik at typen blir tilgjengelig igjen i
   // dropdown-en (FK har on delete set null, men vi gjør det eksplisitt først
   // for klarhet).
   await losne(supabase, id)
   const { error } = await supabase.from('arrangementer').delete().eq('id', id)
   if (error) throw new Error(error.message)
+
+  // Best-effort opprydning av R2-bilde
+  const r2Sti = r2StiFraUrl(arr?.bilde_url ?? null)
+  if (r2Sti) slettR2(r2Sti).catch(() => {})
+
   revalidatePath('/')
   revalidatePath('/arrangoransvar')
   redirect('/')

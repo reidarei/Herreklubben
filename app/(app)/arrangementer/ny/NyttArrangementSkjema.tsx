@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useTransition, useMemo, type CSSProperties } from 'react'
+import { useEffect, useState, useTransition, useMemo, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { opprettArrangement } from '@/lib/actions/arrangementer'
+import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Segment from '@/components/ui/Segment'
@@ -13,6 +13,7 @@ import Placeholder from '@/components/ui/Placeholder'
 import BildeBytterKnapp from '@/components/BildeBytterKnapp'
 import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
 import { formaterDato, datetimeLocalTilIso } from '@/lib/dato'
+import { genererFilnavn } from '@/lib/bilde-utils'
 
 const monoLabel: CSSProperties = {
   fontFamily: 'var(--font-mono)',
@@ -100,7 +101,18 @@ export default function NyttArrangementSkjema({
   const [destinasjon, setDestinasjon] = useState('')
   const [pris, setPris] = useState('')
   const [sensurert, setSensurert] = useState<Record<string, boolean>>({})
-  const [bildeUrl, setBildeUrl] = useState<string | null>(null)
+  // Holder File-objektet til submit. Forhåndsvises via blob: URL — ingen
+  // R2-opplasting før brukeren faktisk lagrer.
+  const [bildeFil, setBildeFil] = useState<File | null>(null)
+  const previewUrl = useMemo(
+    () => (bildeFil ? URL.createObjectURL(bildeFil) : null),
+    [bildeFil],
+  )
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -131,6 +143,17 @@ export default function NyttArrangementSkjema({
 
     startTransition(async () => {
       try {
+        // Last opp bilde til R2 først hvis valgt — så har vi URL til DB-raden
+        let bildeUrl: string | null = null
+        if (bildeFil) {
+          const fd = new FormData()
+          fd.append('fil', bildeFil)
+          fd.append('filnavn', genererFilnavn(bildeFil))
+          fd.append('kategori', 'arrangementer')
+          const res = await lastOppBilde(fd)
+          bildeUrl = res.url
+        }
+
         await opprettArrangement({
           type: effektivType,
           tittel,
@@ -186,14 +209,14 @@ export default function NyttArrangementSkjema({
           overflow: 'hidden',
         }}
       >
-        {bildeUrl ? (
+        {previewUrl ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
-            <Image
-              src={bildeUrl}
+            {/* Blob-URL for forhåndsvisning — vanlig <img> siden Next/Image
+                ikke håndterer blob-URLer */}
+            <img
+              src={previewUrl}
               alt=""
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 512px) 100vw, 512px"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
         ) : (
@@ -201,8 +224,8 @@ export default function NyttArrangementSkjema({
         )}
         <div style={{ position: 'absolute', bottom: 12, right: 12 }}>
           <BildeBytterKnapp
-            onBildeUrl={setBildeUrl}
-            label={bildeUrl ? 'Bytt bilde' : 'Legg til bilde'}
+            onBildeFil={setBildeFil}
+            label={previewUrl ? 'Bytt bilde' : 'Legg til bilde'}
           />
         </div>
       </div>
