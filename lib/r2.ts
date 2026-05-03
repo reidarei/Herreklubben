@@ -34,9 +34,10 @@ function hentKlient(): AwsClient {
   klient = new AwsClient({
     accessKeyId: ACCESS_KEY_ID,
     secretAccessKey: SECRET_ACCESS_KEY,
-    // R2 default-jurisdiksjon bruker 'auto', spesifikke jurisdiksjoner
-    // (eu, fedramp) må signe med jurisdiksjonen som region — ellers 403.
-    region: JURISDICTION === 'default' ? 'auto' : JURISDICTION,
+    // R2 godtar kun: auto, wnam, enam, weur, eeur, apac, oc.
+    // 'auto' fungerer for alle jurisdiksjoner — endpointet (med eu-segment
+    // for EU-bucket) ruter til riktig region.
+    region: 'auto',
     service: 's3',
   })
   return klient
