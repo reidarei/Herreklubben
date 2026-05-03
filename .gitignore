@@ -30,3 +30,7 @@ Thumbs.db
 /playwright/.cache/
 /.screenshots/
 /.cache/
+
+# FB-import — generert lokalt, lastes opp til R2
+/scripts/fb-crops/
+/scripts/fb-kalibrer-out/
