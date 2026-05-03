@@ -3,10 +3,15 @@
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { lastOppArrangementBilde } from '@/lib/actions/bilde-opplasting'
 
 // Enkelt "Bytt bilde"-kontroll som åpner mobilens galleri direkte,
 // laster opp og kaller onBildeUrl med den nye public-URLen.
 // Viser ingen forhåndsvisning selv — forelderen viser det aktive bildet.
+//
+// Arrangement-bilder går mot Cloudflare R2 (via server action).
+// Melding-bilder ligger fortsatt på Supabase Storage av historiske grunner —
+// migrering er bevisst ikke gjort i denne omgang.
 export default function BildeBytterKnapp({
   onBildeUrl,
   label = 'Bytt bilde',
@@ -15,7 +20,7 @@ export default function BildeBytterKnapp({
 }: {
   onBildeUrl: (url: string) => void
   label?: string
-  /** Hvilken Supabase storage-bucket bildet skal lastes opp til. */
+  /** Hvilken backing store. arrangement-bilder = R2, melding-bilder = Supabase. */
   bucket?: 'arrangement-bilder' | 'melding-bilder'
   style?: React.CSSProperties
 }) {
@@ -30,23 +35,30 @@ export default function BildeBytterKnapp({
     setLaster(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Ikke innlogget')
-
       const komprimert = await komprimer(fil)
       const filnavn = genererFilnavn(komprimert)
-      const sti = `${user.id}/${filnavn}`
 
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(sti, komprimert, { contentType: 'image/jpeg' })
+      let publicUrl: string
 
-      if (error) throw new Error(error.message)
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(sti)
+      if (bucket === 'arrangement-bilder') {
+        // R2 via server action
+        const fd = new FormData()
+        fd.append('fil', komprimert)
+        fd.append('filnavn', filnavn)
+        const res = await lastOppArrangementBilde(fd)
+        publicUrl = res.url
+      } else {
+        // Supabase Storage (melding-bilder) — uendret eldre flyt
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Ikke innlogget')
+        const sti = `${user.id}/${filnavn}`
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(sti, komprimert, { contentType: 'image/jpeg' })
+        if (error) throw new Error(error.message)
+        publicUrl = supabase.storage.from(bucket).getPublicUrl(sti).data.publicUrl
+      }
 
       onBildeUrl(publicUrl)
     } catch (err) {
