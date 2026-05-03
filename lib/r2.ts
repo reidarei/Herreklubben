@@ -58,11 +58,19 @@ export async function lastOppR2(
   contentType: string,
 ): Promise<string> {
   const aws = hentKlient()
+  // R2 krever eksplisitt Content-Length-header. Vercel-runtime bruker ofte
+  // chunked transfer-encoding som skipper headeren — vi setter den manuelt
+  // basert på data-størrelsen.
+  const lengde =
+    data instanceof Blob ? data.size :
+    data instanceof Uint8Array ? data.byteLength :
+    data.byteLength
   const res = await aws.fetch(bucketUrl(sti), {
     method: 'PUT',
     body: data as BodyInit,
     headers: {
       'Content-Type': contentType,
+      'Content-Length': String(lengde),
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
