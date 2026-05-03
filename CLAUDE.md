@@ -50,6 +50,8 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Domene-konstanter:** Tegnegrenser, dag-vinduer, levetider o.l. ligger i `lib/konstanter.ts`. **Aldri** hardkode magiske tall som 500/2000/7/24 — referer konstanten. Se **Policy: Konstanter** nedenfor.
 
+**Bildelagring:** Nye bilder lagres i Cloudflare R2 via `lib/r2.ts` + server actions i `lib/actions/bilde-opplasting.ts`. Klient-side komprimering først (1600 px / q0.85). Eldre profilbilder ligger fortsatt i Supabase Storage. Se **Policy: Bildelagring** nedenfor.
+
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
 **Produksjon:** Appen kjører på [mortensrudherreklubb.no](https://mortensrudherreklubb.no) (Vercel, Dublin-region). Domenet er kjøpt via Domeneshop og DNS peker til Vercel.
@@ -175,6 +177,39 @@ Domene-konstanter (tegnegrenser, dag-vinduer, levetider) ligger i `lib/konstante
 - `PASS_TILGANG_TIMER` (24) — tilgangsvinduet etter pass-godkjenning
 
 **Når du legger til ny konstant:** Hvis verdien speiler en DB check-constraint (f.eks. tegnegrenser), nevn det i kommentaren og oppdater migrasjonsfilen ved endring.
+
+## Policy: Bildelagring
+
+Bilder lagres i Cloudflare R2 (S3-kompatibel objektlagring). Profilbilder ligger fortsatt i Supabase Storage av historiske grunner — nye bildelagrings-stier skal bruke R2.
+
+**Hvorfor R2:** ~95 % billigere enn Supabase Pro for vår skala, $0 egress uansett volum, Cloudflare CDN innebygd. Beslutning dokumentert i issue #66.
+
+**Sentral modul:** `lib/r2.ts` — `lastOppR2(sti, data, contentType)` og `slettR2(sti)`. Bruker `aws4fetch` for signing (~5 KB bundle, ingen S3-SDK). Helpers er server-side only — kaller fra klient er forbudt fordi det krever access-key.
+
+**Klient-flyt:**
+1. Velg fil i UI
+2. `komprimer(fil)` fra `lib/bilde-utils.ts` — Canvas API skalerer til maks 1600 px lang side, JPEG kvalitet 0.85
+3. `genererFilnavn(fil)` lager unik path-prefiks
+4. Send komprimert fil + filnavn til server action via FormData
+5. Server action validerer + kaller `lastOppR2()` + returnerer public URL
+
+**Server actions:** `lib/actions/bilde-opplasting.ts` har `lastOppArrangementBilde(formData)` og `slettArrangementBilde(url)`. Begge krever `ensureInnlogget()`. Fil-størrelse er capet til 5 MB og MIME-typer begrenset til JPEG/PNG/WebP.
+
+**Konvensjon for paths i R2:**
+- `arrangementer/{filnavn}` — bilder knyttet til arrangementer
+- (Senere: `profilbilder/{filnavn}`, `albums/{aar}/{filnavn}`, etc. — legg til hjelpere i `bilde-utils.ts` per kategori)
+
+**Cache-headers:** Alle objekter får `Cache-Control: public, max-age=31536000, immutable` ved upload. Det er trygt fordi vi alltid genererer unike filnavn — vi gjenbruker aldri en sti.
+
+**Public URL:** `R2_PUBLIC_URL` (i `lib/config.ts`) er base-URL-en. Bilder hentes via `${R2_PUBLIC_URL}/${sti}`. URL-en er trygg å eksponere til klienten — bare access-keyen er hemmelig.
+
+**`next/image`:** R2-domenet (`*.r2.dev` og `bilder.mortensrudherreklubb.no` for fremtidig custom domain) er tillatt i `next.config.ts → images.remotePatterns`. Bruk `<Image>` med `fill` + `sizes` for responsiv leverering.
+
+**Sletting:** Når en URL i DB skal slettes, kall `slettArrangementBilde(url)`. Helperen sjekker først at URL-en faktisk peker til vår R2 (via `r2StiFraUrl()`) før den prøver å slette — Supabase-URL-er passerer uberørt.
+
+**Migrering av eksisterende bilder:** Profilbilder og eldre arrangement-bilder ligger fortsatt i Supabase Storage. Migrering er bevisst ikke gjort — koden støtter begge så lenge man ikke endrer bilde-URL-en i DB.
+
+**Secrets (Vercel env vars):** `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` (eller `NEXT_PUBLIC_R2_PUBLIC_URL` om public-URL skal være tilgjengelig på klient). Secret-keyen skal ALDRI ha `NEXT_PUBLIC_`-prefiks.
 
 ## Policy: Arrangøransvar-kobling
 

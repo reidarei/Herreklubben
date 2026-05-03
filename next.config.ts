@@ -23,6 +23,16 @@ const nextConfig: NextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      // Cloudflare R2 public dev URL — pub-{hash}.r2.dev
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
+      },
+      // Custom domain for R2 (når aktivert) — bilder.mortensrudherreklubb.no
+      {
+        protocol: 'https',
+        hostname: 'bilder.mortensrudherreklubb.no',
+      },
     ],
   },
 }

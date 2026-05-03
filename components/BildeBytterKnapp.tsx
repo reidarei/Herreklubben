@@ -1,27 +1,36 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { komprimer, genererFilnavn, type BildeKategori } from '@/lib/bilde-utils'
+import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 
 // Enkelt "Bytt bilde"-kontroll som åpner mobilens galleri direkte,
-// laster opp og kaller onBildeUrl med den nye public-URLen.
+// laster opp til R2 og kaller onBildeUrl med den nye public-URLen.
 // Viser ingen forhåndsvisning selv — forelderen viser det aktive bildet.
+//
+// Eldre `bucket`-prop er beholdt for bakoverkompatibilitet og mappes til
+// riktig R2-kategori. Nye callsites bør sende `kategori` direkte.
 export default function BildeBytterKnapp({
   onBildeUrl,
   label = 'Bytt bilde',
-  bucket = 'arrangement-bilder',
+  bucket,
+  kategori,
   style,
 }: {
   onBildeUrl: (url: string) => void
   label?: string
-  /** Hvilken Supabase storage-bucket bildet skal lastes opp til. */
+  /** Eldre prop. Bruk `kategori` i nye callsites. */
   bucket?: 'arrangement-bilder' | 'melding-bilder'
+  /** R2-kategori. Default: 'arrangementer' (eller utledet fra bucket). */
+  kategori?: BildeKategori
   style?: React.CSSProperties
 }) {
   const [laster, setLaster] = useState(false)
   const [feil, setFeil] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const valgtKategori: BildeKategori =
+    kategori ?? (bucket === 'melding-bilder' ? 'meldinger' : 'arrangementer')
 
   async function handleFil(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
@@ -30,25 +39,16 @@ export default function BildeBytterKnapp({
     setLaster(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Ikke innlogget')
-
       const komprimert = await komprimer(fil)
       const filnavn = genererFilnavn(komprimert)
-      const sti = `${user.id}/${filnavn}`
 
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(sti, komprimert, { contentType: 'image/jpeg' })
+      const fd = new FormData()
+      fd.append('fil', komprimert)
+      fd.append('filnavn', filnavn)
+      fd.append('kategori', valgtKategori)
 
-      if (error) throw new Error(error.message)
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(sti)
-
-      onBildeUrl(publicUrl)
+      const { url } = await lastOppBilde(fd)
+      onBildeUrl(url)
     } catch (err) {
       setFeil(err instanceof Error ? err.message : 'Opplasting feilet')
     } finally {
