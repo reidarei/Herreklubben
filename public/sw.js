@@ -1,10 +1,18 @@
 // ─── Caching ────────────────────────────────────────────────────────────────
-// Bump CACHE_VERSION when the app shell changes to force cache invalidation.
-const CACHE_VERSION = 'v1'
+// CACHE_VERSION speiler app-versjonen fra lib/versjon.json og oppdateres
+// automatisk av scripts/stamp-versjon.mjs ved hver deploy. Slik invalideres
+// gammel cache uten manuell bumping.
+const CACHE_VERSION = 'V2.141'
 const STATIC_CACHE = `herreklubben-static-${CACHE_VERSION}`
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
-// App-shell assets som forhåndslagres ved installasjon
+// Begrens hvor mange HTML-sider som caches — Cache API har ingen LRU,
+// så vi rydder eksplisitt fra eldste når vi går over grensen.
+const MAX_PAGE_CACHE_ENTRIES = 30
+
+// App-shell assets som forhåndslagres ved installasjon. Disse er også
+// "whitelist" for cache-first av bilder — vi cacher kun ikoner som vi
+// kjenner og som ligger på faste paths, ikke vilkårlige png/jpg-treff.
 const PRECACHE_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
@@ -13,6 +21,12 @@ const PRECACHE_ASSETS = [
   '/icon-180.png',
   '/favicon-32.png',
 ]
+
+// Cache-first gjelder kun ikoner/favicon — andre png/jpg/webp kan komme
+// fra dynamiske ruter, ikke trygt å cache blankt.
+function erIkonAsset(pathname) {
+  return pathname.startsWith('/icon-') || pathname.startsWith('/favicon')
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -36,6 +50,15 @@ self.addEventListener('activate', (event) => {
       .then(() => self.clients.claim())
   )
 })
+
+// Trim cache til MAX entries — sletter eldste (FIFO via keys()-rekkefølge).
+async function trimCache(cacheName, maxEntries) {
+  const cache = await caches.open(cacheName)
+  const keys = await cache.keys()
+  if (keys.length <= maxEntries) return
+  const toDelete = keys.slice(0, keys.length - maxEntries)
+  await Promise.all(toDelete.map((k) => cache.delete(k)))
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
@@ -71,8 +94,10 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Cache-first: statiske public-assets (ikoner, bilder)
-  if (url.pathname.match(/\.(png|jpg|jpeg|webp|svg|ico)$/)) {
+  // Cache-first: kjente ikoner og favicon. Andre bilde-extensions hopper
+  // forbi for å unngå at dynamiske ruter (f.eks. /api/avatar/x.png) caches
+  // ved et uhell.
+  if (erIkonAsset(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached
@@ -98,7 +123,10 @@ self.addEventListener('fetch', (event) => {
           if (response.ok) {
             const clone = response.clone()
             event.waitUntil(
-              caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone))
+              caches.open(PAGE_CACHE).then(async (cache) => {
+                await cache.put(request, clone)
+                await trimCache(PAGE_CACHE, MAX_PAGE_CACHE_ENTRIES)
+              })
             )
           }
           return response
