@@ -34,7 +34,9 @@ function hentKlient(): AwsClient {
   klient = new AwsClient({
     accessKeyId: ACCESS_KEY_ID,
     secretAccessKey: SECRET_ACCESS_KEY,
-    region: 'auto',
+    // R2 default-jurisdiksjon bruker 'auto', spesifikke jurisdiksjoner
+    // (eu, fedramp) må signe med jurisdiksjonen som region — ellers 403.
+    region: JURISDICTION === 'default' ? 'auto' : JURISDICTION,
     service: 's3',
   })
   return klient
