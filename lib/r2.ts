@@ -16,6 +16,12 @@ const SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 const BUCKET = process.env.R2_BUCKET ?? 'herreklubben-bilder'
 const PUBLIC_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, '') ?? ''
 
+// R2 har separate endpoints per jurisdiksjon. Hvis bucket og API-token er
+// skapt i EU-jurisdiksjon, må endpointet ha 'eu'-segment. Settes via env
+// (R2_JURISDICTION = 'default' | 'eu' | 'fedramp'). Default = 'default'.
+const JURISDICTION = (process.env.R2_JURISDICTION ?? 'default').toLowerCase()
+const JURISDICTION_SEGMENT = JURISDICTION === 'default' ? '' : `.${JURISDICTION}`
+
 let klient: AwsClient | null = null
 
 function hentKlient(): AwsClient {
@@ -35,7 +41,7 @@ function hentKlient(): AwsClient {
 }
 
 function bucketUrl(sti: string): string {
-  return `https://${ACCOUNT_ID}.r2.cloudflarestorage.com/${BUCKET}/${sti}`
+  return `https://${ACCOUNT_ID}${JURISDICTION_SEGMENT}.r2.cloudflarestorage.com/${BUCKET}/${sti}`
 }
 
 // Last opp en fil til R2. `sti` er nøkkelen i bucket-en (f.eks.
