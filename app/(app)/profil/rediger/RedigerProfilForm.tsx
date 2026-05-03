@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
-import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
+import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 import { createClient } from '@/lib/supabase/client'
 import { genererFilnavn } from '@/lib/bilde-utils'
 import SkjemaBar from '@/components/ui/SkjemaBar'
@@ -89,9 +89,24 @@ export default function RedigerProfilForm({
   const [visningsnavn, setVisningsnavn] = useState(visnInit)
   const [telefon, setTelefon] = useState(tlfInit)
   const [fodselsdato, setFodselsdato] = useState(fdInit)
-  const [bildeUrl, setBildeUrl] = useState<string | null>(bildeUrlInit)
 
-  const [bildeLaster, setBildeLaster] = useState(false)
+  // bildeUrl = lagret URL i DB. bildeFil = ventende ny upload (komprimert
+  // + cropped, ikke lastet opp ennå). bildeFjernet = brukeren har klikket
+  // "fjern". Submit avgjør hva som faktisk skjer mot R2 + DB.
+  const [bildeUrl] = useState<string | null>(bildeUrlInit)
+  const [bildeFil, setBildeFil] = useState<File | null>(null)
+  const [bildeFjernet, setBildeFjernet] = useState(false)
+  const previewUrl = useMemo(() => {
+    if (bildeFil) return URL.createObjectURL(bildeFil)
+    if (bildeFjernet) return null
+    return bildeUrl
+  }, [bildeFil, bildeFjernet, bildeUrl])
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
   const [bildeFeil, setBildeFeil] = useState('')
   const [cropFil, setCropFil] = useState<File | null>(null)
 
@@ -109,31 +124,17 @@ export default function RedigerProfilForm({
     if (filInputRef.current) filInputRef.current.value = ''
   }
 
-  async function handleCropFerdig(blob: Blob) {
+  function handleCropFerdig(blob: Blob) {
     setCropFil(null)
-    setBildeLaster(true)
     setBildeFeil('')
-
-    try {
-      const croppet = new File([blob], 'profil.jpg', { type: 'image/jpeg' })
-      const filnavn = genererFilnavn(croppet)
-
-      const fd = new FormData()
-      fd.append('fil', croppet)
-      fd.append('filnavn', filnavn)
-      fd.append('kategori', 'profiler')
-
-      const { url } = await lastOppBilde(fd)
-      setBildeUrl(url)
-    } catch (err) {
-      setBildeFeil(err instanceof Error ? err.message : 'Opplasting feilet')
-    } finally {
-      setBildeLaster(false)
-    }
+    const croppet = new File([blob], 'profil.jpg', { type: 'image/jpeg' })
+    setBildeFil(croppet)
+    setBildeFjernet(false)
   }
 
   function handleFjernBilde() {
-    setBildeUrl(null)
+    setBildeFil(null)
+    setBildeFjernet(true)
     setBildeFeil('')
   }
 
@@ -151,13 +152,36 @@ export default function RedigerProfilForm({
     }
 
     startTransition(async () => {
+      // Last opp ny fil først hvis valgt. bildeFjernet uten ny fil → null.
+      let nyBildeUrl: string | null = bildeUrl
+      if (bildeFil) {
+        const fd = new FormData()
+        fd.append('fil', bildeFil)
+        fd.append('filnavn', genererFilnavn(bildeFil))
+        fd.append('kategori', 'profiler')
+        try {
+          const res = await lastOppBilde(fd)
+          nyBildeUrl = res.url
+        } catch (err) {
+          setBildeFeil(err instanceof Error ? err.message : 'Opplasting feilet')
+          return
+        }
+      } else if (bildeFjernet) {
+        nyBildeUrl = null
+      }
+
       await oppdaterEgenProfil({
         navn,
         visningsnavn: visningsnavn || navn,
         telefon,
         fodselsdato: fodselsdato || undefined,
-        bilde_url: bildeUrl,
+        bilde_url: nyBildeUrl,
       })
+
+      // Slett gammelt R2-bilde hvis byttet eller fjernet (best effort)
+      if (bildeUrl && bildeUrl !== nyBildeUrl) {
+        slettBilde(bildeUrl).catch(() => {})
+      }
 
       if (visPassord && passord) {
         const supabase = createClient()
@@ -206,18 +230,18 @@ export default function RedigerProfilForm({
         <button
           type="button"
           onClick={() => filInputRef.current?.click()}
-          disabled={bildeLaster}
-          aria-label={bildeUrl ? 'Bytt profilbilde' : 'Last opp profilbilde'}
+          disabled={isPending}
+          aria-label={previewUrl ? 'Bytt profilbilde' : 'Last opp profilbilde'}
           style={{
             position: 'relative',
             flexShrink: 0,
             background: 'none',
             border: 'none',
             padding: 0,
-            cursor: bildeLaster ? 'wait' : 'pointer',
+            cursor: isPending ? 'wait' : 'pointer',
           }}
         >
-          <Avatar name={navn} size={56} src={bildeUrl} rolle={rolle} />
+          <Avatar name={navn} size={56} src={previewUrl} rolle={rolle} />
           <div
             style={{
               position: 'absolute',
@@ -254,11 +278,11 @@ export default function RedigerProfilForm({
             <button
               type="button"
               onClick={() => filInputRef.current?.click()}
-              disabled={bildeLaster}
+              disabled={isPending}
               style={{
                 background: 'none',
                 border: 'none',
-                cursor: bildeLaster ? 'wait' : 'pointer',
+                cursor: isPending ? 'wait' : 'pointer',
                 padding: 0,
                 color: 'var(--accent)',
                 fontFamily: 'var(--font-body)',
@@ -266,9 +290,9 @@ export default function RedigerProfilForm({
                 fontWeight: 500,
               }}
             >
-              {bildeLaster ? 'Laster opp…' : bildeUrl ? 'Bytt bilde' : 'Last opp bilde'}
+              {isPending ? 'Lagrer…' : previewUrl ? 'Bytt bilde' : 'Last opp bilde'}
             </button>
-            {bildeUrl && !bildeLaster && (
+            {previewUrl && !isPending && (
               <button
                 type="button"
                 onClick={handleFjernBilde}

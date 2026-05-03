@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useTransition, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { opprettMelding } from '@/lib/actions/meldinger'
+import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import BildeBytterKnapp from '@/components/BildeBytterKnapp'
+import { genererFilnavn } from '@/lib/bilde-utils'
 
 const inputStil: CSSProperties = {
   width: '100%',
@@ -26,7 +27,16 @@ const MAX_TEGN = 2000
 
 export default function NyMeldingSkjema() {
   const [innhold, setInnhold] = useState('')
-  const [bildeUrl, setBildeUrl] = useState<string | null>(null)
+  const [bildeFil, setBildeFil] = useState<File | null>(null)
+  const previewUrl = useMemo(
+    () => (bildeFil ? URL.createObjectURL(bildeFil) : null),
+    [bildeFil],
+  )
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -39,6 +49,17 @@ export default function NyMeldingSkjema() {
     }
     startTransition(async () => {
       try {
+        // Last opp bilde til R2 først hvis valgt
+        let bildeUrl: string | null = null
+        if (bildeFil) {
+          const fd = new FormData()
+          fd.append('fil', bildeFil)
+          fd.append('filnavn', genererFilnavn(bildeFil))
+          fd.append('kategori', 'meldinger')
+          const res = await lastOppBilde(fd)
+          bildeUrl = res.url
+        }
+
         await opprettMelding({ innhold, bilde_url: bildeUrl })
       } catch (err) {
         if (
@@ -94,26 +115,23 @@ export default function NyMeldingSkjema() {
 
       <SkjemaSeksjon label="Bilde (valgfritt)">
         <div style={{ padding: '10px 4px' }}>
-          {bildeUrl ? (
+          {previewUrl ? (
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: 'var(--radius-card)', overflow: 'hidden' }}>
-                <Image
-                  src={bildeUrl}
+                <img
+                  src={previewUrl}
                   alt="Forhåndsvisning"
-                  fill
-                  sizes="(max-width: 512px) 100vw, 512px"
-                  style={{ objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <BildeBytterKnapp
-                  bucket="melding-bilder"
-                  onBildeUrl={url => setBildeUrl(url)}
+                  onBildeFil={setBildeFil}
                   label="Bytt bilde"
                 />
                 <button
                   type="button"
-                  onClick={() => setBildeUrl(null)}
+                  onClick={() => setBildeFil(null)}
                   style={{
                     padding: '7px 14px',
                     background: 'transparent',
@@ -131,8 +149,7 @@ export default function NyMeldingSkjema() {
             </div>
           ) : (
             <BildeBytterKnapp
-              bucket="melding-bilder"
-              onBildeUrl={url => setBildeUrl(url)}
+              onBildeFil={setBildeFil}
               label="Legg til bilde"
             />
           )}

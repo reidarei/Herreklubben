@@ -1,36 +1,28 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { komprimer, genererFilnavn, type BildeKategori } from '@/lib/bilde-utils'
-import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
+import { komprimer } from '@/lib/bilde-utils'
 
-// Enkelt "Bytt bilde"-kontroll som åpner mobilens galleri direkte,
-// laster opp til R2 og kaller onBildeUrl med den nye public-URLen.
-// Viser ingen forhåndsvisning selv — forelderen viser det aktive bildet.
+// "Bytt bilde"-kontroll. Åpner mobilens galleri direkte, komprimerer i
+// nettleseren og leverer den komprimerte File-en til forelderen via
+// onBildeFil. Selve opplastingen til R2 skjer FØRST når forelderen
+// lagrer skjemaet — på den måten blir ingen bilder orphans i R2 hvis
+// brukeren angrer eller bytter bilde før save.
 //
-// Eldre `bucket`-prop er beholdt for bakoverkompatibilitet og mappes til
-// riktig R2-kategori. Nye callsites bør sende `kategori` direkte.
+// Forelderen lager preview via URL.createObjectURL(file) og lagrer File i
+// skjema-state til submit.
 export default function BildeBytterKnapp({
-  onBildeUrl,
+  onBildeFil,
   label = 'Bytt bilde',
-  bucket,
-  kategori,
   style,
 }: {
-  onBildeUrl: (url: string) => void
+  onBildeFil: (fil: File) => void
   label?: string
-  /** Eldre prop. Bruk `kategori` i nye callsites. */
-  bucket?: 'arrangement-bilder' | 'melding-bilder'
-  /** R2-kategori. Default: 'arrangementer' (eller utledet fra bucket). */
-  kategori?: BildeKategori
   style?: React.CSSProperties
 }) {
   const [laster, setLaster] = useState(false)
   const [feil, setFeil] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
-
-  const valgtKategori: BildeKategori =
-    kategori ?? (bucket === 'melding-bilder' ? 'meldinger' : 'arrangementer')
 
   async function handleFil(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
@@ -40,17 +32,9 @@ export default function BildeBytterKnapp({
 
     try {
       const komprimert = await komprimer(fil)
-      const filnavn = genererFilnavn(komprimert)
-
-      const fd = new FormData()
-      fd.append('fil', komprimert)
-      fd.append('filnavn', filnavn)
-      fd.append('kategori', valgtKategori)
-
-      const { url } = await lastOppBilde(fd)
-      onBildeUrl(url)
+      onBildeFil(komprimert)
     } catch (err) {
-      setFeil(err instanceof Error ? err.message : 'Opplasting feilet')
+      setFeil(err instanceof Error ? err.message : 'Kunne ikke lese bildet')
     } finally {
       setLaster(false)
       if (inputRef.current) inputRef.current.value = ''
@@ -79,7 +63,7 @@ export default function BildeBytterKnapp({
           ...style,
         }}
       >
-        {laster ? 'Laster opp…' : label}
+        {laster ? 'Klargjør…' : label}
       </button>
       <input
         ref={inputRef}

@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState, useTransition, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { oppdaterArrangement, slettArrangement } from '@/lib/actions/arrangementer'
+import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Segment from '@/components/ui/Segment'
@@ -13,6 +14,7 @@ import Placeholder from '@/components/ui/Placeholder'
 import BildeBytterKnapp from '@/components/BildeBytterKnapp'
 import TypeVelger, { type MalValg } from '@/components/arrangement/TypeVelger'
 import { isoTilDatetimeLocal, datetimeLocalTilIso } from '@/lib/dato'
+import { genererFilnavn } from '@/lib/bilde-utils'
 
 type Arrangement = {
   id: string
@@ -97,7 +99,21 @@ export default function RedigerSkjema({
   const erTur = effektivType === 'tur'
 
   const [sensurert, setSensurert] = useState<Record<string, boolean>>(arr.sensurerte_felt ?? {})
-  const [bildeUrl, setBildeUrl] = useState<string | null>(arr.bilde_url)
+  // bildeUrl = nåværende lagrede URL i DB. bildeFil = ventende ny upload.
+  // Når bildeFil er satt, vises blob-URL. Ved submit lastes filen opp,
+  // og det gamle R2-bildet (hvis det er R2) slettes etter vellykket
+  // oppdatering.
+  const [bildeUrl] = useState<string | null>(arr.bilde_url)
+  const [bildeFil, setBildeFil] = useState<File | null>(null)
+  const previewUrl = useMemo(
+    () => (bildeFil ? URL.createObjectURL(bildeFil) : bildeUrl),
+    [bildeFil, bildeUrl],
+  )
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
   const [tittel, setTittel] = useState(arr.tittel)
   // Hvis nåværende tittel avviker fra mal-navnet, regnes den som tilpasset.
   const [tittelBerørt, setTittelBerørt] = useState(
@@ -130,6 +146,17 @@ export default function RedigerSkjema({
     setFeil('')
     startTransition(async () => {
       try {
+        // Last opp ny fil (hvis valgt) før vi rører DB-raden
+        let nyBildeUrl = bildeUrl
+        if (bildeFil) {
+          const fd = new FormData()
+          fd.append('fil', bildeFil)
+          fd.append('filnavn', genererFilnavn(bildeFil))
+          fd.append('kategori', 'arrangementer')
+          const res = await lastOppBilde(fd)
+          nyBildeUrl = res.url
+        }
+
         await oppdaterArrangement(arr.id, {
           type: effektivType,
           tittel,
@@ -141,10 +168,17 @@ export default function RedigerSkjema({
           destinasjon: erTur ? (destinasjon || null) : null,
           pris_per_person: erTur ? (pris ? parseInt(pris) : null) : null,
           sensurerte_felt: erTur ? sensurert : {},
-          bilde_url: bildeUrl,
+          bilde_url: nyBildeUrl,
           mal_navn: valgt.mal_navn,
           aar: valgt.aar,
         })
+
+        // Slett gammel R2-fil hvis vi byttet (best effort — orphan i R2 er
+        // ikke kritisk hvis det skulle feile)
+        if (bildeFil && arr.bilde_url && arr.bilde_url !== nyBildeUrl) {
+          slettBilde(arr.bilde_url).catch(() => {})
+        }
+
         router.push(`/arrangementer/${arr.id}`)
       } catch (err) {
         // Redirect/notFound fra server action skal boble videre
@@ -229,23 +263,32 @@ export default function RedigerSkjema({
           overflow: 'hidden',
         }}
       >
-        {bildeUrl ? (
+        {previewUrl ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
-            <Image
-              src={bildeUrl}
-              alt=""
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 512px) 100vw, 512px"
-            />
+            {previewUrl.startsWith('blob:') ? (
+              // Lokal forhåndsvisning før upload
+              <img
+                src={previewUrl}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <Image
+                src={previewUrl}
+                alt=""
+                fill
+                style={{ objectFit: 'cover' }}
+                sizes="(max-width: 512px) 100vw, 512px"
+              />
+            )}
           </div>
         ) : (
           <Placeholder label="Arrangement bilde" aspectRatio="16/9" type={erTur ? 'tur' : 'møte'} />
         )}
         <div style={{ position: 'absolute', bottom: 12, right: 12 }}>
           <BildeBytterKnapp
-            onBildeUrl={setBildeUrl}
-            label={bildeUrl ? 'Bytt bilde' : 'Legg til bilde'}
+            onBildeFil={setBildeFil}
+            label={previewUrl ? 'Bytt bilde' : 'Legg til bilde'}
           />
         </div>
       </div>
