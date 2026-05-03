@@ -70,7 +70,7 @@ export default async function Arrangoransvar() {
   // foreslås innevaerende år. Hvis siste år allerede er innevaerende+1 eller
   // lenger frem, foreslås neste fra det.
   const sisteAar = aarGrupper.length > 0 ? aarGrupper[aarGrupper.length - 1].aar : norskAar() - 1
-  const nesteAar = Math.max(sisteAar + 1, norskAar() + 1)
+  const nesteAar = Math.max(sisteAar + 1, norskAar())
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
