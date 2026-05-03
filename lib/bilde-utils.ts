@@ -1,16 +1,42 @@
+// Klient-side bildeprosessering. Brukes både ved opplasting til R2 og til
+// gammel Supabase-storage-flyt (under utfasing). Kjører i nettleseren via
+// Canvas API — ingen server-side-prosessering.
+
+// Maks lang side ved hovedbilde-komprimering. 1600px gir god kvalitet på
+// store skjermer mens det holder filstørrelsen ned (~200-800 KB JPEG).
+const MAKS_LANG_SIDE_PX = 1600
+
+// Tommelnegl-størrelse — brukes i lister og feed der vi ikke trenger full
+// oppløsning. Liten nok til å laste raskt på mobildata.
+const THUMB_LANG_SIDE_PX = 400
+
+// JPEG-kvalitet ved komprimering. 0.85 er sweet spot for foto — knapt
+// merkbart kvalitetstap, betydelig mindre fil enn 0.95.
+const JPEG_KVALITET = 0.85
+
 export function genererFilnavn(fil: File): string {
   const ext = fil.name.split('.').pop() || 'jpg'
   return `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 }
 
-export async function komprimer(fil: File): Promise<File> {
+// Lag en unik path for arrangement-bilder. Inkluderer navne-prefiks slik at
+// vi enkelt kan se hva en bucket-rad hører til.
+export function arrangementBildeSti(filnavn: string): string {
+  return `arrangementer/${filnavn}`
+}
+
+// Felles helper: skalerer et bilde til maks `maks` på lang side, returnerer
+// JPEG-Blob med gitt kvalitet. Bruk i komprimer() og lagThumbnail().
+function skalerOgEksporter(
+  fil: File,
+  maks: number,
+  kvalitet: number,
+): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(fil)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      const canvas = document.createElement('canvas')
-      const maks = 1200
       let { width, height } = img
       if (width > maks || height > maks) {
         if (width > height) {
@@ -21,20 +47,34 @@ export async function komprimer(fil: File): Promise<File> {
           height = maks
         }
       }
+      const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
       const ctx = canvas.getContext('2d')!
       ctx.drawImage(img, 0, 0, width, height)
       canvas.toBlob(
-        blob => {
-          if (!blob) { reject(new Error('Komprimering feilet')); return }
-          resolve(new File([blob], fil.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
-        },
+        blob => (blob ? resolve(blob) : reject(new Error('Kunne ikke generere blob'))),
         'image/jpeg',
-        0.8
+        kvalitet,
       )
     }
-    img.onerror = reject
+    img.onerror = () => reject(new Error('Kunne ikke lese bildet'))
     img.src = url
   })
+}
+
+export async function komprimer(fil: File): Promise<File> {
+  const blob = await skalerOgEksporter(fil, MAKS_LANG_SIDE_PX, JPEG_KVALITET)
+  return new File([blob], fil.name.replace(/\.[^.]+$/, '.jpg'), {
+    type: 'image/jpeg',
+  })
+}
+
+// Lag en thumbnail (400px lang side) av samme fil. Returneres som File
+// med `-thumb`-suffix på navnet slik at den kan lastes opp som egen R2-
+// nøkkel parallelt med hovedbildet.
+export async function lagThumbnail(fil: File): Promise<File> {
+  const blob = await skalerOgEksporter(fil, THUMB_LANG_SIDE_PX, JPEG_KVALITET)
+  const basis = fil.name.replace(/\.[^.]+$/, '')
+  return new File([blob], `${basis}-thumb.jpg`, { type: 'image/jpeg' })
 }

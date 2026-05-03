@@ -2,8 +2,8 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { lastOppArrangementBilde, slettArrangementBilde } from '@/lib/actions/bilde-opplasting'
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function BildeVelger({
@@ -24,25 +24,15 @@ export default function BildeVelger({
     setLaster(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Ikke innlogget')
-
       const komprimert = await komprimer(fil)
       const filnavn = genererFilnavn(komprimert)
-      const sti = `${user.id}/${filnavn}`
 
-      const { error } = await supabase.storage
-        .from('arrangement-bilder')
-        .upload(sti, komprimert, { contentType: 'image/jpeg' })
+      const fd = new FormData()
+      fd.append('fil', komprimert)
+      fd.append('filnavn', filnavn)
 
-      if (error) throw new Error(error.message)
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('arrangement-bilder')
-        .getPublicUrl(sti)
-
-      onBildeUrl(publicUrl)
+      const { url } = await lastOppArrangementBilde(fd)
+      onBildeUrl(url)
     } catch (err) {
       setFeil(err instanceof Error ? err.message : 'Opplasting feilet')
     } finally {
@@ -53,16 +43,10 @@ export default function BildeVelger({
 
   async function fjernBilde() {
     if (!bildeUrl) return
-    if (bildeUrl.includes('supabase')) {
-      try {
-        const supabase = createClient()
-        const urlDeler = bildeUrl.split('/arrangement-bilder/')
-        if (urlDeler[1]) {
-          await supabase.storage.from('arrangement-bilder').remove([urlDeler[1]])
-        }
-      } catch {
-        // Ignorer feil ved sletting
-      }
+    try {
+      await slettArrangementBilde(bildeUrl)
+    } catch {
+      // Ignorer feil ved sletting — DB-referansen tas vekk uansett
     }
     onBildeUrl(null)
   }

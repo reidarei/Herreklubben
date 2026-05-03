@@ -23,6 +23,15 @@ export const BASE_URL = getBaseUrl()
 export const VAPID_CONTACT_EMAIL =
   process.env.VAPID_CONTACT_EMAIL ?? 'reidar.haavik@gmail.com'
 
+// Cloudflare R2 public URL — hvor bilder kan hentes via CDN. Kun
+// public-delen eksponeres her; access keys og bucket-navn leses i lib/r2.ts.
+// NEXT_PUBLIC_-prefiks slik at klient-koden kan referere URL-en direkte.
+export const R2_PUBLIC_URL = (
+  process.env.NEXT_PUBLIC_R2_PUBLIC_URL ??
+  process.env.R2_PUBLIC_URL ??
+  ''
+).replace(/\/$/, '')
+
 // GitHub-repo som backer «innspill»-funksjonen. Issues med label
 // GITHUB_ONSKE_LABEL behandles som brukerønsker.
 export const GITHUB_REPO = 'reidarei/Herreklubben'
