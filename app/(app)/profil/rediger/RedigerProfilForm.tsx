@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { oppdaterEgenProfil } from '@/lib/actions/profil'
+import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 import { createClient } from '@/lib/supabase/client'
 import { genererFilnavn } from '@/lib/bilde-utils'
 import SkjemaBar from '@/components/ui/SkjemaBar'
@@ -114,25 +115,16 @@ export default function RedigerProfilForm({
     setBildeFeil('')
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Ikke innlogget')
-
       const croppet = new File([blob], 'profil.jpg', { type: 'image/jpeg' })
       const filnavn = genererFilnavn(croppet)
-      const sti = `${user.id}/${filnavn}`
 
-      const { error } = await supabase.storage
-        .from('profil-bilder')
-        .upload(sti, croppet, { contentType: 'image/jpeg' })
+      const fd = new FormData()
+      fd.append('fil', croppet)
+      fd.append('filnavn', filnavn)
+      fd.append('kategori', 'profiler')
 
-      if (error) throw new Error(error.message)
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('profil-bilder')
-        .getPublicUrl(sti)
-
-      setBildeUrl(publicUrl)
+      const { url } = await lastOppBilde(fd)
+      setBildeUrl(url)
     } catch (err) {
       setBildeFeil(err instanceof Error ? err.message : 'Opplasting feilet')
     } finally {
