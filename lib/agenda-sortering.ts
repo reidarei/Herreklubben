@@ -26,11 +26,10 @@
 //   - arrangement : start_tidspunkt (UTC ISO fra DB)
 //   - bursdag     : {dato}T12:00:00.000Z (midt på dagen UTC for å unngå
 //                   tidssone-drift mellom Oslo og UTC)
-//   - utkast      : purredato + T12:00:00Z hvis purredato finnes og *ikke*
-//                   er passert. Hvis purredato er passert eller mangler,
-//                   faller vi tilbake til 1. september i `aar` som siste
-//                   påminnelse før året er omme. Hvis 1. september også
-//                   er passert → null (enden av lista).
+//   - utkast      : purredato + T12:00:00Z. Passerte purredato havner
+//                   naturlig øverst i «Kommende» pga stigende sortering —
+//                   det er bevisst, glemte utkast skal være synlige. Hvis
+//                   purredato mangler → null (enden av lista).
 //   - poll        : svarfrist
 //   - melding     : sist_aktivitet (driver både live-sortering og
 //                   tidligere-sortering)
@@ -473,17 +472,12 @@ export function byggAgenda(input: {
     ? [{ kind: 'klubbjubileum', sortIso: `${jubileum.dato}T12:00:00.000Z`, data: jubileum }]
     : []
 
-  // Utkast: purredato styrer plassering. Hvis purredato er passert eller
-  // mangler, bruker vi 1. september i `aar` som fallback-påminnelse slik at
-  // kortet ikke forsvinner til bunnen midt i året. Er også 1. september
-  // passert → sortIso=null, og kortet faller til enden av «Kommende».
-  const fallbackIso = `${aar}-09-01T12:00:00.000Z`
-  const fallbackGyldig = fallbackIso >= nowIso || erSammeNorskeDag(fallbackIso, naa)
+  // Utkast: purredato styrer plassering direkte. Passerte purredato havner
+  // naturlig øverst i «Kommende» pga stigende sortering — det er bevisst,
+  // slik at glemte utkast holder seg synlige. Mangler purredato → null →
+  // faller til enden via null-dytt-regelen.
   const utkastItems: AgendaItem[] = utkast.map(u => {
-    const opprinnelig = u.purredato ? `${u.purredato}T12:00:00.000Z` : null
-    const opprinneligGyldig =
-      opprinnelig && (opprinnelig >= nowIso || erSammeNorskeDag(opprinnelig, naa))
-    const sortIso = opprinneligGyldig ? opprinnelig : fallbackGyldig ? fallbackIso : null
+    const sortIso = u.purredato ? `${u.purredato}T12:00:00.000Z` : null
     return {
       kind: 'utkast',
       sortIso,

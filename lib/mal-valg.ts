@@ -16,7 +16,7 @@ export async function hentMalValg(
 ): Promise<MalValg[]> {
   const ansvarQuery = supabase
     .from('arrangoransvar')
-    .select('aar, arrangement_navn, ansvarlig:profiles!ansvarlig_id(navn)')
+    .select('aar, arrangement_navn, ansvarlig_id, ansvarlig:profiles!ansvarlig_id(navn)')
 
   const ansvarPromise = includeArrangementId
     ? ansvarQuery.or(`arrangement_id.is.null,arrangement_id.eq.${includeArrangementId}`)
@@ -35,25 +35,25 @@ export async function hentMalValg(
     })
   }
 
-  // Grupper på (aar, arrangement_navn) — samle ansvarlige navn
-  type Grp = { aar: number; mal_navn: string; ansvarlige: string[] }
+  // Grupper på (aar, arrangement_navn) — samle ansvarlige navn og IDer.
+  // Tomme slots (ansvarlig_id=null) inkluderes også slik at hvem som helst
+  // kan opprette arrangementet for en uoppfylt mal.
+  type Grp = { aar: number; mal_navn: string; ansvarlige: string[]; ansvarligeIds: string[] }
   const groups = new Map<string, Grp>()
   for (const a of ansvar ?? []) {
     if (a.aar == null || !a.arrangement_navn) continue
     const key = `${a.arrangement_navn}::${a.aar}`
     let g = groups.get(key)
     if (!g) {
-      g = { aar: a.aar, mal_navn: a.arrangement_navn, ansvarlige: [] }
+      g = { aar: a.aar, mal_navn: a.arrangement_navn, ansvarlige: [], ansvarligeIds: [] }
       groups.set(key, g)
     }
-    // ansvarlig kan være null (hvis profilen er slettet) eller et objekt
     const ansv = a.ansvarlig as { navn: string | null } | null
     if (ansv?.navn) g.ansvarlige.push(ansv.navn)
+    if (a.ansvarlig_id) g.ansvarligeIds.push(a.ansvarlig_id)
   }
 
-  // Filtrer bort grupper uten ansvarlige (skal være sjelden — rader uten
-  // ansvarlig_id bør ikke eksistere, men guard for sikkerhets skyld)
-  const gyldige = Array.from(groups.values()).filter(g => g.ansvarlige.length > 0)
+  const gyldige = Array.from(groups.values())
 
   // Bygg MalValg
   const valg: MalValg[] = gyldige.map(g => {
@@ -71,6 +71,7 @@ export async function hentMalValg(
       type: mal?.type ?? null,
       purredato,
       ansvarlige: g.ansvarlige,
+      ansvarligeIds: g.ansvarligeIds,
     }
   })
 

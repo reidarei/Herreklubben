@@ -10,6 +10,7 @@ export type MalValg = {
   type: 'moete' | 'tur' | null // null for "Annet" — brukeren må velge
   purredato: string | null // 'YYYY-MM-DD' med riktig år (ikke mal-dato med år 2000)
   ansvarlige: string[] // navn, kun for visning/tooltip
+  ansvarligeIds: string[] // profil-IDer — brukes for å avgjøre om innlogget bruker har dette ansvaret
 }
 
 export const ANNET_KEY = 'Annet::'
@@ -22,5 +23,6 @@ export function byggAnnetValg(): MalValg {
     type: null,
     purredato: null,
     ansvarlige: [],
+    ansvarligeIds: [],
   }
 }

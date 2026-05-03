@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { sendVarsel } from '@/lib/varsler'
 import { ensureAdmin, ensureInnlogget } from '@/lib/auth'
 
-// Slå opp purredato fra arrangementmaler og sett riktig år
+// Slå opp purredato fra arrangementmaler og sett riktig år. Mal-raden
+// har år=2000 som sentinel (kun mnd+dag teller), så vi bytter ut til aar.
 async function hentPurredato(arrangementNavn: string, aar: number): Promise<string | null> {
   const admin = createAdminClient()
   const { data: mal } = await admin
@@ -14,8 +15,46 @@ async function hentPurredato(arrangementNavn: string, aar: number): Promise<stri
     .eq('navn', arrangementNavn)
     .maybeSingle()
   if (!mal?.purredato) return null
-  // purredato lagres med år 2000, bytt til riktig år
   return `${aar}-${mal.purredato.slice(5)}`
+}
+
+// Idempotent batch-opprettelse av arrangoransvar-rader for ett år.
+// Oppretter én null-rad per mal som ikke allerede har en rad i (aar, navn).
+// Ansvarlig_id=null betyr "tom slot" — admin tildeler senere via
+// leggTilAnsvarlig (som UPDATE-r null-raden i stedet for å lage en ny).
+export async function leggTilArrangoransvarForAar(aar: number) {
+  const { supabase } = await ensureAdmin()
+
+  const [{ data: maler }, { data: eksisterende }] = await Promise.all([
+    supabase.from('arrangementmaler').select('navn, purredato'),
+    supabase
+      .from('arrangoransvar')
+      .select('arrangement_navn')
+      .eq('aar', aar),
+  ])
+
+  const finnesNavn = new Set((eksisterende ?? []).map(r => r.arrangement_navn))
+  const nyeRader = (maler ?? [])
+    .filter(m => !finnesNavn.has(m.navn))
+    .map(m => ({
+      aar,
+      arrangement_navn: m.navn,
+      ansvarlig_id: null,
+      purredato: m.purredato ? `${aar}-${m.purredato.slice(5)}` : null,
+      arrangement_id: null,
+    }))
+
+  if (nyeRader.length === 0) {
+    revalidatePath('/arrangoransvar')
+    return { opprettet: 0 }
+  }
+
+  const { error } = await supabase.from('arrangoransvar').insert(nyeRader)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/arrangoransvar')
+  revalidatePath('/')
+  return { opprettet: nyeRader.length }
 }
 
 export async function leggTilAnsvarlig(data: {
@@ -24,12 +63,34 @@ export async function leggTilAnsvarlig(data: {
   ansvarlig_id: string
 }) {
   const { supabase } = await ensureAdmin()
-  const purredato = await hentPurredato(data.arrangement_navn, data.aar)
 
-  // Arv arrangement_id fra eventuell søsken-rad. Hvis noen andre allerede
-  // har opprettet og koblet arrangementet for samme (aar, arrangement_navn),
-  // skal den nye ansvarlige også regnes som oppfylt — ellers dukker den
-  // opp som et eget «ikke arrangert»-utkast på agendaen.
+  // Hvis det finnes en tom slot for (aar, navn) — UPDATE den i stedet for
+  // å lage en ny rad. Holder antall rader stabilt og er den naturlige
+  // tilstandsovergangen "ledig → tildelt".
+  const { data: tomSlot } = await supabase
+    .from('arrangoransvar')
+    .select('id, arrangement_id')
+    .eq('aar', data.aar)
+    .eq('arrangement_navn', data.arrangement_navn)
+    .is('ansvarlig_id', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (tomSlot) {
+    const { error } = await supabase
+      .from('arrangoransvar')
+      .update({ ansvarlig_id: data.ansvarlig_id })
+      .eq('id', tomSlot.id)
+    if (error) throw new Error(error.message)
+    revalidatePath('/arrangoransvar')
+    revalidatePath('/')
+    return
+  }
+
+  // Ingen tom slot → ny ansvarlig på toppen av eksisterende. Arv
+  // arrangement_id fra søsken-rad slik at den nye ansvarlige også regnes
+  // som oppfylt hvis arrangementet allerede er opprettet.
+  const purredato = await hentPurredato(data.arrangement_navn, data.aar)
   const { data: sosken } = await supabase
     .from('arrangoransvar')
     .select('arrangement_id')
@@ -57,13 +118,39 @@ export async function leggTilAnsvarlig(data: {
 export async function fjernAnsvarlig(ansvarId: string) {
   const { supabase } = await ensureAdmin()
 
-  const { error } = await supabase
+  // Hvis dette er siste rad for (aar, navn) — behold raden som tom slot
+  // (UPDATE ansvarlig_id=null) i stedet for å slette. Ellers ville mal-raden
+  // forsvinne fra UI-en bare fordi siste ansvarlig ble tatt vekk.
+  const { data: rad } = await supabase
     .from('arrangoransvar')
-    .delete()
+    .select('aar, arrangement_navn')
     .eq('id', ansvarId)
+    .maybeSingle()
 
-  if (error) throw new Error(error.message)
+  if (!rad) return
+
+  const { count } = await supabase
+    .from('arrangoransvar')
+    .select('id', { count: 'exact', head: true })
+    .eq('aar', rad.aar)
+    .eq('arrangement_navn', rad.arrangement_navn)
+
+  if ((count ?? 0) <= 1) {
+    const { error } = await supabase
+      .from('arrangoransvar')
+      .update({ ansvarlig_id: null })
+      .eq('id', ansvarId)
+    if (error) throw new Error(error.message)
+  } else {
+    const { error } = await supabase
+      .from('arrangoransvar')
+      .delete()
+      .eq('id', ansvarId)
+    if (error) throw new Error(error.message)
+  }
+
   revalidatePath('/arrangoransvar')
+  revalidatePath('/')
 }
 
 // Purre ansvarlig — kalles av et vanlig medlem. Sender varsel via sendVarsel
@@ -99,4 +186,3 @@ export async function purreAnsvarlig(ansvarId: string) {
     tillatDuplikat: true,
   })
 }
-
