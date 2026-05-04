@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { formaterDato, norskAar, norskDatoNaa } from '@/lib/dato'
@@ -30,7 +31,9 @@ export default async function Forside() {
   const [user, supabase] = await Promise.all([getInnloggetBruker(), createServerClient()])
 
   const naa = norskDatoNaa()
-  const treMndSiden = subMonths(new Date(), 3)
+  // Vis tidligere arrangementer 24 mnd tilbake på forsiden — eldre vises
+  // via «Se alle tidligere»-lenken til /arrangementer/tidligere.
+  const treMndSiden = subMonths(new Date(), 24)
   const aar = norskAar()
 
   // Polls hentes med alle stemmer joinet — billig så lenge vi filtrerer
@@ -425,6 +428,26 @@ export default async function Forside() {
               return <MeldingKort key={t.data.id} melding={t.data} brukerId={user!.id} />
             })}
           </div>
+          <Link
+            href="/arrangementer/tidligere"
+            style={{
+              display: 'block',
+              marginTop: 16,
+              padding: '10px 14px',
+              textAlign: 'center',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '1.4px',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              border: '0.5px solid var(--border)',
+              borderRadius: 999,
+              textDecoration: 'none',
+            }}
+          >
+            Se hele historikken →
+          </Link>
         </section>
       )}
     </div>
