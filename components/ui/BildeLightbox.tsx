@@ -27,6 +27,7 @@ export default function BildeLightbox({
     <div
       onClick={onLukk}
       role="dialog"
+      aria-modal="true"
       aria-label="Bilde i full skjerm"
       style={{
         position: 'fixed',

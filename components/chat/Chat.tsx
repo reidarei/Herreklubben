@@ -29,7 +29,9 @@ import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import BildeLightbox from '@/components/ui/BildeLightbox'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
-import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
+import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
+import { CHAT_MAKS_LENGDE } from '@/lib/konstanter'
+import { INNLEGG_MAKS_LENGDE } from '@/lib/konstanter'
 
 export type ChatScope =
   | { type: 'arrangement'; arrangementId: string }
@@ -444,14 +446,24 @@ export default function Chat({
           const ny = payload.new as ChatMelding
           setMeldinger(prev => {
             if (prev.some(m => m.id === ny.id)) return prev
-            const utenTemp = prev.filter(
+            // Fjern KUN ÉN matching temp-rad (eldste først), så samme melding
+            // sendt to ganger på rad ikke fører til at begge temp-rader
+            // forsvinner ved første INSERT.
+            const tempIdx = prev.findIndex(
               m =>
-                !(
-                  m.id.startsWith('temp-') &&
-                  m.profil_id === ny.profil_id &&
-                  m.innhold === ny.innhold
-                ),
+                m.id.startsWith('temp-') &&
+                m.profil_id === ny.profil_id &&
+                m.innhold === ny.innhold,
             )
+            const utenTemp =
+              tempIdx === -1 ? prev : prev.filter((_, i) => i !== tempIdx)
+            // Frigjør blob-URL fra temp-raden hvis den hadde en
+            if (tempIdx !== -1) {
+              const fjernet = prev[tempIdx]
+              if (fjernet.bilde_url?.startsWith('blob:')) {
+                URL.revokeObjectURL(fjernet.bilde_url)
+              }
+            }
             return [...utenTemp, ny]
           })
         })
@@ -640,7 +652,7 @@ export default function Chat({
     if (!melding && !harBilde) return
     if (sender) return
 
-    const tempId = `temp-${Date.now()}`
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const optimistisk: ChatMelding = {
       id: tempId,
       profil_id: brukerId,
@@ -656,11 +668,11 @@ export default function Chat({
     const filUploadKopi = bildeFil
     const previewUrlKopi = bildePreview
     setBildeFil(null)
-    setBildePreview(null) // ikke revoke ennå — optimistisk visning bruker den
+    setBildePreview(null) // ikke revoke ennå — optimistisk rad bruker den
 
+    let bildeUrl: string | null = null
     try {
       // Last opp bilde til R2 først hvis valgt
-      let bildeUrl: string | null = null
       if (filUploadKopi) {
         const fd = new FormData()
         fd.append('fil', filUploadKopi)
@@ -685,12 +697,17 @@ export default function Chat({
       console.error('Send feilet:', err)
       setMeldinger(prev => prev.filter(m => m.id !== tempId))
       setBildeFeil('Kunne ikke sende meldingen')
+      // Rydd opp R2-fil hvis upload lyktes men insert feilet (best effort —
+      // bedre å ha en orphan enn å feile uten tilbakemelding).
+      if (bildeUrl) slettBilde(bildeUrl).catch(() => {})
+      // Frigjør blob-URL siden den optimistiske raden ble fjernet
+      if (previewUrlKopi) URL.revokeObjectURL(previewUrlKopi)
     } finally {
       setSender(false)
-      // Frigjør blob-URL — realtime/insert-callback har nå lagt inn ekte URL
-      if (previewUrlKopi) URL.revokeObjectURL(previewUrlKopi)
       inputRef.current?.focus()
     }
+    // Merk: blob-URL beholdes ved suksess til realtime INSERT bytter ut
+    // optimistisk-raden. Cleanup skjer i useEffect under når raden er borte.
   }
 
   function startLongPress(meldingId: string) {
@@ -1464,7 +1481,7 @@ export default function Chat({
             }
           }}
           placeholder={bildePreview ? 'Legg til tekst (valgfritt)…' : 'Skriv en melding…'}
-          maxLength={500}
+          maxLength={scope.type === 'privat' ? INNLEGG_MAKS_LENGDE : CHAT_MAKS_LENGDE}
           enterKeyHint="send"
           autoComplete="off"
           style={{

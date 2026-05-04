@@ -17,7 +17,8 @@ type ChatRad = {
   id: string
   samtale_id: string
   profil_id: string
-  innhold: string
+  innhold: string | null
+  bilde_url: string | null
   opprettet: string
   lest: boolean
 }
@@ -86,7 +87,7 @@ export default async function SamtalerInbox() {
   const [{ data: alleMeldinger }, { data: profiler }] = await Promise.all([
     supabase
       .from('samtale_chat')
-      .select('id, samtale_id, profil_id, innhold, opprettet, lest')
+      .select('id, samtale_id, profil_id, innhold, bilde_url, opprettet, lest')
       .in('samtale_id', samtaleIder)
       .order('opprettet', { ascending: false }),
     supabase
@@ -217,7 +218,8 @@ export default async function SamtalerInbox() {
                     }}
                   >
                     {siste
-                      ? (siste.profil_id === user.id ? 'Du: ' : '') + siste.innhold
+                      ? (siste.profil_id === user.id ? 'Du: ' : '') +
+                        (siste.innhold ?? (siste.bilde_url ? '📷 Bilde' : ''))
                       : 'Ingen meldinger ennå'}
                   </span>
                   {ulest > 0 && (
