@@ -27,9 +27,56 @@ const JSON_IN = 'scripts/fb-arrangementer.json'
 // er public og ufarlig å committe.
 const R2_PUBLIC_URL = 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev'
 
-// Cover-region innen hver rad (kalibrert mot 220746).
-// w=160 kutter tett på cover-bildet uten å ta med FB-UI på høyre side.
-const COVER = { x: 18, y: 8, w: 160, h: 155 }
+// Cover-bildet er ca 150 px bredt. Vi croper 170 px for å være trygge
+// mot et par px drift på begge sider.
+const COVER_W = 170
+const COVER_H = 165
+const COVER_Y_OFF = 4
+
+// Finner x-koordinaten der cover-bildet starter. Strategi: telle ikke-hvite
+// pixler per kolonne, finn første kolonne der majoritet (>30%) av høyden er
+// ikke-hvit. Det filtrerer bort tynne fb-separator-linjer og finner det
+// faktiske cover-rektangelet.
+async function finnCoverX(fil, radHoyde) {
+  const { data, info } = await sharp(fil)
+    .extract({ left: 0, top: 0, width: 400, height: radHoyde })
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  const ch = info.channels
+  // Lavt terskel (10%) for å fange rounded-corner-edge der bare sentrum av
+  // kolonnen er fargete. KREV_KONSEKUTIVE filtrerer bort tynne UI-linjer.
+  const terskel = Math.floor(info.height * 0.1)
+  const KREV_KONSEKUTIVE = 50
+
+  // Bygg array med "har dette søylen ≥40% farge?"
+  const farget = new Array(info.width).fill(false)
+  for (let x = 0; x < info.width; x++) {
+    let n = 0
+    for (let y = 0; y < info.height; y++) {
+      const i = (y * info.width + x) * ch
+      const r = data[i], g = data[i + 1], b = data[i + 2]
+      const avg = (r + g + b) / 3
+      if (avg < 230 || Math.abs(r - g) > 30 || Math.abs(g - b) > 30) n++
+    }
+    farget[x] = n >= terskel
+  }
+
+  // Finn første start på et run med ≥KREV_KONSEKUTIVE fargete kolonner.
+  // Trekk fra større margin (-12) for å inkludere coverets rundete hjørne
+  // som har for få fargete pixler til å bli detektert direkte.
+  let runStart = -1
+  for (let x = 0; x < farget.length; x++) {
+    if (farget[x]) {
+      if (runStart === -1) runStart = x
+      if (x - runStart + 1 >= KREV_KONSEKUTIVE) {
+        return Math.max(0, runStart - 12)
+      }
+    } else {
+      runStart = -1
+    }
+  }
+  return 8
+}
 
 // JPEG-kvalitet for komprimering — matcher policy i bilde-utils.ts
 const JPEG_KVALITET = 85
@@ -91,12 +138,14 @@ async function main() {
     const fil = `${SCREENSHOTS}/${skjermbilde}`
     const meta = await sharp(fil).metadata()
     const radHoyde = Math.floor(meta.height / arr.length)
+    const coverX = await finnCoverX(fil, radHoyde)
+    console.log(`  ${skjermbilde}: ${meta.width}x${meta.height}, ${arr.length} events, coverX=${coverX}`)
 
     for (let i = 0; i < arr.length; i++) {
       const event = arr[i]
       const yOff = i * radHoyde
-      const top = yOff + COVER.y
-      const height = Math.min(COVER.h, meta.height - top)
+      const top = yOff + COVER_Y_OFF
+      const height = Math.min(COVER_H, meta.height - top)
       if (height < 50) continue
 
       const filnavn = `${event.dato}-${slugify(event.tittel)}.jpg`
@@ -104,7 +153,7 @@ async function main() {
       const r2Url = `${R2_PUBLIC_URL}/${r2Sti}`
 
       await sharp(fil)
-        .extract({ left: COVER.x, top, width: COVER.w, height })
+        .extract({ left: coverX, top, width: COVER_W, height })
         .jpeg({ quality: JPEG_KVALITET })
         .toFile(`${CROPS}/${filnavn}`)
       antallCroppet++

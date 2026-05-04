@@ -46,7 +46,7 @@ export default async function SamtaleDetalj({
       .single(),
     supabase
       .from('samtale_chat')
-      .select('id, profil_id, innhold, opprettet')
+      .select('id, profil_id, innhold, bilde_url, opprettet')
       .eq('samtale_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),

@@ -27,6 +27,11 @@ import { formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
+import BildeLightbox from '@/components/ui/BildeLightbox'
+import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
+import { CHAT_MAKS_LENGDE } from '@/lib/konstanter'
+import { INNLEGG_MAKS_LENGDE } from '@/lib/konstanter'
 
 export type ChatScope =
   | { type: 'arrangement'; arrangementId: string }
@@ -38,7 +43,8 @@ export type ChatScope =
 export type ChatMelding = {
   id: string
   profil_id: string
-  innhold: string
+  innhold: string | null
+  bilde_url: string | null
   opprettet: string
 }
 
@@ -57,7 +63,8 @@ const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as co
 
 type Reaksjon = { melding_id: string; profil_id: string; emoji: string }
 
-function renderMedMentions(tekst: string) {
+function renderMedMentions(tekst: string | null) {
+  if (!tekst) return null
   const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
   return deler.map((del, i) =>
     del.startsWith('@') ? (
@@ -96,6 +103,13 @@ export default function Chat({
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
   const [mentionSøk, setMentionSøk] = useState<string | null>(null)
+  // Vedheng-bilde (file holdes til submit, lastes opp først ved send)
+  const [bildeFil, setBildeFil] = useState<File | null>(null)
+  const [bildePreview, setBildePreview] = useState<string | null>(null)
+  const [bildeFeil, setBildeFeil] = useState('')
+  const bildeInputRef = useRef<HTMLInputElement>(null)
+  // Lightbox-visning av bilder
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
   // Reaksjoner — flat liste hentet fra chat_reaksjoner. Grupperes per melding
   // i render. En Map er raskere for hot-paths men flat liste er lettere å
   // oppdatere atomisk via realtime.
@@ -152,7 +166,7 @@ export default function Chat({
       if (scope.type === 'klubb') {
         let q = supabase
           .from('klubb_chat')
-          .select('id, profil_id, innhold, opprettet')
+          .select('id, profil_id, innhold, bilde_url, opprettet')
           .order('opprettet', { ascending: false })
           .limit(SIDE_STORRELSE)
         if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
@@ -162,7 +176,7 @@ export default function Chat({
       if (scope.type === 'poll') {
         let q = supabase
           .from('poll_chat')
-          .select('id, profil_id, innhold, opprettet')
+          .select('id, profil_id, innhold, bilde_url, opprettet')
           .eq('poll_id', scope.pollId)
           .order('opprettet', { ascending: false })
           .limit(SIDE_STORRELSE)
@@ -173,7 +187,7 @@ export default function Chat({
       if (scope.type === 'melding') {
         let q = supabase
           .from('melding_chat')
-          .select('id, profil_id, innhold, opprettet')
+          .select('id, profil_id, innhold, bilde_url, opprettet')
           .eq('melding_id', scope.meldingId)
           .order('opprettet', { ascending: false })
           .limit(SIDE_STORRELSE)
@@ -184,7 +198,7 @@ export default function Chat({
       if (scope.type === 'privat') {
         let q = supabase
           .from('samtale_chat')
-          .select('id, profil_id, innhold, opprettet')
+          .select('id, profil_id, innhold, bilde_url, opprettet')
           .eq('samtale_id', scope.samtaleId)
           .order('opprettet', { ascending: false })
           .limit(SIDE_STORRELSE)
@@ -194,7 +208,7 @@ export default function Chat({
       }
       let q = supabase
         .from('arrangement_chat')
-        .select('id, profil_id, innhold, opprettet')
+        .select('id, profil_id, innhold, bilde_url, opprettet')
         .eq('arrangement_id', scope.arrangementId)
         .order('opprettet', { ascending: false })
         .limit(SIDE_STORRELSE)
@@ -212,6 +226,36 @@ export default function Chat({
       supabase,
     ],
   )
+
+  // Frigjør blob-URL når preview byttes
+  useEffect(() => {
+    return () => {
+      if (bildePreview) URL.revokeObjectURL(bildePreview)
+    }
+  }, [bildePreview])
+
+  async function velgBilde(e: React.ChangeEvent<HTMLInputElement>) {
+    const fil = e.target.files?.[0]
+    if (!fil) return
+    setBildeFeil('')
+    try {
+      const komprimert = await komprimer(fil)
+      setBildeFil(komprimert)
+      if (bildePreview) URL.revokeObjectURL(bildePreview)
+      setBildePreview(URL.createObjectURL(komprimert))
+    } catch (err) {
+      setBildeFeil(err instanceof Error ? err.message : 'Kunne ikke lese bildet')
+    } finally {
+      if (bildeInputRef.current) bildeInputRef.current.value = ''
+    }
+  }
+
+  function fjernBilde() {
+    setBildeFil(null)
+    if (bildePreview) URL.revokeObjectURL(bildePreview)
+    setBildePreview(null)
+    setBildeFeil('')
+  }
 
   // @alle er et spesialvalg som trigger varsel til alle aktive profiler.
   // Server-siden matcher strengen «alle» direkte og sender varsler bredt.
@@ -402,14 +446,24 @@ export default function Chat({
           const ny = payload.new as ChatMelding
           setMeldinger(prev => {
             if (prev.some(m => m.id === ny.id)) return prev
-            const utenTemp = prev.filter(
+            // Fjern KUN ÉN matching temp-rad (eldste først), så samme melding
+            // sendt to ganger på rad ikke fører til at begge temp-rader
+            // forsvinner ved første INSERT.
+            const tempIdx = prev.findIndex(
               m =>
-                !(
-                  m.id.startsWith('temp-') &&
-                  m.profil_id === ny.profil_id &&
-                  m.innhold === ny.innhold
-                ),
+                m.id.startsWith('temp-') &&
+                m.profil_id === ny.profil_id &&
+                m.innhold === ny.innhold,
             )
+            const utenTemp =
+              tempIdx === -1 ? prev : prev.filter((_, i) => i !== tempIdx)
+            // Frigjør blob-URL fra temp-raden hvis den hadde en
+            if (tempIdx !== -1) {
+              const fjernet = prev[tempIdx]
+              if (fjernet.bilde_url?.startsWith('blob:')) {
+                URL.revokeObjectURL(fjernet.bilde_url)
+              }
+            }
             return [...utenTemp, ny]
           })
         })
@@ -593,39 +647,67 @@ export default function Chat({
   }
 
   async function handleSend() {
-    const melding = tekst.trim()
-    if (!melding || sender) return
-    setTekst('')
-    setMentionSøk(null)
-    setSender(true)
+    const melding = tekst.trim() || null
+    const harBilde = !!bildeFil
+    if (!melding && !harBilde) return
+    if (sender) return
 
-    const tempId = `temp-${Date.now()}`
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const optimistisk: ChatMelding = {
       id: tempId,
       profil_id: brukerId,
       innhold: melding,
+      bilde_url: bildePreview, // viser blob-URL midlertidig
       opprettet: new Date().toISOString(),
     }
     setMeldinger(prev => [...prev, optimistisk])
 
+    setTekst('')
+    setMentionSøk(null)
+    setSender(true)
+    const filUploadKopi = bildeFil
+    const previewUrlKopi = bildePreview
+    setBildeFil(null)
+    setBildePreview(null) // ikke revoke ennå — optimistisk rad bruker den
+
+    let bildeUrl: string | null = null
     try {
-      if (scope.type === 'arrangement') {
-        await sendMelding(scope.arrangementId, melding)
-      } else if (scope.type === 'poll') {
-        await sendPollMelding(scope.pollId, melding)
-      } else if (scope.type === 'melding') {
-        await sendMeldingKommentar(scope.meldingId, melding)
-      } else if (scope.type === 'privat') {
-        await sendPrivatMelding(scope.samtaleId, melding)
-      } else {
-        await sendKlubbMelding(melding)
+      // Last opp bilde til R2 først hvis valgt
+      if (filUploadKopi) {
+        const fd = new FormData()
+        fd.append('fil', filUploadKopi)
+        fd.append('filnavn', genererFilnavn(filUploadKopi))
+        fd.append('kategori', 'chat')
+        const res = await lastOppBilde(fd)
+        bildeUrl = res.url
       }
-    } catch {
+
+      if (scope.type === 'arrangement') {
+        await sendMelding(scope.arrangementId, melding, bildeUrl)
+      } else if (scope.type === 'poll') {
+        await sendPollMelding(scope.pollId, melding, bildeUrl)
+      } else if (scope.type === 'melding') {
+        await sendMeldingKommentar(scope.meldingId, melding, bildeUrl)
+      } else if (scope.type === 'privat') {
+        await sendPrivatMelding(scope.samtaleId, melding, bildeUrl)
+      } else {
+        await sendKlubbMelding(melding, bildeUrl)
+      }
+    } catch (err) {
+      console.error('Send feilet:', err)
       setMeldinger(prev => prev.filter(m => m.id !== tempId))
+      setBildeFeil('Kunne ikke sende meldingen')
+      // Rydd opp R2-fil hvis upload lyktes men insert feilet (best effort —
+      // bedre å ha en orphan enn å feile uten tilbakemelding).
+      if (bildeUrl) slettBilde(bildeUrl).catch(() => {})
+      // Frigjør blob-URL siden den optimistiske raden ble fjernet
+      if (previewUrlKopi) URL.revokeObjectURL(previewUrlKopi)
     } finally {
       setSender(false)
       inputRef.current?.focus()
     }
+    // Merk: blob-URL beholdes ved suksess til realtime INSERT bytter ut
+    // optimistisk-raden. Cleanup skjer i useEffect under når raden er borte.
   }
 
   function startLongPress(meldingId: string) {
@@ -1010,7 +1092,37 @@ export default function Chat({
                       touchAction: 'manipulation',
                     }}
                   >
-                    {renderMedMentions(m.innhold)}
+                    {m.bilde_url && (
+                      <button
+                        type="button"
+                        onClick={() => setLightboxSrc(m.bilde_url)}
+                        style={{
+                          display: 'block',
+                          padding: 0,
+                          border: 'none',
+                          background: 'none',
+                          margin: m.innhold ? '0 0 8px' : 0,
+                          cursor: 'zoom-in',
+                          maxWidth: '100%',
+                        }}
+                        aria-label="Vis bilde i full skjerm"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={m.bilde_url}
+                          alt=""
+                          loading="lazy"
+                          style={{
+                            display: 'block',
+                            maxWidth: 280,
+                            maxHeight: 280,
+                            borderRadius: 8,
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </button>
+                    )}
+                    {m.innhold && renderMedMentions(m.innhold)}
                   </div>
                   )}
                   {/* Reaksjons-chips — flyter på bunnkanten av bobla, ikke
@@ -1133,7 +1245,7 @@ export default function Chat({
                             {emoji}
                           </button>
                         ))}
-                        {erEgen && (
+                        {erEgen && m.innhold !== null && (
                           <>
                             <div
                               style={{
@@ -1145,7 +1257,7 @@ export default function Chat({
                             />
                             <button
                               type="button"
-                              onClick={() => startEdit(m.id, m.innhold)}
+                              onClick={() => startEdit(m.id, m.innhold!)}
                               style={{
                                 height: 34,
                                 borderRadius: 999,
@@ -1251,19 +1363,108 @@ export default function Chat({
         </div>
       )}
 
+      {/* Bilde-forhåndsvisning over input når et bilde er valgt */}
+      {bildePreview && (
+        <div
+          style={{
+            position: 'relative',
+            marginBottom: 6,
+            display: 'inline-block',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bildePreview}
+            alt="Forhåndsvisning"
+            style={{
+              maxWidth: 120,
+              maxHeight: 120,
+              borderRadius: 8,
+              border: '0.5px solid var(--border)',
+              objectFit: 'cover',
+            }}
+          />
+          <button
+            type="button"
+            onClick={fjernBilde}
+            aria-label="Fjern bilde"
+            style={{
+              position: 'absolute',
+              top: -6,
+              right: -6,
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.75)',
+              color: '#fff',
+              border: 'none',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {bildeFeil && (
+        <div
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 11,
+            color: 'var(--danger)',
+            marginBottom: 6,
+          }}
+        >
+          {bildeFeil}
+        </div>
+      )}
+
       {/* Skriv melding — pill */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 10,
-          padding: '8px 8px 8px 16px',
+          gap: 6,
+          padding: '8px 8px 8px 12px',
           border: '0.5px solid var(--border)',
           borderRadius: 999,
           background: 'var(--bg-elevated)',
           marginBottom: 4,
         }}
       >
+        <button
+          type="button"
+          onClick={() => bildeInputRef.current?.click()}
+          aria-label="Legg ved bilde"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'transparent',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--text-secondary)',
+            flexShrink: 0,
+            padding: 0,
+          }}
+        >
+          <Icon name="image" size={18} color="currentColor" strokeWidth={1.8} />
+        </button>
+        <input
+          ref={bildeInputRef}
+          type="file"
+          accept="image/*"
+          onChange={velgBilde}
+          style={{ display: 'none' }}
+        />
         <input
           ref={inputRef}
           type="text"
@@ -1279,8 +1480,8 @@ export default function Chat({
               handleSend()
             }
           }}
-          placeholder="Skriv en melding…"
-          maxLength={500}
+          placeholder={bildePreview ? 'Legg til tekst (valgfritt)…' : 'Skriv en melding…'}
+          maxLength={scope.type === 'privat' ? INNLEGG_MAKS_LENGDE : CHAT_MAKS_LENGDE}
           enterKeyHint="send"
           autoComplete="off"
           style={{
@@ -1297,7 +1498,7 @@ export default function Chat({
         <button
           type="button"
           onClick={handleSend}
-          disabled={!tekst.trim() || sender}
+          disabled={(!tekst.trim() && !bildeFil) || sender}
           style={{
             width: 32,
             height: 32,
@@ -1307,8 +1508,8 @@ export default function Chat({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: !tekst.trim() || sender ? 'default' : 'pointer',
-            opacity: !tekst.trim() || sender ? 0.4 : 1,
+            cursor: (!tekst.trim() && !bildeFil) || sender ? 'default' : 'pointer',
+            opacity: (!tekst.trim() && !bildeFil) || sender ? 0.4 : 1,
             flexShrink: 0,
           }}
           aria-label="Send melding"
@@ -1316,6 +1517,10 @@ export default function Chat({
           <Icon name="arrowRight" size={14} color="#0a0a0a" strokeWidth={2.5} />
         </button>
       </div>
+
+      {lightboxSrc && (
+        <BildeLightbox src={lightboxSrc} onLukk={() => setLightboxSrc(null)} />
+      )}
     </div>
   )
 }

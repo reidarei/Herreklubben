@@ -34,3 +34,11 @@ Thumbs.db
 # FB-import — generert lokalt, lastes opp til R2
 /scripts/fb-crops/
 /scripts/fb-kalibrer-out/
+/scripts/fb-test-*.png
+/scripts/fb-test-*.mjs
+/scripts/fb-bust-cache.mjs
+/scripts/fb-upload-r2.mjs
+/scripts/fb-fix.mjs
+/scripts/fb-reimport.mjs
+/scripts/fb-kjor.mjs
+/scripts/kjor-migrasjon.mjs

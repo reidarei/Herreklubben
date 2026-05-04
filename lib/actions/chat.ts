@@ -4,18 +4,29 @@ import { createServerClient } from '@/lib/supabase/server'
 import { sendChatMentionVarsler } from '@/lib/varsler'
 import { CHAT_MAKS_LENGDE, CHAT_MIN_LENGDE } from '@/lib/konstanter'
 
-// Trimmer og validerer chat-tekst. Speiler check-constraint i DB; lar oss
-// returnere en lesbar feil før vi går til DB.
-function valider(innhold: string): string {
-  const tekst = innhold.trim()
-  if (tekst.length < CHAT_MIN_LENGDE || tekst.length > CHAT_MAKS_LENGDE) {
+// Trimmer og validerer chat-innhold.
+// Tekst kan være tom hvis bilde_url er satt — meldingen kan være ren bilde.
+// Returnerer trimmed tekst (eller null hvis tom).
+function validerInnhold(
+  innhold: string | null,
+  bildeUrl: string | null,
+): { tekst: string | null } {
+  const tekst = innhold?.trim() || null
+  if (!tekst && !bildeUrl) {
+    throw new Error('Meldingen må ha tekst eller bilde')
+  }
+  if (tekst && (tekst.length < CHAT_MIN_LENGDE || tekst.length > CHAT_MAKS_LENGDE)) {
     throw new Error(`Meldingen må være ${CHAT_MIN_LENGDE}–${CHAT_MAKS_LENGDE} tegn`)
   }
-  return tekst
+  return { tekst }
 }
 
-export async function sendMelding(arrangementId: string, innhold: string) {
-  const tekst = valider(innhold)
+export async function sendMelding(
+  arrangementId: string,
+  innhold: string | null,
+  bildeUrl: string | null = null,
+) {
+  const { tekst } = validerInnhold(innhold, bildeUrl)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,7 +34,7 @@ export async function sendMelding(arrangementId: string, innhold: string) {
 
   const { error } = await supabase
     .from('arrangement_chat')
-    .insert({ arrangement_id: arrangementId, profil_id: user.id, innhold: tekst })
+    .insert({ arrangement_id: arrangementId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
 
   if (error) throw new Error(error.message)
 
@@ -31,19 +42,21 @@ export async function sendMelding(arrangementId: string, innhold: string) {
   // når server action returnerer (CLAUDE.md: «Bruk aldri after()…
   // Bruk await direkte»). Promise.all internt gjør utsendingen
   // parallell, så latency er kort selv med mange mottakere.
-  try {
-    await sendChatMentionVarsler(
-      { type: 'arrangement', id: arrangementId },
-      tekst,
-      user.id,
-    )
-  } catch (err) {
-    console.error('mention-varsler feilet:', err)
+  if (tekst) {
+    try {
+      await sendChatMentionVarsler(
+        { type: 'arrangement', id: arrangementId },
+        tekst,
+        user.id,
+      )
+    } catch (err) {
+      console.error('mention-varsler feilet:', err)
+    }
   }
 }
 
 export async function oppdaterMelding(meldingId: string, innhold: string) {
-  const tekst = valider(innhold)
+  const { tekst } = validerInnhold(innhold, 'placeholder') // tekst er påkrevd ved redigering
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -65,11 +78,12 @@ export async function slettMelding(meldingId: string) {
 }
 
 // ---------- Klubb-chat ----------
-// Felles kronologisk tråd for hele klubben. Samme mention-varsling
-// som arrangement-chatten, men uten arrangement-referanse.
 
-export async function sendKlubbMelding(innhold: string) {
-  const tekst = valider(innhold)
+export async function sendKlubbMelding(
+  innhold: string | null,
+  bildeUrl: string | null = null,
+) {
+  const { tekst } = validerInnhold(innhold, bildeUrl)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -77,19 +91,21 @@ export async function sendKlubbMelding(innhold: string) {
 
   const { error } = await supabase
     .from('klubb_chat')
-    .insert({ profil_id: user.id, innhold: tekst })
+    .insert({ profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
 
   if (error) throw new Error(error.message)
 
-  try {
-    await sendChatMentionVarsler({ type: 'klubb' }, tekst, user.id)
-  } catch (err) {
-    console.error('mention-varsler feilet:', err)
+  if (tekst) {
+    try {
+      await sendChatMentionVarsler({ type: 'klubb' }, tekst, user.id)
+    } catch (err) {
+      console.error('mention-varsler feilet:', err)
+    }
   }
 }
 
 export async function oppdaterKlubbMelding(meldingId: string, innhold: string) {
-  const tekst = valider(innhold)
+  const { tekst } = validerInnhold(innhold, 'placeholder')
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -111,10 +127,13 @@ export async function slettKlubbMelding(meldingId: string) {
 }
 
 // ---------- Poll-chat ----------
-// Kommentarer per poll. Speiler arrangement-chat med @mention-varsler.
 
-export async function sendPollMelding(pollId: string, innhold: string) {
-  const tekst = valider(innhold)
+export async function sendPollMelding(
+  pollId: string,
+  innhold: string | null,
+  bildeUrl: string | null = null,
+) {
+  const { tekst } = validerInnhold(innhold, bildeUrl)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -122,19 +141,21 @@ export async function sendPollMelding(pollId: string, innhold: string) {
 
   const { error } = await supabase
     .from('poll_chat')
-    .insert({ poll_id: pollId, profil_id: user.id, innhold: tekst })
+    .insert({ poll_id: pollId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
 
   if (error) throw new Error(error.message)
 
-  try {
-    await sendChatMentionVarsler({ type: 'poll', id: pollId }, tekst, user.id)
-  } catch (err) {
-    console.error('mention-varsler feilet:', err)
+  if (tekst) {
+    try {
+      await sendChatMentionVarsler({ type: 'poll', id: pollId }, tekst, user.id)
+    } catch (err) {
+      console.error('mention-varsler feilet:', err)
+    }
   }
 }
 
 export async function oppdaterPollMelding(meldingId: string, innhold: string) {
-  const tekst = valider(innhold)
+  const { tekst } = validerInnhold(innhold, 'placeholder')
 
   const supabase = await createServerClient()
   const { error } = await supabase
@@ -156,11 +177,13 @@ export async function slettPollMelding(meldingId: string) {
 }
 
 // === Kommentarer på meldinger (#90) =================================
-// Speiler poll-varianten. melding_chat-tabellen har trigger som oppdaterer
-// meldinger.sist_aktivitet — som driver agenda-sorteringen.
 
-export async function sendMeldingKommentar(meldingId: string, innhold: string) {
-  const tekst = valider(innhold)
+export async function sendMeldingKommentar(
+  meldingId: string,
+  innhold: string | null,
+  bildeUrl: string | null = null,
+) {
+  const { tekst } = validerInnhold(innhold, bildeUrl)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -168,19 +191,21 @@ export async function sendMeldingKommentar(meldingId: string, innhold: string) {
 
   const { error } = await supabase
     .from('melding_chat')
-    .insert({ melding_id: meldingId, profil_id: user.id, innhold: tekst })
+    .insert({ melding_id: meldingId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
 
   if (error) throw new Error(error.message)
 
-  try {
-    await sendChatMentionVarsler({ type: 'melding', id: meldingId }, tekst, user.id)
-  } catch (err) {
-    console.error('mention-varsler feilet:', err)
+  if (tekst) {
+    try {
+      await sendChatMentionVarsler({ type: 'melding', id: meldingId }, tekst, user.id)
+    } catch (err) {
+      console.error('mention-varsler feilet:', err)
+    }
   }
 }
 
 export async function oppdaterMeldingKommentar(kommentarId: string, innhold: string) {
-  const tekst = valider(innhold)
+  const { tekst } = validerInnhold(innhold, 'placeholder')
 
   const supabase = await createServerClient()
   const { error } = await supabase
