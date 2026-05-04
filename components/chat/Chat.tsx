@@ -330,75 +330,39 @@ export default function Chat({
     if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
-  // Skjul bottom-nav når tastaturet er åpent på mobil. Vi krever BÅDE
-  // at viewport er smalere (visualViewport) OG at en chat-input er
-  // fokusert — slik at swipe-back-gesten på iOS som transient krymper
-  // viewporten ikke trigger feilaktig.
-  //
-  // Tidligere brukte vi bare visualViewport, men da blir docken hengende
-  // skjult når brukeren sveiper tilbake fra en chat-side: iOS endrer
-  // viewport-høyde under animasjonen, og hvis cleanup ikke rekker å
-  // kjøre i tide blir klassen liggende.
+  // Skjul bottom-nav KUN når en chat-input faktisk er fokusert.
+  // Tidligere brukte vi visualViewport-ratio i tillegg, men det skapte
+  // problemer på iOS: ved swipe-back, PiP-modus, eller browser-chrome-
+  // skjul varierer viewport-høyden uten at brukeren faktisk er i input.
+  // Fokus alene er sikrere — når chat-input ikke er fokusert, skal docken
+  // alltid være synlig (issue #99).
   useEffect(() => {
     const KLASSE = 'chat-input-fokus'
     const html = document.documentElement
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null
 
-    function settKlasse(synlig: boolean) {
-      if (synlig) html.classList.add(KLASSE)
-      else html.classList.remove(KLASSE)
+    function erChatInput(el: EventTarget | null): boolean {
+      return !!el && el instanceof HTMLElement && el.dataset.chatInput === 'true'
     }
 
-    function chatInputErFokusert(): boolean {
-      const aktiv = document.activeElement
-      return !!aktiv && aktiv instanceof HTMLElement && aktiv.dataset.chatInput === 'true'
+    function håndterFokus(e: FocusEvent) {
+      if (erChatInput(e.target)) html.classList.add(KLASSE)
     }
-
-    function vurder() {
-      if (!vv) return
-      const ratio = vv.height / window.innerHeight
-      // Hvis chat-input ikke er fokusert har vi ingen grunn til å skjule
-      // docken — selv om viewport-en av en eller annen grunn er smalere
-      // (swipe-overgang, system-prompt, osv).
-      settKlasse(ratio < 0.85 && chatInputErFokusert())
+    function håndterBlur(e: FocusEvent) {
+      if (erChatInput(e.target)) html.classList.remove(KLASSE)
     }
-
-    if (vv) {
-      vv.addEventListener('resize', vurder)
-      // focusin/focusout fyrer på document-nivå når fokus endres på
-      // ethvert element under — vi reagerer slik at klassen kommer på/av
-      // umiddelbart ved fokus-bytte, ikke bare ved viewport-endringer.
-      document.addEventListener('focusin', vurder)
-      document.addEventListener('focusout', vurder)
-      vurder()
-    } else {
-      // Fallback (svært gamle nettlesere): hold fokus/blur-mønsteret
-      const input = inputRef.current
-      function handleFocus() { settKlasse(true) }
-      function handleBlur() { settKlasse(false) }
-      input?.addEventListener('focus', handleFocus)
-      input?.addEventListener('blur', handleBlur)
-      return () => {
-        input?.removeEventListener('focus', handleFocus)
-        input?.removeEventListener('blur', handleBlur)
-        settKlasse(false)
-      }
-    }
-
-    // pagehide fyrer når siden faktisk skjules (også ved iOS swipe-back),
-    // mens unmount-cleanup kan bli forsinket av animasjonen. Defense-in-
-    // depth for issue #99 — sammen med DockOpprydder i app/(app)/layout.tsx.
     function ryddVedSkjult() {
-      settKlasse(false)
+      html.classList.remove(KLASSE)
     }
+
+    document.addEventListener('focusin', håndterFokus)
+    document.addEventListener('focusout', håndterBlur)
     window.addEventListener('pagehide', ryddVedSkjult)
 
     return () => {
-      vv?.removeEventListener('resize', vurder)
-      document.removeEventListener('focusin', vurder)
-      document.removeEventListener('focusout', vurder)
+      document.removeEventListener('focusin', håndterFokus)
+      document.removeEventListener('focusout', håndterBlur)
       window.removeEventListener('pagehide', ryddVedSkjult)
-      settKlasse(false)
+      html.classList.remove(KLASSE)
     }
   }, [])
 

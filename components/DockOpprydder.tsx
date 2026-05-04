@@ -9,12 +9,26 @@ import { useEffect } from 'react'
 // kan timing-edge-cases gjøre at Chat-komponentens cleanup ikke rekker å
 // rydde — og klassen forblir, noe som skjuler bottom-nav på neste side.
 //
-// Denne komponenten lytter på pathname og rydder klassen på hver
-// navigasjon. Catch-all uavhengig av Chat-komponent-livssyklus.
+// To beskyttelseslag:
+// 1. Pathname-watch fjerner klassen ved hver navigasjon
+// 2. Periodisk sjekk (500ms) — hvis ingen chat-input faktisk er i fokus,
+//    fjern klassen. Catch-all hvis iOS-events (pagehide/focusout/resize)
+//    skipper en tick.
 export default function DockOpprydder() {
   const pathname = usePathname()
   useEffect(() => {
     document.documentElement.classList.remove('chat-input-fokus')
   }, [pathname])
+
+  useEffect(() => {
+    const html = document.documentElement
+    const id = setInterval(() => {
+      if (!html.classList.contains('chat-input-fokus')) return
+      const aktiv = document.activeElement as HTMLElement | null
+      const erChatInput = !!aktiv && aktiv.dataset?.chatInput === 'true'
+      if (!erChatInput) html.classList.remove('chat-input-fokus')
+    }, 500)
+    return () => clearInterval(id)
+  }, [])
   return null
 }
