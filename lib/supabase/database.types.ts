@@ -17,22 +17,25 @@ export type Database = {
       arrangement_chat: {
         Row: {
           arrangement_id: string
+          bilde_url: string | null
           id: string
-          innhold: string
+          innhold: string | null
           opprettet: string
           profil_id: string
         }
         Insert: {
           arrangement_id: string
+          bilde_url?: string | null
           id?: string
-          innhold: string
+          innhold?: string | null
           opprettet?: string
           profil_id: string
         }
         Update: {
           arrangement_id?: string
+          bilde_url?: string | null
           id?: string
-          innhold?: string
+          innhold?: string | null
           opprettet?: string
           profil_id?: string
         }
@@ -58,6 +61,7 @@ export type Database = {
           beskrivelse: string | null
           bilde_url: string | null
           destinasjon: string | null
+          fra_facebook: boolean
           id: string
           oppdatert: string
           oppmoetested: string | null
@@ -74,6 +78,7 @@ export type Database = {
           beskrivelse?: string | null
           bilde_url?: string | null
           destinasjon?: string | null
+          fra_facebook?: boolean
           id?: string
           oppdatert?: string
           oppmoetested?: string | null
@@ -90,6 +95,7 @@ export type Database = {
           beskrivelse?: string | null
           bilde_url?: string | null
           destinasjon?: string | null
+          fra_facebook?: boolean
           id?: string
           oppdatert?: string
           oppmoetested?: string | null
@@ -304,20 +310,23 @@ export type Database = {
       }
       klubb_chat: {
         Row: {
+          bilde_url: string | null
           id: string
-          innhold: string
+          innhold: string | null
           opprettet: string
           profil_id: string
         }
         Insert: {
+          bilde_url?: string | null
           id?: string
-          innhold: string
+          innhold?: string | null
           opprettet?: string
           profil_id: string
         }
         Update: {
+          bilde_url?: string | null
           id?: string
-          innhold?: string
+          innhold?: string | null
           opprettet?: string
           profil_id?: string
         }
@@ -333,22 +342,25 @@ export type Database = {
       }
       melding_chat: {
         Row: {
+          bilde_url: string | null
           id: string
-          innhold: string
+          innhold: string | null
           melding_id: string
           opprettet: string
           profil_id: string
         }
         Insert: {
+          bilde_url?: string | null
           id?: string
-          innhold: string
+          innhold?: string | null
           melding_id: string
           opprettet?: string
           profil_id: string
         }
         Update: {
+          bilde_url?: string | null
           id?: string
-          innhold?: string
+          innhold?: string | null
           melding_id?: string
           opprettet?: string
           profil_id?: string
@@ -614,22 +626,25 @@ export type Database = {
       }
       poll_chat: {
         Row: {
+          bilde_url: string | null
           id: string
-          innhold: string
+          innhold: string | null
           opprettet: string
           poll_id: string
           profil_id: string
         }
         Insert: {
+          bilde_url?: string | null
           id?: string
-          innhold: string
+          innhold?: string | null
           opprettet?: string
           poll_id: string
           profil_id: string
         }
         Update: {
+          bilde_url?: string | null
           id?: string
-          innhold?: string
+          innhold?: string | null
           opprettet?: string
           poll_id?: string
           profil_id?: string
@@ -841,24 +856,27 @@ export type Database = {
       }
       samtale_chat: {
         Row: {
+          bilde_url: string | null
           id: string
-          innhold: string
+          innhold: string | null
           lest: boolean
           opprettet: string
           profil_id: string
           samtale_id: string
         }
         Insert: {
+          bilde_url?: string | null
           id?: string
-          innhold: string
+          innhold?: string | null
           lest?: boolean
           opprettet?: string
           profil_id: string
           samtale_id: string
         }
         Update: {
+          bilde_url?: string | null
           id?: string
-          innhold?: string
+          innhold?: string | null
           lest?: boolean
           opprettet?: string
           profil_id?: string

@@ -47,9 +47,16 @@ export async function aapneSamtale(motpartId: string) {
   redirect(`/samtaler/${ny.id}`)
 }
 
-export async function sendPrivatMelding(samtaleId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
+export async function sendPrivatMelding(
+  samtaleId: string,
+  innhold: string | null,
+  bildeUrl: string | null = null,
+) {
+  const tekst = innhold?.trim() || null
+  if (!tekst && !bildeUrl) {
+    throw new Error('Meldingen må ha tekst eller bilde')
+  }
+  if (tekst && (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE)) {
     throw new Error(`Meldingen må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
 
@@ -60,13 +67,14 @@ export async function sendPrivatMelding(samtaleId: string, innhold: string) {
   // RLS sørger for at vi kun kan poste i samtaler vi deltar i
   const { error } = await supabase
     .from('samtale_chat')
-    .insert({ samtale_id: samtaleId, profil_id: user.id, innhold: tekst })
+    .insert({ samtale_id: samtaleId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
 
   if (error) throw new Error(error.message)
 
   // Varsle motparten i bakgrunnen — sentral sendVarsel håndterer
   // brukerpreferanser, dedup-policy og logging.
-  sendPrivatMeldingVarsel(samtaleId, tekst, user.id).catch(console.error)
+  const varselTekst = tekst ?? '📷 Sendte deg et bilde'
+  sendPrivatMeldingVarsel(samtaleId, varselTekst, user.id).catch(console.error)
 }
 
 async function sendPrivatMeldingVarsel(samtaleId: string, tekst: string, avsenderId: string) {
