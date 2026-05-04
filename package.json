@@ -39,6 +39,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "^3.6.4",
     "jsdom": "^29.0.2",
+    "pg": "^8.20.0",
     "supabase": "^2.84.10",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
