@@ -4,6 +4,7 @@ import PageTransition from '@/components/PageTransition'
 import ServiceWorkerRegistrering from '@/components/ServiceWorkerRegistrering'
 import DraNedForOppdater from '@/components/DraNedForOppdater'
 import DeployInfo from '@/components/DeployInfo'
+import DockOpprydder from '@/components/DockOpprydder'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
 
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <ServiceWorkerRegistrering />
+      <DockOpprydder />
       <DraNedForOppdater />
       <main className="flex-1 pb-24 relative z-10">
         <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
