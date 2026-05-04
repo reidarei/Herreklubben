@@ -385,10 +385,19 @@ export default function Chat({
       }
     }
 
+    // pagehide fyrer når siden faktisk skjules (også ved iOS swipe-back),
+    // mens unmount-cleanup kan bli forsinket av animasjonen. Defense-in-
+    // depth for issue #99 — sammen med DockOpprydder i app/(app)/layout.tsx.
+    function ryddVedSkjult() {
+      settKlasse(false)
+    }
+    window.addEventListener('pagehide', ryddVedSkjult)
+
     return () => {
       vv?.removeEventListener('resize', vurder)
       document.removeEventListener('focusin', vurder)
       document.removeEventListener('focusout', vurder)
+      window.removeEventListener('pagehide', ryddVedSkjult)
       settKlasse(false)
     }
   }, [])
