@@ -108,9 +108,12 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   }, [])
 
   // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker hver
-  // 300ms om en tekst-input fortsatt er fokusert. Hvis ikke, reset state.
-  // Fanger iOS-edge-cases der focusout-event ikke fyrer (f.eks. ved
-  // swipe-back). Når tastaturApent = false er det ingen polling = ingen
+  // 300ms om EN av to forutsetninger ikke holder lenger:
+  //   (a) ingen tekst-input fokusert (catch-all for swipe-back uten focusout)
+  //   (b) visualViewport sier at tastaturet faktisk er nede (catch-all
+  //       for iOS «Done»-knapp som tar ned tastatur uten å blur'e input)
+  // Krever ELLER-logikk: kun behold state hvis BÅDE input fokusert OG
+  // tastatur oppe. Når tastaturApent = false er det ingen polling = ingen
   // batteribruk.
   useEffect(() => {
     if (!tastaturApent) return
@@ -122,7 +125,9 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
         (aktiv.tagName === 'INPUT' ||
           aktiv.tagName === 'TEXTAREA' ||
           aktiv.isContentEditable)
-      if (!erInput) setTastaturApent(false)
+      const vv = window.visualViewport
+      const tastaturOppe = vv ? window.innerHeight - vv.height > 150 : true
+      if (!erInput || !tastaturOppe) setTastaturApent(false)
     }, 300)
     return () => clearInterval(id)
   }, [tastaturApent])
