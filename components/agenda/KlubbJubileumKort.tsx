@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import { formaterDato } from '@/lib/dato'
+import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 
 export type KlubbJubileumData = {
   id: string
@@ -11,6 +11,7 @@ export type KlubbJubileumData = {
 export default function KlubbJubileumKort({ jubileum }: { jubileum: KlubbJubileumData }) {
   const mnd = formaterDato(jubileum.dato, 'MMM').toUpperCase()
   const dag = formaterDato(jubileum.dato, 'd')
+  const aar = aarHvisAvvik(jubileum.dato)
 
   return (
     <Link
@@ -65,7 +66,7 @@ export default function KlubbJubileumKort({ jubileum }: { jubileum: KlubbJubileu
           }}
         >
           <span>
-            {dag}. {mnd}
+            {dag}. {mnd}{aar && ` ${aar}`}
           </span>
         </div>
 

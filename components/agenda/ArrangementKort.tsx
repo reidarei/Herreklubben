@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
-import { formaterDato } from '@/lib/dato'
+import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 
 export type ArrangementKortData = {
   id: string
@@ -59,6 +59,7 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
   const tid = formaterDato(iso, 'HH:mm')
+  const aar = aarHvisAvvik(iso)
   const scene = sceneFor(arr.type)
 
   return (
@@ -109,7 +110,7 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
             }}
           >
             <span>
-              {dag}. {mnd}
+              {dag}. {mnd}{aar && ` ${aar}`}
             </span>
             <span style={{ color: 'var(--text-tertiary)', letterSpacing: '1.2px' }}>· {tid}</span>
           </div>

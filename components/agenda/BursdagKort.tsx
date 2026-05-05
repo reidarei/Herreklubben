@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Avatar from '@/components/ui/Avatar'
-import { formaterDato } from '@/lib/dato'
+import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 
 export type BursdagData = {
   id: string
@@ -16,6 +16,7 @@ export type BursdagData = {
 export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
   const mnd = formaterDato(bursdag.dato, 'MMM').toUpperCase()
   const dag = formaterDato(bursdag.dato, 'd')
+  const aar = aarHvisAvvik(bursdag.dato)
 
   return (
     <Link
@@ -70,7 +71,7 @@ export default function BursdagKort({ bursdag }: { bursdag: BursdagData }) {
           }}
         >
           <span>
-            {dag}. {mnd}
+            {dag}. {mnd}{aar && ` ${aar}`}
           </span>
         </div>
 

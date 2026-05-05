@@ -58,6 +58,17 @@ export function norskAar(): number {
 }
 
 /**
+ * Returnerer årstallet (norsk tid) for en ISO-dato hvis det avviker fra
+ * inneværende år, ellers tom streng. Brukes på agenda-kort så vi slipper å
+ * vise «5. MAI» for et arrangement som faktisk er i 2027 — men beholder
+ * kompakt format for hele inneværende år.
+ */
+export function aarHvisAvvik(iso: string): string {
+  const aar = formatInTimeZone(new Date(iso), TIDSSONE, 'yyyy')
+  return aar === String(norskAar()) ? '' : aar
+}
+
+/**
  * Konverter ISO-dato til datetime-local verdi i norsk tidssone.
  * Brukes for å pre-fylle <input type="datetime-local"> med riktig tid.
  */

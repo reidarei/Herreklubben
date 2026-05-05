@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
-import { formaterDato } from '@/lib/dato'
+import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 import PollInlineStemme from '@/components/poll/PollInlineStemme'
 
 // Terskel for når alternativene vises som inline stemmeknapper på agenda-
@@ -36,7 +36,8 @@ function fristLabel(avsluttet: boolean, iso: string): string {
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
   const tid = formaterDato(iso, 'HH:mm')
-  return `frist ${dag}. ${mnd} ${tid}`
+  const aar = aarHvisAvvik(iso)
+  return `frist ${dag}. ${mnd}${aar ? ` ${aar}` : ''} ${tid}`
 }
 
 export default function PollKort({ poll, tidligere = false, kommentarer = [] }: Props) {
