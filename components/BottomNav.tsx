@@ -51,7 +51,8 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   //   2. visualViewport.resize — toveis sjekk basert på keyboard-høyde
   //   3. pagehide — fyrer ved iOS swipe-back før page unmount
   //   4. visibilitychange → hidden — når app går i bakgrunnen
-  //   5. usePathname-effekt + 200ms polling — catch-all hvis events skipper
+  //   5. Reset ved pathname-endring + 300ms polling KUN når tastaturApent
+  //      er true (slik at vi ikke vekker prosessoren unødvendig)
   const [tastaturApent, setTastaturApent] = useState(false)
 
   // Reset ved navigasjon — fanger tilfeller der focusout aldri fyrer
@@ -59,6 +60,7 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setTastaturApent(false)
   }, [pathname])
 
+  // Hovedeffekt: alle event-baserte signaler. Kjører hele tiden.
   useEffect(() => {
     function erTekstInput(el: EventTarget | null): boolean {
       if (!el || !(el instanceof HTMLElement)) return false
@@ -92,24 +94,37 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     window.addEventListener('pagehide', reset)
     document.addEventListener('visibilitychange', onVisibility)
 
-    // Polling-fallback: hvis state står på `true` men ingen tekst-input
-    // faktisk er fokusert, rydd. Fanger iOS-edge-cases der focusout
-    // ikke fyrer ved swipe-back eller native keyboard-dismiss.
-    const id = setInterval(() => {
-      const aktiv = document.activeElement
-      const erFokusert = erTekstInput(aktiv)
-      if (!erFokusert) setTastaturApent(false)
-    }, 300)
-
     return () => {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
       vv?.removeEventListener('resize', onVv)
       window.removeEventListener('pagehide', reset)
       document.removeEventListener('visibilitychange', onVisibility)
-      clearInterval(id)
     }
   }, [])
+
+  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker hver
+  // 300ms om en tekst-input fortsatt er fokusert OG om visualViewport
+  // fortsatt indikerer åpent tastatur. Krever begge for at state skal
+  // forbli true — slik at iOS-edge-cases (focusout-skip ved swipe-back)
+  // til slutt blir fanget opp og state ryddes.
+  // Når tastaturApent = false er det ingen polling = ingen batteribruk.
+  useEffect(() => {
+    if (!tastaturApent) return
+    const id = setInterval(() => {
+      const aktiv = document.activeElement
+      const erInput =
+        !!aktiv &&
+        aktiv instanceof HTMLElement &&
+        (aktiv.tagName === 'INPUT' ||
+          aktiv.tagName === 'TEXTAREA' ||
+          aktiv.isContentEditable)
+      const vv = window.visualViewport
+      const tastaturOppe = vv ? window.innerHeight - vv.height > 150 : true
+      if (!erInput && !tastaturOppe) setTastaturApent(false)
+    }, 300)
+    return () => clearInterval(id)
+  }, [tastaturApent])
 
   const containerStyle: CSSProperties = {
     position: 'fixed',
