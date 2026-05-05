@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/Users/reida/.claude/plans/**)"
+      "Read(//c/Users/reida/.claude/plans/**)",
+      "mcp__gmail__search-emails",
+      "mcp__gmail__read-email"
     ]
   }
 }

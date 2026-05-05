@@ -60,6 +60,17 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setTastaturApent(false)
   }, [pathname])
 
+  // Toggle klasse på <html> så CSS kan fjerne pb-24 fra <main> når dock
+  // er skjult. Uten dette blir det 96px dødt mellomrom mellom chat-input
+  // og tastaturet. Single source of truth — driven utelukkende fra denne
+  // statet, ingen risiko for divergens med andre mekanismer.
+  useEffect(() => {
+    const html = document.documentElement
+    if (tastaturApent) html.classList.add('tastatur-oppe')
+    else html.classList.remove('tastatur-oppe')
+    return () => html.classList.remove('tastatur-oppe')
+  }, [tastaturApent])
+
   // Hovedeffekt: alle event-baserte signaler. Kjører hele tiden.
   useEffect(() => {
     function erTekstInput(el: EventTarget | null): boolean {
@@ -79,9 +90,13 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     const vv = window.visualViewport
     function onVv() {
       if (!vv) return
-      // Toveis: setter til true ved tastatur-opp OG false ved tastatur-ned.
-      // Tidligere settes kun true → state ble strandende ved iOS swipe-back.
-      setTastaturApent(window.innerHeight - vv.height > 150)
+      // Enveis: kun setter til true når tastatur er detektert oppe.
+      // False-tilstanden styres av focusout, pagehide, visibilitychange,
+      // pathname-change og polling-fallback. Toveis VV var problematisk
+      // fordi iOS Safari fyrer VV-resize-events under scroll (URL-bar-
+      // kollaps, momentum, overscroll-bounce) — verdien kan kortvarig
+      // krysse 150-terskelen og flippe state under scroll i chat (#104).
+      if (window.innerHeight - vv.height > 150) setTastaturApent(true)
     }
     vv?.addEventListener('resize', onVv)
 
@@ -103,12 +118,14 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     }
   }, [])
 
-  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker hver
-  // 300ms om en tekst-input fortsatt er fokusert OG om visualViewport
-  // fortsatt indikerer åpent tastatur. Krever begge for at state skal
-  // forbli true — slik at iOS-edge-cases (focusout-skip ved swipe-back)
-  // til slutt blir fanget opp og state ryddes.
-  // Når tastaturApent = false er det ingen polling = ingen batteribruk.
+  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker fokus
+  // hver 300ms — hvis ingen tekst-input er fokusert, reset state.
+  // Tidligere sjekket vi også VV her, men på iOS PWA/standalone matcher
+  // `window.innerHeight` ofte `visualViewport.height` selv med tastatur
+  // oppe (interactive-widget=resizes-content). Det førte til at polling
+  // feilaktig resettet state og docken dukket opp i bunnen av siden (#104).
+  // Trade-off: hvis bruker tapper iOS «Done» beholder input fokus →
+  // dock forblir skjult til input mister fokus. Akseptabelt.
   useEffect(() => {
     if (!tastaturApent) return
     const id = setInterval(() => {
@@ -119,26 +136,27 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
         (aktiv.tagName === 'INPUT' ||
           aktiv.tagName === 'TEXTAREA' ||
           aktiv.isContentEditable)
-      const vv = window.visualViewport
-      const tastaturOppe = vv ? window.innerHeight - vv.height > 150 : true
-      if (!erInput && !tastaturOppe) setTastaturApent(false)
+      if (!erInput) setTastaturApent(false)
     }, 300)
     return () => clearInterval(id)
   }, [tastaturApent])
 
+  // display: 'none' når tastaturet er oppe — IKKE bare opacity:0.
+  // Grunn: iOS Safari har en quirk der position:fixed-elementer kan ende
+  // opp ankret til dokument-bunn (ikke viewport-bunn) når tastaturet er
+  // oppe. Da blir docken synlig nederst i sideinnholdet (etter "Tidligere"
+  // i agendaen), spesielt på chat-siden der man alltid scroller til bunns.
+  // display:none fjerner elementet fra layout helt — det kan ikke ende opp
+  // i feil posisjon hvis det ikke finnes (#104).
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
     left: 0,
     right: 0,
     zIndex: 30,
-    opacity: tastaturApent ? 0 : 1,
-    transform: tastaturApent ? 'translateY(24px)' : 'translateY(0)',
-    pointerEvents: tastaturApent ? 'none' : 'auto',
-    transition: 'opacity 160ms ease, transform 160ms ease',
+    display: tastaturApent ? 'none' : 'flex',
     borderRadius: 999,
     padding: 6,
-    display: 'flex',
     background: `
       linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%),
       var(--bg-elevated-2)
