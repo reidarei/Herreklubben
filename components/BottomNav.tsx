@@ -41,12 +41,24 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const initial = initialAv(brukerNavn ?? undefined)
 
   // Skjul dokken når tastaturet er åpent — ellers flyter den over
-  // chat-input og skjemaer. Kombinerer to signaler:
-  //   1. focusin/focusout på input/textarea — fyrer alltid, uavhengig av
-  //      layout. Dekker arrangement-chat der VisualViewport ikke fyrer.
-  //   2. VisualViewport resize — backup for tilfeller hvor fokus sitter et
-  //      annet sted men tastaturet fortsatt er oppe (f.eks. etter scroll).
+  // chat-input og skjemaer. BottomNav er den ENESTE sannhets-kilden for
+  // dock-synlighet (issue #99): tidligere fantes en parallell mekanisme
+  // i Chat.tsx + globals.css som kunne komme ut av synk og etterlate
+  // docken skjult etter iOS swipe-back.
+  //
+  // Fem cleanup-lag for å overleve iOS-edge-cases:
+  //   1. focusin/focusout på input/textarea — primær trigger
+  //   2. visualViewport.resize — toveis sjekk basert på keyboard-høyde
+  //   3. pagehide — fyrer ved iOS swipe-back før page unmount
+  //   4. visibilitychange → hidden — når app går i bakgrunnen
+  //   5. usePathname-effekt + 200ms polling — catch-all hvis events skipper
   const [tastaturApent, setTastaturApent] = useState(false)
+
+  // Reset ved navigasjon — fanger tilfeller der focusout aldri fyrer
+  useEffect(() => {
+    setTastaturApent(false)
+  }, [pathname])
+
   useEffect(() => {
     function erTekstInput(el: EventTarget | null): boolean {
       if (!el || !(el instanceof HTMLElement)) return false
@@ -65,14 +77,37 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     const vv = window.visualViewport
     function onVv() {
       if (!vv) return
-      if (window.innerHeight - vv.height > 150) setTastaturApent(true)
+      // Toveis: setter til true ved tastatur-opp OG false ved tastatur-ned.
+      // Tidligere settes kun true → state ble strandende ved iOS swipe-back.
+      setTastaturApent(window.innerHeight - vv.height > 150)
     }
     vv?.addEventListener('resize', onVv)
+
+    function reset() {
+      setTastaturApent(false)
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') reset()
+    }
+    window.addEventListener('pagehide', reset)
+    document.addEventListener('visibilitychange', onVisibility)
+
+    // Polling-fallback: hvis state står på `true` men ingen tekst-input
+    // faktisk er fokusert, rydd. Fanger iOS-edge-cases der focusout
+    // ikke fyrer ved swipe-back eller native keyboard-dismiss.
+    const id = setInterval(() => {
+      const aktiv = document.activeElement
+      const erFokusert = erTekstInput(aktiv)
+      if (!erFokusert) setTastaturApent(false)
+    }, 300)
 
     return () => {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
       vv?.removeEventListener('resize', onVv)
+      window.removeEventListener('pagehide', reset)
+      document.removeEventListener('visibilitychange', onVisibility)
+      clearInterval(id)
     }
   }, [])
 

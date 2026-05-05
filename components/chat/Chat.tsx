@@ -330,41 +330,10 @@ export default function Chat({
     if (diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn])
 
-  // Skjul bottom-nav KUN når en chat-input faktisk er fokusert.
-  // Tidligere brukte vi visualViewport-ratio i tillegg, men det skapte
-  // problemer på iOS: ved swipe-back, PiP-modus, eller browser-chrome-
-  // skjul varierer viewport-høyden uten at brukeren faktisk er i input.
-  // Fokus alene er sikrere — når chat-input ikke er fokusert, skal docken
-  // alltid være synlig (issue #99).
-  useEffect(() => {
-    const KLASSE = 'chat-input-fokus'
-    const html = document.documentElement
-
-    function erChatInput(el: EventTarget | null): boolean {
-      return !!el && el instanceof HTMLElement && el.dataset.chatInput === 'true'
-    }
-
-    function håndterFokus(e: FocusEvent) {
-      if (erChatInput(e.target)) html.classList.add(KLASSE)
-    }
-    function håndterBlur(e: FocusEvent) {
-      if (erChatInput(e.target)) html.classList.remove(KLASSE)
-    }
-    function ryddVedSkjult() {
-      html.classList.remove(KLASSE)
-    }
-
-    document.addEventListener('focusin', håndterFokus)
-    document.addEventListener('focusout', håndterBlur)
-    window.addEventListener('pagehide', ryddVedSkjult)
-
-    return () => {
-      document.removeEventListener('focusin', håndterFokus)
-      document.removeEventListener('focusout', håndterBlur)
-      window.removeEventListener('pagehide', ryddVedSkjult)
-      html.classList.remove(KLASSE)
-    }
-  }, [])
+  // Dock-skjuling ved tastatur-opp håndteres nå sentralt i BottomNav.tsx
+  // (issue #99). Tidligere hadde vi en parallell mekanisme her som satte
+  // klassen `chat-input-fokus` på <html>; det er fjernet for å unngå
+  // dual-system-konflikten som etterlot dock skjult etter iOS swipe-back.
 
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
