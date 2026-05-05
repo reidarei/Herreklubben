@@ -3,25 +3,18 @@
 //
 // Forberedelse:
 //   1. Pakk ut zip-filen så bilder ligger som JPG-filer i én mappe
-//   2. Sett R2-secrets i .env.local (f.eks. via `vercel env pull`)
+//   2. Sett R2-secrets i .env.local (verdier hentes manuelt fra Vercel-
+//      dashbord siden de er markert som Sensitive og ikke kan pull-es)
 //
-// Bruk:
-//   node scripts/import-album.mjs <bilder-mappe> <arrangement-id> "<album-tittel>"
-//
-// Eksempel:
-//   node scripts/import-album.mjs \
-//     "C:/temp/tysk-aften-2018" \
-//     "abc123-..." \
-//     "Tysk aften 2018"
+// Bruk (Node 20.6+ med native --env-file):
+//   node --env-file=.env.local scripts/import-album.mjs \
+//     <bilder-mappe> <arrangement-id> "<album-tittel>"
 
 import { readdir, readFile } from 'node:fs/promises'
 import { join, basename, extname } from 'node:path'
-import { config } from 'dotenv'
 import sharp from 'sharp'
 import pg from 'pg'
 import { AwsClient } from 'aws4fetch'
-
-config({ path: '.env.local' })
 
 const [, , bilderMappe, arrangementId, albumTittel] = process.argv
 if (!bilderMappe || !arrangementId || !albumTittel) {
