@@ -76,6 +76,7 @@ export type ArrangementRaad = {
   oppmoetested: string | null
   bilde_url: string | null
   paameldinger: PaameldingRaad[]
+  harAlbum?: boolean
 }
 
 export type UtkastRaad = {
@@ -272,6 +273,7 @@ export function tilKort(arr: ArrangementRaad, meg: string): ArrangementKortData 
     bilde_url: arr.bilde_url,
     antallJa: jaListe.length,
     minStatus: (min?.status as 'ja' | 'kanskje' | 'nei' | undefined) ?? null,
+    harAlbum: arr.harAlbum ?? false,
   }
 }
 

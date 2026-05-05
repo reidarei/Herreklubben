@@ -53,6 +53,7 @@ export default async function Forside() {
     { data: meldingerRaad },
     { data: meldingReaksjoner },
     { data: meldingKommentarer },
+    { data: albumMedArrangement },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -128,6 +129,13 @@ export default async function Forside() {
       )
       .order('opprettet', { ascending: false })
       .limit(60),
+    // Hvilke arrangementer har album med ≥1 bilde — brukes til å vise
+    // kamera-ikon på agenda-kortet. Henter kun arrangement_id og første
+    // bilde-id som indikator på at det finnes innhold.
+    supabase
+      .from('album')
+      .select('arrangement_id, album_bilde (id)')
+      .not('arrangement_id', 'is', null),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -279,8 +287,21 @@ export default async function Forside() {
     }
   })
 
+  // Set av arrangement-id-er som har album med ≥1 bilde
+  type AlbumIndikator = { arrangement_id: string | null; album_bilde: { id: string }[] | null }
+  const arrangementMedAlbum = new Set<string>()
+  for (const a of (albumMedArrangement ?? []) as AlbumIndikator[]) {
+    if (a.arrangement_id && a.album_bilde && a.album_bilde.length > 0) {
+      arrangementMedAlbum.add(a.arrangement_id)
+    }
+  }
+
+  const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(
+    a => ({ ...a, harAlbum: arrangementMedAlbum.has(a.id) }),
+  )
+
   const { meldinger, idag, kommende, tidligere } = byggAgenda({
-    arrangementer: (arrangementer ?? []) as unknown as ArrangementRaad[],
+    arrangementer: arrangementerBerikt,
     ansvar: (ansvar ?? []) as unknown as UtkastRaad[],
     profilerMedBursdag: (profilerMedBursdag ?? []) as ProfilMedBursdag[],
     poller,
