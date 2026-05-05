@@ -54,7 +54,7 @@ export const STIFTET_DATO = { maaned: 11, dag: 24, aar: 2007 } as const
 // øverst) så lenge det er mindre enn MELDING_LEVENDE_DAGER siden siste
 // aktivitet. sist_aktivitet starter ved opprettelse og bumpes av nye
 // kommentarer (ikke reaksjoner — de er for lette).
-export const MELDING_LEVENDE_DAGER = 5
+export const MELDING_LEVENDE_DAGER = 3.5
 
 // === Rådata-typer (speiler Supabase-queryene i forsiden) ==========
 
@@ -232,8 +232,9 @@ export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortD
 }
 
 // Avgjør om en melding fortsatt skal vises som «levende» øverst på agenda.
-// Levende = mindre enn 7 dager siden siste kommentar (eller opprettelse,
-// hvis ingen kommentarer). Reaksjoner teller ikke. Eksportert for test.
+// Levende = mindre enn MELDING_LEVENDE_DAGER siden siste kommentar (eller
+// opprettelse, hvis ingen kommentarer). Reaksjoner teller ikke. Eksportert
+// for test.
 export function erMeldingLevende(m: MeldingRaad, naa: Date): boolean {
   const dag = 24 * 60 * 60 * 1000
   const aktivitetAlder = naa.getTime() - new Date(m.sist_aktivitet).getTime()
