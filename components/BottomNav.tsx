@@ -127,19 +127,22 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     return () => clearInterval(id)
   }, [tastaturApent])
 
+  // display: 'none' når tastaturet er oppe — IKKE bare opacity:0.
+  // Grunn: iOS Safari har en quirk der position:fixed-elementer kan ende
+  // opp ankret til dokument-bunn (ikke viewport-bunn) når tastaturet er
+  // oppe. Da blir docken synlig nederst i sideinnholdet (etter "Tidligere"
+  // i agendaen), spesielt på chat-siden der man alltid scroller til bunns.
+  // display:none fjerner elementet fra layout helt — det kan ikke ende opp
+  // i feil posisjon hvis det ikke finnes (#104).
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
     left: 0,
     right: 0,
     zIndex: 30,
-    opacity: tastaturApent ? 0 : 1,
-    transform: tastaturApent ? 'translateY(24px)' : 'translateY(0)',
-    pointerEvents: tastaturApent ? 'none' : 'auto',
-    transition: 'opacity 160ms ease, transform 160ms ease',
+    display: tastaturApent ? 'none' : 'flex',
     borderRadius: 999,
     padding: 6,
-    display: 'flex',
     background: `
       linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 50%, rgba(255,255,255,0.05) 100%),
       var(--bg-elevated-2)
