@@ -60,6 +60,17 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setTastaturApent(false)
   }, [pathname])
 
+  // Toggle klasse på <html> så CSS kan fjerne pb-24 fra <main> når dock
+  // er skjult. Uten dette blir det 96px dødt mellomrom mellom chat-input
+  // og tastaturet. Single source of truth — driven utelukkende fra denne
+  // statet, ingen risiko for divergens med andre mekanismer.
+  useEffect(() => {
+    const html = document.documentElement
+    if (tastaturApent) html.classList.add('tastatur-oppe')
+    else html.classList.remove('tastatur-oppe')
+    return () => html.classList.remove('tastatur-oppe')
+  }, [tastaturApent])
+
   // Hovedeffekt: alle event-baserte signaler. Kjører hele tiden.
   useEffect(() => {
     function erTekstInput(el: EventTarget | null): boolean {

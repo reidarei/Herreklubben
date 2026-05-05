@@ -97,10 +97,14 @@ body {
   animation: page-fadein 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* Dock-skjuling håndteres nå i BottomNav.tsx via inline style.
-   Tidligere fantes også en CSS-klasse `chat-input-fokus` som ble satt på
-   <html> av Chat.tsx — fjernet i issue #99-fix for å unngå dual-system-
-   konflikt der dock kunne forbli skjult etter iOS swipe-back. */
+/* Dock-skjuling håndteres i BottomNav.tsx via inline `display: none`.
+   I tillegg toggler BottomNav klassen `tastatur-oppe` på <html> for å
+   la <main> fjerne sin pb-24 (bunnpadding reservert til dock). Uten det
+   blir det dødt mellomrom mellom chat-input og tastaturet. Begge styres
+   fra samme state — ingen risiko for divergens. */
+html.tastatur-oppe main {
+  padding-bottom: 0 !important;
+}
 
 /* Vis slett-knapp på chat-boble ved hover/fokus */
 .chat-boble:hover .chat-slett-knapp,
