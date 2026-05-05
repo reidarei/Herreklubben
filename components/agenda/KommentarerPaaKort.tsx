@@ -228,6 +228,7 @@ export default function KommentarerPaaKort({
         >
           <input
             type="text"
+            data-chat-input="true"
             value={tekst}
             onChange={e => setTekst(e.target.value)}
             onClick={stopp}
