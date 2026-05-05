@@ -106,6 +106,14 @@ html.tastatur-oppe main {
   padding-bottom: 0 !important;
 }
 
+/* Sider bruker inline-style `padding: 0 20px 120px` for å gi plass til
+   docken under innholdet. Når docken er skjult (tastatur oppe) blir det
+   dødt mellomrom mellom siste innhold og tastaturet. Vi nuller bunnen
+   via attribut-selektor — !important slår inline-padding-shorthand. */
+html.tastatur-oppe [style*="20px 120px"] {
+  padding-bottom: 0 !important;
+}
+
 /* Vis slett-knapp på chat-boble ved hover/fokus */
 .chat-boble:hover .chat-slett-knapp,
 .chat-boble:focus-within .chat-slett-knapp {
