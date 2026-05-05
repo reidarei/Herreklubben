@@ -79,9 +79,13 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     const vv = window.visualViewport
     function onVv() {
       if (!vv) return
-      // Toveis: setter til true ved tastatur-opp OG false ved tastatur-ned.
-      // Tidligere settes kun true → state ble strandende ved iOS swipe-back.
-      setTastaturApent(window.innerHeight - vv.height > 150)
+      // Enveis: kun setter til true når tastatur er detektert oppe.
+      // False-tilstanden styres av focusout, pagehide, visibilitychange,
+      // pathname-change og polling-fallback. Toveis VV var problematisk
+      // fordi iOS Safari fyrer VV-resize-events under scroll (URL-bar-
+      // kollaps, momentum, overscroll-bounce) — verdien kan kortvarig
+      // krysse 150-terskelen og flippe state under scroll i chat (#104).
+      if (window.innerHeight - vv.height > 150) setTastaturApent(true)
     }
     vv?.addEventListener('resize', onVv)
 
@@ -104,11 +108,10 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   }, [])
 
   // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker hver
-  // 300ms om en tekst-input fortsatt er fokusert OG om visualViewport
-  // fortsatt indikerer åpent tastatur. Krever begge for at state skal
-  // forbli true — slik at iOS-edge-cases (focusout-skip ved swipe-back)
-  // til slutt blir fanget opp og state ryddes.
-  // Når tastaturApent = false er det ingen polling = ingen batteribruk.
+  // 300ms om en tekst-input fortsatt er fokusert. Hvis ikke, reset state.
+  // Fanger iOS-edge-cases der focusout-event ikke fyrer (f.eks. ved
+  // swipe-back). Når tastaturApent = false er det ingen polling = ingen
+  // batteribruk.
   useEffect(() => {
     if (!tastaturApent) return
     const id = setInterval(() => {
@@ -119,9 +122,7 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
         (aktiv.tagName === 'INPUT' ||
           aktiv.tagName === 'TEXTAREA' ||
           aktiv.isContentEditable)
-      const vv = window.visualViewport
-      const tastaturOppe = vv ? window.innerHeight - vv.height > 150 : true
-      if (!erInput && !tastaturOppe) setTastaturApent(false)
+      if (!erInput) setTastaturApent(false)
     }, 300)
     return () => clearInterval(id)
   }, [tastaturApent])
