@@ -107,14 +107,14 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     }
   }, [])
 
-  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker hver
-  // 300ms om EN av to forutsetninger ikke holder lenger:
-  //   (a) ingen tekst-input fokusert (catch-all for swipe-back uten focusout)
-  //   (b) visualViewport sier at tastaturet faktisk er nede (catch-all
-  //       for iOS «Done»-knapp som tar ned tastatur uten å blur'e input)
-  // Krever ELLER-logikk: kun behold state hvis BÅDE input fokusert OG
-  // tastatur oppe. Når tastaturApent = false er det ingen polling = ingen
-  // batteribruk.
+  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker fokus
+  // hver 300ms — hvis ingen tekst-input er fokusert, reset state.
+  // Tidligere sjekket vi også VV her, men på iOS PWA/standalone matcher
+  // `window.innerHeight` ofte `visualViewport.height` selv med tastatur
+  // oppe (interactive-widget=resizes-content). Det førte til at polling
+  // feilaktig resettet state og docken dukket opp i bunnen av siden (#104).
+  // Trade-off: hvis bruker tapper iOS «Done» beholder input fokus →
+  // dock forblir skjult til input mister fokus. Akseptabelt.
   useEffect(() => {
     if (!tastaturApent) return
     const id = setInterval(() => {
@@ -125,9 +125,7 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
         (aktiv.tagName === 'INPUT' ||
           aktiv.tagName === 'TEXTAREA' ||
           aktiv.isContentEditable)
-      const vv = window.visualViewport
-      const tastaturOppe = vv ? window.innerHeight - vv.height > 150 : true
-      if (!erInput || !tastaturOppe) setTastaturApent(false)
+      if (!erInput) setTastaturApent(false)
     }, 300)
     return () => clearInterval(id)
   }, [tastaturApent])
