@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import BildeLightbox from '@/components/ui/BildeLightbox'
+import AlbumLightbox from '@/components/album/AlbumLightbox'
 
 export type AlbumBildeDetalj = {
   id: string
@@ -16,7 +16,7 @@ export type AlbumBildeDetalj = {
 // Per-bilde-kommentarer kommer i fase 2 — derfor ingen interaksjon utover
 // vis-i-fullskjerm her.
 export default function AlbumDetalj({ bilder }: { bilder: AlbumBildeDetalj[] }) {
-  const [aktiv, setAktiv] = useState<string | null>(null)
+  const [aktiv, setAktiv] = useState<number | null>(null)
 
   if (bilder.length === 0) {
     return (
@@ -45,11 +45,11 @@ export default function AlbumDetalj({ bilder }: { bilder: AlbumBildeDetalj[] }) 
           gap: 4,
         }}
       >
-        {bilder.map(b => (
+        {bilder.map((b, i) => (
           <button
             key={b.id}
             type="button"
-            onClick={() => setAktiv(b.bilde_url)}
+            onClick={() => setAktiv(i)}
             style={{
               position: 'relative',
               aspectRatio: '1 / 1',
@@ -72,7 +72,13 @@ export default function AlbumDetalj({ bilder }: { bilder: AlbumBildeDetalj[] }) 
         ))}
       </div>
 
-      {aktiv && <BildeLightbox src={aktiv} onLukk={() => setAktiv(null)} />}
+      {aktiv !== null && (
+        <AlbumLightbox
+          bilder={bilder.map(b => ({ id: b.id, bilde_url: b.bilde_url }))}
+          startIndex={aktiv}
+          onLukk={() => setAktiv(null)}
+        />
+      )}
     </>
   )
 }

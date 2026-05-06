@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
-import BildeLightbox from '@/components/ui/BildeLightbox'
+import AlbumLightbox from '@/components/album/AlbumLightbox'
 import { komprimer, lagThumbnail, genererFilnavn } from '@/lib/bilde-utils'
 import { opprettAlbum, lastOppAlbumBilde } from '@/lib/actions/album'
 
@@ -82,7 +82,7 @@ export default function AlbumSeksjon({
   const router = useRouter()
   const [oppretter, startOpprett] = useTransition()
   const [pending, setPending] = useState<{ totalt: number; ferdig: number } | null>(null)
-  const [lightbox, setLightbox] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<number | null>(null)
   const filInput = useRef<HTMLInputElement>(null)
 
   function handleLagAlbum() {
@@ -209,11 +209,11 @@ export default function AlbumSeksjon({
                 marginBottom: 10,
               }}
             >
-              {album.bilder.slice(0, MAKS_FORHANDSVISNING).map(b => (
+              {album.bilder.slice(0, MAKS_FORHANDSVISNING).map((b, i) => (
                 <button
                   key={b.id}
                   type="button"
-                  onClick={() => setLightbox(b.bilde_url)}
+                  onClick={() => setLightbox(i)}
                   style={{
                     position: 'relative',
                     aspectRatio: '1 / 1',
@@ -273,7 +273,13 @@ export default function AlbumSeksjon({
         </>
       )}
 
-      {lightbox && <BildeLightbox src={lightbox} onLukk={() => setLightbox(null)} />}
+      {lightbox !== null && album && (
+        <AlbumLightbox
+          bilder={album.bilder.map(b => ({ id: b.id, bilde_url: b.bilde_url }))}
+          startIndex={lightbox}
+          onLukk={() => setLightbox(null)}
+        />
+      )}
     </section>
   )
 }
