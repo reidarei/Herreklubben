@@ -89,7 +89,9 @@ export default async function ArrangementDetaljer({
     // ytterligere round trip.
     supabase
       .from('album')
-      .select('id, tittel, album_bilde (id, bilde_url, thumb_url, opprettet)')
+      .select(
+        'id, tittel, album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)',
+      )
       .eq('arrangement_id', id)
       .order('opprettet', { ascending: false })
       .limit(1),

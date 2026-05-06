@@ -13,7 +13,7 @@ export default async function AlbumSide({ params }: { params: Promise<{ id: stri
     .select(
       `id, tittel, arrangement_id,
        arrangement:arrangementer (id, tittel),
-       album_bilde (id, bilde_url, thumb_url, bredde, hoyde, opprettet, rekkefolge)`,
+       album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, bredde, hoyde, opprettet, rekkefolge)`,
     )
     .eq('id', id)
     .single()

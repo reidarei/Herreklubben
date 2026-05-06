@@ -134,7 +134,7 @@ export default async function Forside() {
     // bilde-id som indikator på at det finnes innhold.
     supabase
       .from('album')
-      .select('arrangement_id, album_bilde (id)')
+      .select('arrangement_id, album_bilde!album_bilde_album_id_fkey (id)')
       .not('arrangement_id', 'is', null),
   ])
 
