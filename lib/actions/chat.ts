@@ -134,7 +134,14 @@ export async function oppdaterChatMelding(
   const k = konfigFor(scope)
   // Ved redigering kreves alltid tekst — dummy bildeUrl for å passere bilde-
   // fallbacken i validerInnhold. Bilde kan ikke endres via redigering.
+  // Eksplisitt sjekk for tom/whitespace etter trim siden validerInnhold med
+  // bildeUrl='placeholder' ellers ville la null-tekst slippe gjennom og
+  // nulle ut innhold-kolonnen i DB.
   const { tekst } = validerInnhold(innhold, 'placeholder', k.charLimit)
+  if (!tekst) {
+    const minLengde = k.charLimit > 500 ? INNLEGG_MIN_LENGDE : CHAT_MIN_LENGDE
+    throw new Error(`Meldingen må være ${minLengde}–${k.charLimit} tegn`)
+  }
 
   const supabase = await createServerClient()
   const { error } = await supabase
