@@ -131,6 +131,7 @@ export default async function SamtaleDetalj({
         initialMeldinger={[...(chatMeldinger ?? [])].reverse()}
         profiler={chatProfiler}
         visSeksjonsLabel={false}
+        autoScrollTilBunn
       />
     </div>
   )

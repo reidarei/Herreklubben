@@ -85,6 +85,10 @@ type Props = {
   profiler: ChatProfil[]
   /** Hvis true: sett en overskrift ("Samtale") over chat-området */
   visSeksjonsLabel?: boolean
+  /** Hvis true: scroll siden til siste melding ved mount og ved nye meldinger.
+   * Brukes på chat-fokuserte sider (/chat, /samtaler/[id]). Default false så
+   * detaljsider med chat under hovedinnholdet ikke spretter til bunn. */
+  autoScrollTilBunn?: boolean
 }
 
 export default function Chat({
@@ -94,6 +98,7 @@ export default function Chat({
   initialMeldinger,
   profiler,
   visSeksjonsLabel = true,
+  autoScrollTilBunn = false,
 }: Props) {
   // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
@@ -322,13 +327,15 @@ export default function Chat({
 
     if (!harMountet.current) {
       harMountet.current = true
-      // requestAnimationFrame så DOM er rendret før vi måler/scroller
-      requestAnimationFrame(() => scrollTilBunn(true))
+      if (autoScrollTilBunn) {
+        // requestAnimationFrame så DOM er rendret før vi måler/scroller
+        requestAnimationFrame(() => scrollTilBunn(true))
+      }
       return
     }
     // Bare scroll hvis nye meldinger dukker opp i bunnen (positive diff <= 3)
-    if (diff > 0 && diff <= 3) scrollTilBunn()
-  }, [meldinger.length, scrollTilBunn])
+    if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
+  }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
   // Dock-skjuling ved tastatur-opp håndteres nå sentralt i BottomNav.tsx
   // (issue #99). Tidligere hadde vi en parallell mekanisme her som satte

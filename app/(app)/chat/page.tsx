@@ -129,6 +129,7 @@ export default async function KlubbChatSide() {
         initialMeldinger={initialMeldinger}
         profiler={profiler ?? []}
         visSeksjonsLabel={false}
+        autoScrollTilBunn
       />
     </div>
   )
