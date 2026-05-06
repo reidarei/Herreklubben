@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import { oppdaterAlbumTittel } from '@/lib/actions/album'
 
-// Album-tittel med inline-redigering for admin og eier. Klikk på blyant
-// gir et kompakt input + lagre/avbryt-knapper. Lagring kjører via server
-// action og refresher siden så også andre steder (lenker, lister) ser ny
-// tittel umiddelbart.
+// Album-tittel med inline-redigering for admin og eier. Klikk på rediger-
+// knappen gir et kompakt input + lagre/avbryt-knapper. Lagring kjører via
+// server action og refresher siden så også andre steder (lenker, lister) ser
+// ny tittel umiddelbart.
 export default function AlbumTittel({
   albumId,
   initialTittel,
@@ -22,6 +22,13 @@ export default function AlbumTittel({
   const [redigerer, setRedigerer] = useState(false)
   const [tekst, setTekst] = useState(initialTittel)
   const [pending, start] = useTransition()
+
+  // Synk lokal tekst-state når initialTittel endres (etter router.refresh
+  // hvor den nye tittelen kommer inn som ny prop). Uten dette ville neste
+  // åpning av redigeringen vise forrige tekst-input.
+  useEffect(() => {
+    setTekst(initialTittel)
+  }, [initialTittel])
 
   function lagre() {
     const ny = tekst.trim()

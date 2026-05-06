@@ -115,6 +115,18 @@ export async function oppdaterAlbumTittel(id: string, tittel: string): Promise<v
 export async function settOmslagsbilde(albumId: string, bildeId: string): Promise<void> {
   const { supabase } = await ensureInnlogget()
 
+  // Verifiser at bildet faktisk tilhører albumet — uten denne sjekken kunne
+  // en bruker som kjenner et annet albums bildeId sette det som cover her.
+  // FK-en alene garanterer kun at bildeId eksisterer som album_bilde-rad.
+  const { data: bilde } = await supabase
+    .from('album_bilde')
+    .select('album_id')
+    .eq('id', bildeId)
+    .maybeSingle()
+  if (!bilde || bilde.album_id !== albumId) {
+    throw new Error('Bildet hører ikke til dette albumet')
+  }
+
   const { error } = await supabase
     .from('album')
     .update({ cover_bilde_id: bildeId, oppdatert: new Date().toISOString() })

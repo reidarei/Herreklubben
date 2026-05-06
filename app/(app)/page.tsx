@@ -131,12 +131,14 @@ export default async function Forside() {
       .limit(60),
     // Hvilke arrangementer har album — brukes til både kamera-ikon på
     // agenda-kortet og som fallback-bilde når arrangementet ikke har eget
-    // bilde_url. Henter alle bilder så vi kan plukke cover (eller første)
-    // for fallback-rendering.
+    // bilde_url. Vi henter cover via FK-join (album_cover_fk) + bilde-antall
+    // via aggregat, ikke hele bildelista. Fallback-bilde brukes kun når
+    // cover er eksplisitt satt — uten cover får arrangementet kamera-ikon
+    // men beholder placeholder-stilen.
     supabase
       .from('album')
       .select(
-        'arrangement_id, cover_bilde_id, album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)',
+        'arrangement_id, cover:album_bilde!album_cover_fk (bilde_url), antall:album_bilde!album_bilde_album_id_fkey (count)',
       )
       .not('arrangement_id', 'is', null),
   ])
@@ -290,23 +292,23 @@ export default async function Forside() {
     }
   })
 
-  // Album-info per arrangement: finnes album, og hva er cover-bildet?
+  // Album-info per arrangement: finnes album med ≥1 bilde, og er det satt
+  // cover? cover kommer som ett embedded objekt via album_cover_fk; antall
+  // som ett aggregat-objekt ([{count}]).
   type AlbumIndikator = {
     arrangement_id: string | null
-    cover_bilde_id: string | null
-    album_bilde: Array<{ id: string; bilde_url: string; thumb_url: string | null; opprettet: string }> | null
+    cover: { bilde_url: string } | { bilde_url: string }[] | null
+    antall: { count: number }[] | null
   }
   const arrangementMedAlbum = new Set<string>()
   const coverPerArrangement = new Map<string, string>()
   for (const a of (albumMedArrangement ?? []) as AlbumIndikator[]) {
     if (!a.arrangement_id) continue
-    const bilder = a.album_bilde ?? []
-    if (bilder.length === 0) continue
+    const antall = a.antall?.[0]?.count ?? 0
+    if (antall === 0) continue
     arrangementMedAlbum.add(a.arrangement_id)
-    const cover = a.cover_bilde_id ? bilder.find(b => b.id === a.cover_bilde_id) : null
-    const fallback = bilder.slice().sort((x, y) => x.opprettet.localeCompare(y.opprettet))[0]
-    const url = cover?.bilde_url ?? fallback?.bilde_url
-    if (url) coverPerArrangement.set(a.arrangement_id, url)
+    const cover = Array.isArray(a.cover) ? a.cover[0] : a.cover
+    if (cover?.bilde_url) coverPerArrangement.set(a.arrangement_id, cover.bilde_url)
   }
 
   const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(a => ({

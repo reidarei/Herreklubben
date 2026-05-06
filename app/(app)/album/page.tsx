@@ -11,12 +11,16 @@ import OpprettAlbumKnapp from '@/components/album/OpprettAlbumKnapp'
 export default async function AlbumOversikt() {
   const [supabase] = await Promise.all([createServerClient(), getInnloggetBruker()])
 
+  // Henter cover-bildet via FK-join (album_cover_fk) og antall via aggregat
+  // — ikke hele bildelista. Album uten cover viser placeholder-ikonet
+  // (eksplisitt > implisitt).
   const { data: albumer } = await supabase
     .from('album')
     .select(
-      `id, tittel, arrangement_id, cover_bilde_id, opprettet,
+      `id, tittel, arrangement_id, opprettet,
        arrangement:arrangementer (id, tittel),
-       album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)`,
+       cover:album_bilde!album_cover_fk (bilde_url, thumb_url),
+       antall:album_bilde!album_bilde_album_id_fkey (count)`,
     )
     .order('opprettet', { ascending: false })
 
@@ -24,23 +28,21 @@ export default async function AlbumOversikt() {
     id: string
     tittel: string
     arrangement_id: string | null
-    cover_bilde_id: string | null
     opprettet: string
     arrangement: { id: string; tittel: string } | { id: string; tittel: string }[] | null
-    album_bilde: Array<{ id: string; bilde_url: string; thumb_url: string | null; opprettet: string }> | null
+    cover: { bilde_url: string; thumb_url: string | null } | { bilde_url: string; thumb_url: string | null }[] | null
+    antall: { count: number }[] | null
   }
 
   const rader = ((albumer ?? []) as AlbumRad[]).map(a => {
     const arr = Array.isArray(a.arrangement) ? a.arrangement[0] : a.arrangement
-    const bilder = a.album_bilde ?? []
-    const cover = a.cover_bilde_id ? bilder.find(b => b.id === a.cover_bilde_id) : null
-    const fallback = bilder.slice().sort((x, y) => x.opprettet.localeCompare(y.opprettet))[0]
-    const thumb = cover?.thumb_url ?? cover?.bilde_url ?? fallback?.thumb_url ?? fallback?.bilde_url ?? null
+    const cover = Array.isArray(a.cover) ? a.cover[0] : a.cover
+    const thumb = cover?.thumb_url ?? cover?.bilde_url ?? null
     return {
       id: a.id,
       tittel: a.tittel,
       arrangement: arr,
-      antall: bilder.length,
+      antall: a.antall?.[0]?.count ?? 0,
       thumb,
     }
   })
