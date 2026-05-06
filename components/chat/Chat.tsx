@@ -3,26 +3,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
-  sendMelding,
-  slettMelding,
-  oppdaterMelding,
-  sendKlubbMelding,
-  slettKlubbMelding,
-  oppdaterKlubbMelding,
-  sendPollMelding,
-  slettPollMelding,
-  oppdaterPollMelding,
-  sendMeldingKommentar,
-  slettMeldingKommentar,
-  oppdaterMeldingKommentar,
+  sendChatMelding,
+  oppdaterChatMelding,
+  slettChatMelding,
   leggTilReaksjon,
   fjernReaksjon,
 } from '@/lib/actions/chat'
-import {
-  sendPrivatMelding,
-  slettPrivatMelding,
-  oppdaterPrivatMelding,
-} from '@/lib/actions/samtaler'
+import { konfigFor, type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
 import { formaterDato } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
@@ -30,15 +17,10 @@ import SectionLabel from '@/components/ui/SectionLabel'
 import BildeLightbox from '@/components/ui/BildeLightbox'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
-import { CHAT_MAKS_LENGDE } from '@/lib/konstanter'
-import { INNLEGG_MAKS_LENGDE } from '@/lib/konstanter'
 
-export type ChatScope =
-  | { type: 'arrangement'; arrangementId: string }
-  | { type: 'klubb' }
-  | { type: 'poll'; pollId: string }
-  | { type: 'melding'; meldingId: string }
-  | { type: 'privat'; samtaleId: string }
+// ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
+// for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
+export type ChatScope = ChatScopeKonfig
 
 export type ChatMelding = {
   id: string
@@ -143,80 +125,28 @@ export default function Chat({
   ).current
   const supabase = useRef(createClient()).current
 
-  const tabell =
-    scope.type === 'klubb'
-      ? 'klubb_chat'
-      : scope.type === 'poll'
-        ? 'poll_chat'
-        : scope.type === 'melding'
-          ? 'melding_chat'
-          : scope.type === 'privat'
-            ? 'samtale_chat'
-            : 'arrangement_chat'
-  const kanalNavn =
-    scope.type === 'klubb'
-      ? 'chat-klubb'
-      : scope.type === 'poll'
-        ? `chat-poll-${scope.pollId}`
-        : scope.type === 'melding'
-          ? `chat-melding-${scope.meldingId}`
-          : scope.type === 'privat'
-            ? `chat-privat-${scope.samtaleId}`
-            : `chat-arr-${scope.arrangementId}`
+  // CHAT_KONFIG-lookup samler tabell/kanal/charLimit per scope. Erstatter
+  // 5 paralle switch-kjeder som tidligere måtte holdes synk her, i hentMeldinger,
+  // i realtime-oppsett og i input-validering.
+  const konfig = konfigFor(scope)
+  const tabell = konfig.tabell
+  const kanalNavn = konfig.kanalNavn(scope)
 
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
+  // Bruker CHAT_KONFIG til å slå opp tabell + FK-filter — ingen scope-
+  // spesifikke grener her.
   const hentMeldinger = useCallback(
     async (forTidspunkt?: string): Promise<ChatMelding[]> => {
-      if (scope.type === 'klubb') {
-        let q = supabase
-          .from('klubb_chat')
-          .select('id, profil_id, innhold, bilde_url, opprettet')
-          .order('opprettet', { ascending: false })
-          .limit(SIDE_STORRELSE)
-        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
-        const { data } = await q
-        return data ? [...data].reverse() : []
-      }
-      if (scope.type === 'poll') {
-        let q = supabase
-          .from('poll_chat')
-          .select('id, profil_id, innhold, bilde_url, opprettet')
-          .eq('poll_id', scope.pollId)
-          .order('opprettet', { ascending: false })
-          .limit(SIDE_STORRELSE)
-        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
-        const { data } = await q
-        return data ? [...data].reverse() : []
-      }
-      if (scope.type === 'melding') {
-        let q = supabase
-          .from('melding_chat')
-          .select('id, profil_id, innhold, bilde_url, opprettet')
-          .eq('melding_id', scope.meldingId)
-          .order('opprettet', { ascending: false })
-          .limit(SIDE_STORRELSE)
-        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
-        const { data } = await q
-        return data ? [...data].reverse() : []
-      }
-      if (scope.type === 'privat') {
-        let q = supabase
-          .from('samtale_chat')
-          .select('id, profil_id, innhold, bilde_url, opprettet')
-          .eq('samtale_id', scope.samtaleId)
-          .order('opprettet', { ascending: false })
-          .limit(SIDE_STORRELSE)
-        if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
-        const { data } = await q
-        return data ? [...data].reverse() : []
-      }
       let q = supabase
-        .from('arrangement_chat')
+        .from(konfig.tabell)
         .select('id, profil_id, innhold, bilde_url, opprettet')
-        .eq('arrangement_id', scope.arrangementId)
         .order('opprettet', { ascending: false })
         .limit(SIDE_STORRELSE)
+      const fkVerdi = konfig.scopeId(scope)
+      if (konfig.fkFelt && fkVerdi) {
+        q = q.eq(konfig.fkFelt, fkVerdi)
+      }
       if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
       const { data } = await q
       return data ? [...data].reverse() : []
@@ -354,38 +284,17 @@ export default function Chat({
 
       const channel = supabase.channel(kanalNavn)
 
-      // Filter: for arrangement/poll, filtrer på respektive id. For klubb,
-      // ingen filter siden tabellen kun inneholder klubb-meldinger.
+      // Filter på FK-kolonnen hvis scope har en (alle utenom klubb).
+      const fkVerdi = konfig.scopeId(scope)
       const insertConfig =
-        scope.type === 'arrangement'
+        konfig.fkFelt && fkVerdi
           ? {
               event: 'INSERT' as const,
               schema: 'public',
               table: tabell,
-              filter: `arrangement_id=eq.${scope.arrangementId}`,
+              filter: `${konfig.fkFelt}=eq.${fkVerdi}`,
             }
-          : scope.type === 'poll'
-            ? {
-                event: 'INSERT' as const,
-                schema: 'public',
-                table: tabell,
-                filter: `poll_id=eq.${scope.pollId}`,
-              }
-            : scope.type === 'melding'
-              ? {
-                  event: 'INSERT' as const,
-                  schema: 'public',
-                  table: tabell,
-                  filter: `melding_id=eq.${scope.meldingId}`,
-                }
-              : scope.type === 'privat'
-                ? {
-                    event: 'INSERT' as const,
-                    schema: 'public',
-                    table: tabell,
-                    filter: `samtale_id=eq.${scope.samtaleId}`,
-                  }
-                : { event: 'INSERT' as const, schema: 'public', table: tabell }
+          : { event: 'INSERT' as const, schema: 'public', table: tabell }
 
       const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
       const updateConfig = { event: 'UPDATE' as const, schema: 'public', table: tabell }
@@ -631,17 +540,7 @@ export default function Chat({
         bildeUrl = res.url
       }
 
-      if (scope.type === 'arrangement') {
-        await sendMelding(scope.arrangementId, melding, bildeUrl)
-      } else if (scope.type === 'poll') {
-        await sendPollMelding(scope.pollId, melding, bildeUrl)
-      } else if (scope.type === 'melding') {
-        await sendMeldingKommentar(scope.meldingId, melding, bildeUrl)
-      } else if (scope.type === 'privat') {
-        await sendPrivatMelding(scope.samtaleId, melding, bildeUrl)
-      } else {
-        await sendKlubbMelding(melding, bildeUrl)
-      }
+      await sendChatMelding(scope, melding, bildeUrl)
     } catch (err) {
       console.error('Send feilet:', err)
       setMeldinger(prev => prev.filter(m => m.id !== tempId))
@@ -744,17 +643,7 @@ export default function Chat({
     // Optimistisk oppdatering
     setMeldinger(prev => prev.map(m => (m.id === id ? { ...m, innhold: ny } : m)))
     try {
-      if (scope.type === 'arrangement') {
-        await oppdaterMelding(id, ny)
-      } else if (scope.type === 'poll') {
-        await oppdaterPollMelding(id, ny)
-      } else if (scope.type === 'melding') {
-        await oppdaterMeldingKommentar(id, ny)
-      } else if (scope.type === 'privat') {
-        await oppdaterPrivatMelding(id, ny)
-      } else {
-        await oppdaterKlubbMelding(id, ny)
-      }
+      await oppdaterChatMelding(scope, id, ny)
       avbrytEdit()
     } catch {
       // Rull tilbake ved feil
@@ -772,17 +661,7 @@ export default function Chat({
     if (!confirm('Slette denne meldingen?')) return
     setMeldinger(prev => prev.filter(m => m.id !== id))
     try {
-      if (scope.type === 'arrangement') {
-        await slettMelding(id)
-      } else if (scope.type === 'poll') {
-        await slettPollMelding(id)
-      } else if (scope.type === 'melding') {
-        await slettMeldingKommentar(id)
-      } else if (scope.type === 'privat') {
-        await slettPrivatMelding(id)
-      } else {
-        await slettKlubbMelding(id)
-      }
+      await slettChatMelding(scope, id)
     } catch {
       // Ved feil: last inn de siste N på nytt
       const nyeste = await hentMeldinger()
@@ -941,7 +820,7 @@ export default function Chat({
                             avbrytEdit()
                           }
                         }}
-                        maxLength={500}
+                        maxLength={konfig.charLimit}
                         rows={2}
                         style={{
                           width: '100%',
@@ -1430,7 +1309,7 @@ export default function Chat({
             }
           }}
           placeholder={bildePreview ? 'Legg til tekst (valgfritt)…' : 'Skriv en melding…'}
-          maxLength={scope.type === 'privat' ? INNLEGG_MAKS_LENGDE : CHAT_MAKS_LENGDE}
+          maxLength={konfig.charLimit}
           enterKeyHint="send"
           autoComplete="off"
           style={{
