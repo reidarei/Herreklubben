@@ -11,6 +11,7 @@ import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
 import PassListe, { type PassListeDeltaker } from '@/components/arrangement/PassListe'
+import AlbumSeksjon from '@/components/album/AlbumSeksjon'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
 
@@ -50,6 +51,7 @@ export default async function ArrangementDetaljer({
     { data: chatProfiler },
     { data: passInfoRader },
     { data: passForespørsler },
+    { data: albumRader },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -82,6 +84,15 @@ export default async function ArrangementDetaljer({
       .eq('arrangement_id', id)
       .eq('soker_id', user!.id)
       .order('opprettet', { ascending: false }),
+    // Album for arrangementet (fase 1: forventer 0 eller 1 — vi tar nyeste).
+    // Hentes med tilhørende bilder slik at AlbumSeksjon kan rendre grid uten
+    // ytterligere round trip.
+    supabase
+      .from('album')
+      .select('id, tittel, album_bilde (id, bilde_url, thumb_url, opprettet)')
+      .eq('arrangement_id', id)
+      .order('opprettet', { ascending: false })
+      .limit(1),
   ])
 
   if (!arr) notFound()
@@ -571,6 +582,28 @@ export default async function ArrangementDetaljer({
             <PassListe arrangementId={id} deltakere={passDeltakere} />
           </section>
         )}
+
+        {/* Album */}
+        <AlbumSeksjon
+          arrangementId={id}
+          album={
+            albumRader && albumRader[0]
+              ? {
+                  id: albumRader[0].id,
+                  tittel: albumRader[0].tittel,
+                  bilder: ((albumRader[0].album_bilde ?? []) as Array<{
+                    id: string
+                    bilde_url: string
+                    thumb_url: string | null
+                    opprettet: string
+                  }>)
+                    .slice()
+                    .sort((a, b) => a.opprettet.localeCompare(b.opprettet))
+                    .map(b => ({ id: b.id, bilde_url: b.bilde_url, thumb_url: b.thumb_url })),
+                }
+              : null
+          }
+        />
 
         {/* Kommentarer */}
         <div id="kommentarer">

@@ -14,6 +14,109 @@ export type Database = {
   }
   public: {
     Tables: {
+      album: {
+        Row: {
+          arrangement_id: string | null
+          cover_bilde_id: string | null
+          id: string
+          oppdatert: string
+          opprettet: string
+          opprettet_av: string
+          tittel: string
+        }
+        Insert: {
+          arrangement_id?: string | null
+          cover_bilde_id?: string | null
+          id?: string
+          oppdatert?: string
+          opprettet?: string
+          opprettet_av: string
+          tittel: string
+        }
+        Update: {
+          arrangement_id?: string | null
+          cover_bilde_id?: string | null
+          id?: string
+          oppdatert?: string
+          opprettet?: string
+          opprettet_av?: string
+          tittel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "arrangementer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_cover_fk"
+            columns: ["cover_bilde_id"]
+            isOneToOne: false
+            referencedRelation: "album_bilde"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_opprettet_av_fkey"
+            columns: ["opprettet_av"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      album_bilde: {
+        Row: {
+          album_id: string
+          bilde_url: string
+          bredde: number | null
+          hoyde: number | null
+          id: string
+          lastet_opp_av: string
+          opprettet: string
+          rekkefolge: number
+          thumb_url: string | null
+        }
+        Insert: {
+          album_id: string
+          bilde_url: string
+          bredde?: number | null
+          hoyde?: number | null
+          id?: string
+          lastet_opp_av: string
+          opprettet?: string
+          rekkefolge?: number
+          thumb_url?: string | null
+        }
+        Update: {
+          album_id?: string
+          bilde_url?: string
+          bredde?: number | null
+          hoyde?: number | null
+          id?: string
+          lastet_opp_av?: string
+          opprettet?: string
+          rekkefolge?: number
+          thumb_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_bilde_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "album"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_bilde_lastet_opp_av_fkey"
+            columns: ["lastet_opp_av"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       arrangement_chat: {
         Row: {
           arrangement_id: string

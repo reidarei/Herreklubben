@@ -14,6 +14,7 @@ export type ArrangementKortData = {
   bilde_url?: string | null
   antallJa: number
   minStatus: 'ja' | 'kanskje' | 'nei' | null
+  harAlbum?: boolean
 }
 
 function sceneFor(type: string): 'tur' | 'møte' | 'event' {
@@ -113,6 +114,20 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
               {dag}. {mnd}{aar && ` ${aar}`}
             </span>
             <span style={{ color: 'var(--text-tertiary)', letterSpacing: '1.2px' }}>· {tid}</span>
+            {arr.harAlbum && (
+              <span
+                aria-label="Har album"
+                title="Har album"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  marginLeft: 'auto',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                <Icon name="image" size={12} color="currentColor" />
+              </span>
+            )}
           </div>
 
           {/* Tittel */}
