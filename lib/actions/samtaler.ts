@@ -1,10 +1,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { sendVarsel } from '@/lib/varsler'
 import { redirect } from 'next/navigation'
-import { BASE_URL } from '@/lib/config'
-import { INNLEGG_MAKS_LENGDE, INNLEGG_MIN_LENGDE } from '@/lib/konstanter'
 
 /**
  * Finn eller opprett samtalen mellom innlogget bruker og motpart.
@@ -47,71 +44,6 @@ export async function aapneSamtale(motpartId: string) {
   redirect(`/samtaler/${ny.id}`)
 }
 
-export async function sendPrivatMelding(
-  samtaleId: string,
-  innhold: string | null,
-  bildeUrl: string | null = null,
-) {
-  const tekst = innhold?.trim() || null
-  if (!tekst && !bildeUrl) {
-    throw new Error('Meldingen må ha tekst eller bilde')
-  }
-  if (tekst && (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE)) {
-    throw new Error(`Meldingen må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
-  }
-
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  // RLS sørger for at vi kun kan poste i samtaler vi deltar i
-  const { error } = await supabase
-    .from('samtale_chat')
-    .insert({ samtale_id: samtaleId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
-
-  if (error) throw new Error(error.message)
-
-  // Varsle motparten i bakgrunnen — sentral sendVarsel håndterer
-  // brukerpreferanser, dedup-policy og logging.
-  const varselTekst = tekst ?? '📷 Sendte deg et bilde'
-  sendPrivatMeldingVarsel(samtaleId, varselTekst, user.id).catch(console.error)
-}
-
-async function sendPrivatMeldingVarsel(samtaleId: string, tekst: string, avsenderId: string) {
-  const supabase = await createServerClient()
-
-  const { data: samtale } = await supabase
-    .from('samtale')
-    .select('profil_a, profil_b')
-    .eq('id', samtaleId)
-    .single()
-
-  if (!samtale) return
-
-  const motpartId = samtale.profil_a === avsenderId ? samtale.profil_b : samtale.profil_a
-
-  const { data: avsender } = await supabase
-    .from('profiles')
-    .select('navn, visningsnavn')
-    .eq('id', avsenderId)
-    .single()
-
-  const avsenderNavn = avsender?.visningsnavn ?? avsender?.navn ?? 'Noen'
-  const utdrag = tekst.length > 80 ? tekst.slice(0, 77) + '...' : tekst
-
-  // Hver privatmelding er sin egen — tillatDuplikat: true så samme avsender
-  // kan sende flere meldinger uten at de filtreres bort i dedup-laget.
-  await sendVarsel({
-    mottakere: [motpartId],
-    tittel: `${avsenderNavn} skrev`,
-    melding: utdrag,
-    url: `${BASE_URL}/samtaler/${samtaleId}`,
-    knappTekst: 'Åpne samtalen',
-    type: 'privat-melding',
-    tillatDuplikat: true,
-  })
-}
-
 /**
  * Marker alle innkomne meldinger i samtalen som lest. Kalles fra
  * samtalesiden ved load. RLS sørger for at man kun kan oppdatere
@@ -130,27 +62,6 @@ export async function markerSamtaleLest(samtaleId: string) {
     .eq('lest', false)
 }
 
-export async function oppdaterPrivatMelding(meldingId: string, innhold: string) {
-  const tekst = innhold.trim()
-  if (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE) {
-    throw new Error(`Meldingen må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
-  }
-
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('samtale_chat')
-    .update({ innhold: tekst })
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-export async function slettPrivatMelding(meldingId: string) {
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('samtale_chat')
-    .delete()
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
+// Send/oppdater/slett private meldinger går via sendChatMelding /
+// oppdaterChatMelding / slettChatMelding i lib/actions/chat.ts (scope
+// 'privat'). Privat-melding-varselet håndteres i samme generiske flyt.

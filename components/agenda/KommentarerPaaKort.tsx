@@ -4,7 +4,8 @@ import { useState, useTransition, type MouseEvent, type KeyboardEvent } from 're
 import { useRouter } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
-import { sendMelding, sendPollMelding, sendMeldingKommentar } from '@/lib/actions/chat'
+import { sendChatMelding } from '@/lib/actions/chat'
+import type { ChatScope } from '@/lib/chat-konfig'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -74,15 +75,17 @@ export default function KommentarerPaaKort({
     if (!melding || sender) return
     setTekst('')
 
+    // Map fra det lokale KommentarScope til CHAT_KONFIG-scopet.
+    const chatScope: ChatScope =
+      scope.type === 'arrangement'
+        ? { type: 'arrangement', arrangementId: scope.id }
+        : scope.type === 'poll'
+          ? { type: 'poll', pollId: scope.id }
+          : { type: 'melding', meldingId: scope.id }
+
     startTransition(async () => {
       try {
-        if (scope.type === 'arrangement') {
-          await sendMelding(scope.id, melding)
-        } else if (scope.type === 'poll') {
-          await sendPollMelding(scope.id, melding)
-        } else {
-          await sendMeldingKommentar(scope.id, melding)
-        }
+        await sendChatMelding(chatScope, melding, null)
         router.refresh()
       } catch {
         // Gjenopprett tekst ved feil så brukeren ikke mister det de skrev

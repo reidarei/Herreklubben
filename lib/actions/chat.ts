@@ -1,234 +1,167 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { sendChatMentionVarsler } from '@/lib/varsler'
-import { CHAT_MAKS_LENGDE, CHAT_MIN_LENGDE } from '@/lib/konstanter'
+import { sendChatMentionVarsler, sendVarsel } from '@/lib/varsler'
+import { BASE_URL } from '@/lib/config'
+import { CHAT_MIN_LENGDE, INNLEGG_MIN_LENGDE } from '@/lib/konstanter'
+import { konfigFor, type ChatScope } from '@/lib/chat-konfig'
 
-// Trimmer og validerer chat-innhold.
-// Tekst kan være tom hvis bilde_url er satt — meldingen kan være ren bilde.
-// Returnerer trimmed tekst (eller null hvis tom).
+// Trimmer og validerer chat-innhold for et gitt scope. Bruker scope-spesifikk
+// charLimit (privat = INNLEGG_MAKS_LENGDE = 2000, øvrige = CHAT_MAKS_LENGDE
+// = 500). Tekst kan være tom hvis bilde_url er satt — meldingen kan være
+// ren bilde. Returnerer trimmed tekst (eller null hvis tom).
 function validerInnhold(
   innhold: string | null,
   bildeUrl: string | null,
+  charLimit: number,
 ): { tekst: string | null } {
   const tekst = innhold?.trim() || null
   if (!tekst && !bildeUrl) {
     throw new Error('Meldingen må ha tekst eller bilde')
   }
-  if (tekst && (tekst.length < CHAT_MIN_LENGDE || tekst.length > CHAT_MAKS_LENGDE)) {
-    throw new Error(`Meldingen må være ${CHAT_MIN_LENGDE}–${CHAT_MAKS_LENGDE} tegn`)
+  // Privat har egen min via INNLEGG_MIN_LENGDE; for chat er CHAT_MIN_LENGDE
+  // det riktige. Begge er 1, så vi velger basert på charLimit-størrelsen.
+  const minLengde = charLimit > 500 ? INNLEGG_MIN_LENGDE : CHAT_MIN_LENGDE
+  if (tekst && (tekst.length < minLengde || tekst.length > charLimit)) {
+    throw new Error(`Meldingen må være ${minLengde}–${charLimit} tegn`)
   }
   return { tekst }
 }
 
-export async function sendMelding(
-  arrangementId: string,
-  innhold: string | null,
-  bildeUrl: string | null = null,
-) {
-  const { tekst } = validerInnhold(innhold, bildeUrl)
-
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  const { error } = await supabase
-    .from('arrangement_chat')
-    .insert({ arrangement_id: arrangementId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
-
-  if (error) throw new Error(error.message)
-
+// Etter vellykket insert: send mention- eller privat-melding-varsel.
+// For arrangement/klubb/poll/melding: skanner teksten etter @-mentions og
+// varsler bare de mottakerne. For privat: én varsel til motparten.
+async function sendVarslerEtterPost(
+  scope: ChatScope,
+  tekst: string | null,
+  avsenderId: string,
+): Promise<void> {
+  if (scope.type === 'privat') {
+    const varselTekst = tekst ?? '📷 Sendte deg et bilde'
+    await sendPrivatMeldingVarsel(scope.samtaleId, varselTekst, avsenderId)
+    return
+  }
+  if (!tekst) return
   // @-mention-varsler MÅ awaites — fire-and-forget kuttes av Vercel
   // når server action returnerer (CLAUDE.md: «Bruk aldri after()…
   // Bruk await direkte»). Promise.all internt gjør utsendingen
   // parallell, så latency er kort selv med mange mottakere.
-  if (tekst) {
-    try {
-      await sendChatMentionVarsler(
-        { type: 'arrangement', id: arrangementId },
-        tekst,
-        user.id,
-      )
-    } catch (err) {
-      console.error('mention-varsler feilet:', err)
-    }
+  if (scope.type === 'arrangement') {
+    await sendChatMentionVarsler({ type: 'arrangement', id: scope.arrangementId }, tekst, avsenderId)
+  } else if (scope.type === 'klubb') {
+    await sendChatMentionVarsler({ type: 'klubb' }, tekst, avsenderId)
+  } else if (scope.type === 'poll') {
+    await sendChatMentionVarsler({ type: 'poll', id: scope.pollId }, tekst, avsenderId)
+  } else if (scope.type === 'melding') {
+    await sendChatMentionVarsler({ type: 'melding', id: scope.meldingId }, tekst, avsenderId)
   }
 }
 
-export async function oppdaterMelding(meldingId: string, innhold: string) {
-  const { tekst } = validerInnhold(innhold, 'placeholder') // tekst er påkrevd ved redigering
-
+async function sendPrivatMeldingVarsel(
+  samtaleId: string,
+  tekst: string,
+  avsenderId: string,
+): Promise<void> {
   const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('arrangement_chat')
-    .update({ innhold: tekst })
-    .eq('id', meldingId)
 
-  if (error) throw new Error(error.message)
+  const { data: samtale } = await supabase
+    .from('samtale')
+    .select('profil_a, profil_b')
+    .eq('id', samtaleId)
+    .single()
+
+  if (!samtale) return
+
+  const motpartId = samtale.profil_a === avsenderId ? samtale.profil_b : samtale.profil_a
+
+  const { data: avsender } = await supabase
+    .from('profiles')
+    .select('navn, visningsnavn')
+    .eq('id', avsenderId)
+    .single()
+
+  const avsenderNavn = avsender?.visningsnavn ?? avsender?.navn ?? 'Noen'
+  const utdrag = tekst.length > 80 ? tekst.slice(0, 77) + '...' : tekst
+
+  // Hver privatmelding er sin egen — tillatDuplikat: true så samme avsender
+  // kan sende flere meldinger uten at de filtreres bort i dedup-laget.
+  await sendVarsel({
+    mottakere: [motpartId],
+    tittel: `${avsenderNavn} skrev`,
+    melding: utdrag,
+    url: `${BASE_URL}/samtaler/${samtaleId}`,
+    knappTekst: 'Åpne samtalen',
+    type: 'privat-melding',
+    tillatDuplikat: true,
+  })
 }
 
-export async function slettMelding(meldingId: string) {
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('arrangement_chat')
-    .delete()
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-// ---------- Klubb-chat ----------
-
-export async function sendKlubbMelding(
+// Generisk send for alle chat-scopes. Tabell, FK-felt og charLimit slås opp
+// i CHAT_KONFIG. RLS i Postgres er fortsatt det som faktisk håndhever
+// tilgang per scope; her gjør vi bare ergonomisk innsetting.
+export async function sendChatMelding(
+  scope: ChatScope,
   innhold: string | null,
   bildeUrl: string | null = null,
-) {
-  const { tekst } = validerInnhold(innhold, bildeUrl)
+): Promise<void> {
+  const k = konfigFor(scope)
+  const { tekst } = validerInnhold(innhold, bildeUrl, k.charLimit)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
 
+  const fkData = k.fkFelt ? { [k.fkFelt]: k.scopeId(scope) } : {}
   const { error } = await supabase
-    .from('klubb_chat')
-    .insert({ profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
-
+    .from(k.tabell)
+    .insert({ ...fkData, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
   if (error) throw new Error(error.message)
 
-  if (tekst) {
-    try {
-      await sendChatMentionVarsler({ type: 'klubb' }, tekst, user.id)
-    } catch (err) {
-      console.error('mention-varsler feilet:', err)
-    }
+  try {
+    await sendVarslerEtterPost(scope, tekst, user.id)
+  } catch (err) {
+    // Varsel-svikt skal ikke feile selve meldingen — den er allerede skrevet
+    // til DB. Logg og gå videre.
+    console.error('post-send-varsler feilet:', err)
   }
 }
 
-export async function oppdaterKlubbMelding(meldingId: string, innhold: string) {
-  const { tekst } = validerInnhold(innhold, 'placeholder')
-
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('klubb_chat')
-    .update({ innhold: tekst })
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-export async function slettKlubbMelding(meldingId: string) {
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('klubb_chat')
-    .delete()
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-// ---------- Poll-chat ----------
-
-export async function sendPollMelding(
-  pollId: string,
-  innhold: string | null,
-  bildeUrl: string | null = null,
-) {
-  const { tekst } = validerInnhold(innhold, bildeUrl)
-
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  const { error } = await supabase
-    .from('poll_chat')
-    .insert({ poll_id: pollId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
-
-  if (error) throw new Error(error.message)
-
-  if (tekst) {
-    try {
-      await sendChatMentionVarsler({ type: 'poll', id: pollId }, tekst, user.id)
-    } catch (err) {
-      console.error('mention-varsler feilet:', err)
-    }
-  }
-}
-
-export async function oppdaterPollMelding(meldingId: string, innhold: string) {
-  const { tekst } = validerInnhold(innhold, 'placeholder')
-
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('poll_chat')
-    .update({ innhold: tekst })
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-export async function slettPollMelding(meldingId: string) {
-  const supabase = await createServerClient()
-  const { error } = await supabase
-    .from('poll_chat')
-    .delete()
-    .eq('id', meldingId)
-
-  if (error) throw new Error(error.message)
-}
-
-// === Kommentarer på meldinger (#90) =================================
-
-export async function sendMeldingKommentar(
+export async function oppdaterChatMelding(
+  scope: ChatScope,
   meldingId: string,
-  innhold: string | null,
-  bildeUrl: string | null = null,
-) {
-  const { tekst } = validerInnhold(innhold, bildeUrl)
-
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
-
-  const { error } = await supabase
-    .from('melding_chat')
-    .insert({ melding_id: meldingId, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
-
-  if (error) throw new Error(error.message)
-
-  if (tekst) {
-    try {
-      await sendChatMentionVarsler({ type: 'melding', id: meldingId }, tekst, user.id)
-    } catch (err) {
-      console.error('mention-varsler feilet:', err)
-    }
-  }
-}
-
-export async function oppdaterMeldingKommentar(kommentarId: string, innhold: string) {
-  const { tekst } = validerInnhold(innhold, 'placeholder')
+  innhold: string,
+): Promise<void> {
+  const k = konfigFor(scope)
+  // Ved redigering kreves alltid tekst — dummy bildeUrl for å passere bilde-
+  // fallbacken i validerInnhold. Bilde kan ikke endres via redigering.
+  const { tekst } = validerInnhold(innhold, 'placeholder', k.charLimit)
 
   const supabase = await createServerClient()
   const { error } = await supabase
-    .from('melding_chat')
+    .from(k.tabell)
     .update({ innhold: tekst })
-    .eq('id', kommentarId)
+    .eq('id', meldingId)
 
   if (error) throw new Error(error.message)
 }
 
-export async function slettMeldingKommentar(kommentarId: string) {
+export async function slettChatMelding(
+  scope: ChatScope,
+  meldingId: string,
+): Promise<void> {
+  const k = konfigFor(scope)
   const supabase = await createServerClient()
   const { error } = await supabase
-    .from('melding_chat')
+    .from(k.tabell)
     .delete()
-    .eq('id', kommentarId)
+    .eq('id', meldingId)
 
   if (error) throw new Error(error.message)
 }
 
-// Reaksjoner — samme flyt for arrangement-chat og klubb-chat. melding_id
-// peker til id i enten arrangement_chat eller klubb_chat. RLS håndhever at
-// brukeren kun kan legge til/fjerne egne reaksjoner.
+// Reaksjoner — felles for alle scopes via chat_reaksjoner-tabellen.
+// melding_id peker til id-en i den underliggende chat-tabellen (RLS
+// håndhever at brukeren kun kan legge til/fjerne egne reaksjoner).
 export async function leggTilReaksjon(meldingId: string, emoji: string) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
