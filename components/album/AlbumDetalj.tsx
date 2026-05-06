@@ -15,7 +15,17 @@ export type AlbumBildeDetalj = {
 // Grid med 3 kolonner. Klikk på en thumb åpner lightbox med fullt bilde.
 // Per-bilde-kommentarer kommer i fase 2 — derfor ingen interaksjon utover
 // vis-i-fullskjerm her.
-export default function AlbumDetalj({ bilder }: { bilder: AlbumBildeDetalj[] }) {
+export default function AlbumDetalj({
+  bilder,
+  albumId,
+  kanRedigere = false,
+  coverBildeId = null,
+}: {
+  bilder: AlbumBildeDetalj[]
+  albumId: string
+  kanRedigere?: boolean
+  coverBildeId?: string | null
+}) {
   const [aktiv, setAktiv] = useState<number | null>(null)
 
   if (bilder.length === 0) {
@@ -77,6 +87,9 @@ export default function AlbumDetalj({ bilder }: { bilder: AlbumBildeDetalj[] }) 
           bilder={bilder.map(b => ({ id: b.id, bilde_url: b.bilde_url }))}
           startIndex={aktiv}
           onLukk={() => setAktiv(null)}
+          albumId={albumId}
+          kanRedigere={kanRedigere}
+          coverBildeId={coverBildeId}
         />
       )}
     </>

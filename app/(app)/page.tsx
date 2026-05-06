@@ -129,12 +129,15 @@ export default async function Forside() {
       )
       .order('opprettet', { ascending: false })
       .limit(60),
-    // Hvilke arrangementer har album med ≥1 bilde — brukes til å vise
-    // kamera-ikon på agenda-kortet. Henter kun arrangement_id og første
-    // bilde-id som indikator på at det finnes innhold.
+    // Hvilke arrangementer har album — brukes til både kamera-ikon på
+    // agenda-kortet og som fallback-bilde når arrangementet ikke har eget
+    // bilde_url. Henter alle bilder så vi kan plukke cover (eller første)
+    // for fallback-rendering.
     supabase
       .from('album')
-      .select('arrangement_id, album_bilde!album_bilde_album_id_fkey (id)')
+      .select(
+        'arrangement_id, cover_bilde_id, album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)',
+      )
       .not('arrangement_id', 'is', null),
   ])
 
@@ -287,18 +290,31 @@ export default async function Forside() {
     }
   })
 
-  // Set av arrangement-id-er som har album med ≥1 bilde
-  type AlbumIndikator = { arrangement_id: string | null; album_bilde: { id: string }[] | null }
+  // Album-info per arrangement: finnes album, og hva er cover-bildet?
+  type AlbumIndikator = {
+    arrangement_id: string | null
+    cover_bilde_id: string | null
+    album_bilde: Array<{ id: string; bilde_url: string; thumb_url: string | null; opprettet: string }> | null
+  }
   const arrangementMedAlbum = new Set<string>()
+  const coverPerArrangement = new Map<string, string>()
   for (const a of (albumMedArrangement ?? []) as AlbumIndikator[]) {
-    if (a.arrangement_id && a.album_bilde && a.album_bilde.length > 0) {
-      arrangementMedAlbum.add(a.arrangement_id)
-    }
+    if (!a.arrangement_id) continue
+    const bilder = a.album_bilde ?? []
+    if (bilder.length === 0) continue
+    arrangementMedAlbum.add(a.arrangement_id)
+    const cover = a.cover_bilde_id ? bilder.find(b => b.id === a.cover_bilde_id) : null
+    const fallback = bilder.slice().sort((x, y) => x.opprettet.localeCompare(y.opprettet))[0]
+    const url = cover?.bilde_url ?? fallback?.bilde_url
+    if (url) coverPerArrangement.set(a.arrangement_id, url)
   }
 
-  const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(
-    a => ({ ...a, harAlbum: arrangementMedAlbum.has(a.id) }),
-  )
+  const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(a => ({
+    ...a,
+    harAlbum: arrangementMedAlbum.has(a.id),
+    // Fall tilbake til album-cover hvis arr ikke har eget bilde
+    bilde_url: a.bilde_url ?? coverPerArrangement.get(a.id) ?? null,
+  }))
 
   const { meldinger, idag, kommende, tidligere } = byggAgenda({
     arrangementer: arrangementerBerikt,

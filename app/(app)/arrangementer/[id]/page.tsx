@@ -90,7 +90,7 @@ export default async function ArrangementDetaljer({
     supabase
       .from('album')
       .select(
-        'id, tittel, album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)',
+        'id, tittel, cover_bilde_id, opprettet_av, album_bilde!album_bilde_album_id_fkey (id, bilde_url, thumb_url, opprettet)',
       )
       .eq('arrangement_id', id)
       .order('opprettet', { ascending: false })
@@ -588,11 +588,16 @@ export default async function ArrangementDetaljer({
         {/* Album */}
         <AlbumSeksjon
           arrangementId={id}
+          kanRedigere={
+            !!(albumRader && albumRader[0] &&
+              (albumRader[0].opprettet_av === user!.id || erAdmin))
+          }
           album={
             albumRader && albumRader[0]
               ? {
                   id: albumRader[0].id,
                   tittel: albumRader[0].tittel,
+                  cover_bilde_id: albumRader[0].cover_bilde_id,
                   bilder: ((albumRader[0].album_bilde ?? []) as Array<{
                     id: string
                     bilde_url: string
