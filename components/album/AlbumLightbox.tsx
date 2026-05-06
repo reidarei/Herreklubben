@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useTransition } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import { settOmslagsbilde, slettAlbumBilde } from '@/lib/actions/album'
 
 // Fullskjerm-galleri for album. Pil-knapper, swipe, tastatur og X for å lukke.
 // Krysser mellom bilder uten å unmounte hele overlayet — det gir en stabil
@@ -14,13 +16,21 @@ export default function AlbumLightbox({
   bilder,
   startIndex,
   onLukk,
+  albumId,
+  kanRedigere = false,
+  coverBildeId = null,
 }: {
   bilder: { id: string; bilde_url: string }[]
   startIndex: number
   onLukk: () => void
+  albumId?: string
+  kanRedigere?: boolean
+  coverBildeId?: string | null
 }) {
+  const router = useRouter()
   const [index, setIndex] = useState(startIndex)
   const [montert, setMontert] = useState(false)
+  const [pending, startTransition] = useTransition()
   const dragStartX = useRef<number | null>(null)
   const dragDeltaX = useRef(0)
 
@@ -73,6 +83,39 @@ export default function AlbumLightbox({
 
   const aktiv = bilder[index]
   if (!aktiv || !montert) return null
+
+  function handleSettOmslag() {
+    if (!albumId || !aktiv) return
+    startTransition(async () => {
+      try {
+        await settOmslagsbilde(albumId, aktiv.id)
+        router.refresh()
+      } catch (e) {
+        console.error(e)
+        alert('Kunne ikke sette omslag')
+      }
+    })
+  }
+
+  function handleSlett() {
+    if (!aktiv) return
+    if (!confirm('Slett dette bildet?')) return
+    const bildeId = aktiv.id
+    const erSiste = bilder.length === 1
+    startTransition(async () => {
+      try {
+        await slettAlbumBilde(bildeId)
+        if (erSiste) onLukk()
+        else if (index >= bilder.length - 1) setIndex(Math.max(0, index - 1))
+        router.refresh()
+      } catch (e) {
+        console.error(e)
+        alert('Kunne ikke slette bildet')
+      }
+    })
+  }
+
+  const erOmslag = coverBildeId === aktiv.id
 
   // Portal til <body> så fixed-positioning ikke begrenses av layout-
   // containeren (maxWidth 480, position: relative). Uten portal havner
@@ -212,6 +255,65 @@ export default function AlbumLightbox({
             <Icon name="chevron" size={22} color="currentColor" strokeWidth={2.5} />
           </button>
         </>
+      )}
+
+      {/* Handlinger (kun synlig for admin/eier) */}
+      {kanRedigere && albumId && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'max(20px, env(safe-area-inset-bottom))',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 10,
+            padding: '8px 10px',
+            borderRadius: 999,
+            background: 'rgba(0,0,0,0.65)',
+            boxShadow: '0 0 0 1px rgba(255,255,255,0.18)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleSettOmslag}
+            disabled={pending || erOmslag}
+            style={{
+              border: 'none',
+              padding: '8px 14px',
+              borderRadius: 999,
+              background: erOmslag ? 'var(--accent-soft)' : 'transparent',
+              color: erOmslag ? 'var(--accent)' : '#fff',
+              fontFamily: 'var(--font-body)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: erOmslag || pending ? 'default' : 'pointer',
+              opacity: pending && !erOmslag ? 0.6 : 1,
+            }}
+          >
+            {erOmslag ? 'Omslag' : 'Sett som omslag'}
+          </button>
+          <button
+            type="button"
+            onClick={handleSlett}
+            disabled={pending}
+            aria-label="Slett bilde"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              border: 'none',
+              background: 'transparent',
+              color: '#e87060',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: pending ? 'default' : 'pointer',
+              opacity: pending ? 0.6 : 1,
+            }}
+          >
+            <Icon name="x" size={18} color="currentColor" strokeWidth={2.5} />
+          </button>
+        </div>
       )}
     </div>
   )

@@ -96,6 +96,92 @@ export async function lastOppAlbumBilde(formData: FormData): Promise<{ id: strin
   return { id: rad.id, url }
 }
 
+export async function oppdaterAlbumTittel(id: string, tittel: string): Promise<void> {
+  const { supabase } = await ensureInnlogget()
+  const ny = tittel.trim()
+  if (!ny) throw new Error('Tittel kan ikke være tom')
+  if (ny.length > 200) throw new Error('Tittel er for lang')
+
+  const { error } = await supabase
+    .from('album')
+    .update({ tittel: ny, oppdatert: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/album/${id}`)
+  revalidatePath('/album')
+}
+
+export async function settOmslagsbilde(albumId: string, bildeId: string): Promise<void> {
+  const { supabase } = await ensureInnlogget()
+
+  // Verifiser at bildet faktisk tilhører albumet — uten denne sjekken kunne
+  // en bruker som kjenner et annet albums bildeId sette det som cover her.
+  // FK-en alene garanterer kun at bildeId eksisterer som album_bilde-rad.
+  const { data: bilde } = await supabase
+    .from('album_bilde')
+    .select('album_id')
+    .eq('id', bildeId)
+    .maybeSingle()
+  if (!bilde || bilde.album_id !== albumId) {
+    throw new Error('Bildet hører ikke til dette albumet')
+  }
+
+  const { error } = await supabase
+    .from('album')
+    .update({ cover_bilde_id: bildeId, oppdatert: new Date().toISOString() })
+    .eq('id', albumId)
+  if (error) throw new Error(error.message)
+
+  // Sjekk arrangement-id for revalidering
+  const { data: album } = await supabase
+    .from('album')
+    .select('arrangement_id')
+    .eq('id', albumId)
+    .maybeSingle()
+
+  revalidatePath(`/album/${albumId}`)
+  revalidatePath('/album')
+  revalidatePath('/')
+  if (album?.arrangement_id) revalidatePath(`/arrangementer/${album.arrangement_id}`)
+}
+
+export async function slettAlbumBilde(bildeId: string): Promise<void> {
+  const { supabase } = await ensureInnlogget()
+
+  // Hent URL-er + albumId før delete så vi kan rydde i R2 etterpå
+  const { data: bilde } = await supabase
+    .from('album_bilde')
+    .select('bilde_url, thumb_url, album_id')
+    .eq('id', bildeId)
+    .maybeSingle()
+
+  if (!bilde) return
+
+  const { error } = await supabase.from('album_bilde').delete().eq('id', bildeId)
+  if (error) throw new Error(error.message)
+
+  // Best-effort opprydding i R2
+  const s1 = r2StiFraUrl(bilde.bilde_url)
+  if (s1) await slettR2(s1).catch(() => {})
+  if (bilde.thumb_url) {
+    const s2 = r2StiFraUrl(bilde.thumb_url)
+    if (s2) await slettR2(s2).catch(() => {})
+  }
+
+  // Sjekk arrangement-id for revalidering
+  const { data: album } = await supabase
+    .from('album')
+    .select('arrangement_id')
+    .eq('id', bilde.album_id)
+    .maybeSingle()
+
+  revalidatePath(`/album/${bilde.album_id}`)
+  revalidatePath('/album')
+  revalidatePath('/')
+  if (album?.arrangement_id) revalidatePath(`/arrangementer/${album.arrangement_id}`)
+}
+
 export async function slettAlbum(id: string): Promise<void> {
   const { supabase } = await ensureInnlogget()
 

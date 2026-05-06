@@ -129,12 +129,17 @@ export default async function Forside() {
       )
       .order('opprettet', { ascending: false })
       .limit(60),
-    // Hvilke arrangementer har album med ≥1 bilde — brukes til å vise
-    // kamera-ikon på agenda-kortet. Henter kun arrangement_id og første
-    // bilde-id som indikator på at det finnes innhold.
+    // Hvilke arrangementer har album — brukes til både kamera-ikon på
+    // agenda-kortet og som fallback-bilde når arrangementet ikke har eget
+    // bilde_url. Vi henter cover via FK-join (album_cover_fk) + bilde-antall
+    // via aggregat, ikke hele bildelista. Fallback-bilde brukes kun når
+    // cover er eksplisitt satt — uten cover får arrangementet kamera-ikon
+    // men beholder placeholder-stilen.
     supabase
       .from('album')
-      .select('arrangement_id, album_bilde!album_bilde_album_id_fkey (id)')
+      .select(
+        'arrangement_id, cover:album_bilde!album_cover_fk (bilde_url), antall:album_bilde!album_bilde_album_id_fkey (count)',
+      )
       .not('arrangement_id', 'is', null),
   ])
 
@@ -287,18 +292,31 @@ export default async function Forside() {
     }
   })
 
-  // Set av arrangement-id-er som har album med ≥1 bilde
-  type AlbumIndikator = { arrangement_id: string | null; album_bilde: { id: string }[] | null }
+  // Album-info per arrangement: finnes album med ≥1 bilde, og er det satt
+  // cover? cover kommer som ett embedded objekt via album_cover_fk; antall
+  // som ett aggregat-objekt ([{count}]).
+  type AlbumIndikator = {
+    arrangement_id: string | null
+    cover: { bilde_url: string } | { bilde_url: string }[] | null
+    antall: { count: number }[] | null
+  }
   const arrangementMedAlbum = new Set<string>()
+  const coverPerArrangement = new Map<string, string>()
   for (const a of (albumMedArrangement ?? []) as AlbumIndikator[]) {
-    if (a.arrangement_id && a.album_bilde && a.album_bilde.length > 0) {
-      arrangementMedAlbum.add(a.arrangement_id)
-    }
+    if (!a.arrangement_id) continue
+    const antall = a.antall?.[0]?.count ?? 0
+    if (antall === 0) continue
+    arrangementMedAlbum.add(a.arrangement_id)
+    const cover = Array.isArray(a.cover) ? a.cover[0] : a.cover
+    if (cover?.bilde_url) coverPerArrangement.set(a.arrangement_id, cover.bilde_url)
   }
 
-  const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(
-    a => ({ ...a, harAlbum: arrangementMedAlbum.has(a.id) }),
-  )
+  const arrangementerBerikt = ((arrangementer ?? []) as unknown as ArrangementRaad[]).map(a => ({
+    ...a,
+    harAlbum: arrangementMedAlbum.has(a.id),
+    // Fall tilbake til album-cover hvis arr ikke har eget bilde
+    bilde_url: a.bilde_url ?? coverPerArrangement.get(a.id) ?? null,
+  }))
 
   const { meldinger, idag, kommende, tidligere } = byggAgenda({
     arrangementer: arrangementerBerikt,

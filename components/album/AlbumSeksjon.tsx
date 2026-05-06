@@ -19,6 +19,7 @@ export type AlbumForSeksjon = {
   id: string
   tittel: string
   bilder: AlbumBildeForGrid[]
+  cover_bilde_id: string | null
 }
 
 const MAKS_FORHANDSVISNING = 8
@@ -75,9 +76,11 @@ async function opplastIBolker(albumId: string, filer: File[], onProgress: (n: nu
 export default function AlbumSeksjon({
   album,
   arrangementId,
+  kanRedigere = false,
 }: {
   album: AlbumForSeksjon | null
   arrangementId: string
+  kanRedigere?: boolean
 }) {
   const router = useRouter()
   const [oppretter, startOpprett] = useTransition()
@@ -278,6 +281,9 @@ export default function AlbumSeksjon({
           bilder={album.bilder.map(b => ({ id: b.id, bilde_url: b.bilde_url }))}
           startIndex={lightbox}
           onLukk={() => setLightbox(null)}
+          albumId={album.id}
+          kanRedigere={kanRedigere}
+          coverBildeId={album.cover_bilde_id}
         />
       )}
     </section>
