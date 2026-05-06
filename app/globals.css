@@ -154,4 +154,13 @@ html.tastatur-oppe [style*="20px 120px"] {
   body:has(.orientering-overlay) {
     overflow: hidden;
   }
+  /* Album-sider og åpen lightbox tillater landskap — bilder ser bedre
+   * ut bredt enn smalt. AlbumLightbox + TillatLandskap setter
+   * `tillat-landskap` på <html>; her overstyrer vi blokkeringen. */
+  html.tillat-landskap .orientering-overlay {
+    display: none !important;
+  }
+  html.tillat-landskap body {
+    overflow: visible !important;
+  }
 }

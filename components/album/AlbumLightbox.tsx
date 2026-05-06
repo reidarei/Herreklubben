@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from '@/components/ui/Icon'
 
 // Fullskjerm-galleri for album. Pil-knapper, swipe, tastatur og X for å lukke.
@@ -19,8 +20,14 @@ export default function AlbumLightbox({
   onLukk: () => void
 }) {
   const [index, setIndex] = useState(startIndex)
+  const [montert, setMontert] = useState(false)
   const dragStartX = useRef<number | null>(null)
   const dragDeltaX = useRef(0)
+
+  // Mount-flag for portal — createPortal kan ikke kalles på server
+  useEffect(() => {
+    setMontert(true)
+  }, [])
 
   function neste() {
     setIndex(i => (i + 1) % bilder.length)
@@ -37,9 +44,11 @@ export default function AlbumLightbox({
     }
     document.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
+    document.documentElement.classList.add('tillat-landskap')
     return () => {
       document.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
+      document.documentElement.classList.remove('tillat-landskap')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bilder.length])
@@ -63,9 +72,12 @@ export default function AlbumLightbox({
   }
 
   const aktiv = bilder[index]
-  if (!aktiv) return null
+  if (!aktiv || !montert) return null
 
-  return (
+  // Portal til <body> så fixed-positioning ikke begrenses av layout-
+  // containeren (maxWidth 480, position: relative). Uten portal havner
+  // overlayet inn i den smale kolonnen og bildet i ovenkanten av den.
+  const innhold = (
     <div
       role="dialog"
       aria-modal="true"
@@ -75,8 +87,13 @@ export default function AlbumLightbox({
       onTouchEnd={onTouchEnd}
       style={{
         position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.94)',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100dvh',
+        background: 'rgba(0,0,0,0.96)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
@@ -106,17 +123,17 @@ export default function AlbumLightbox({
           position: 'absolute',
           top: 'max(16px, env(safe-area-inset-top))',
           right: 16,
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           borderRadius: '50%',
           border: 'none',
-          background: 'rgba(255,255,255,0.12)',
+          background: 'rgba(0,0,0,0.65)',
           color: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          backdropFilter: 'blur(8px)',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.25)',
         }}
       >
         <Icon name="x" size={20} color="currentColor" strokeWidth={2.5} />
@@ -198,4 +215,6 @@ export default function AlbumLightbox({
       )}
     </div>
   )
+
+  return createPortal(innhold, document.body)
 }

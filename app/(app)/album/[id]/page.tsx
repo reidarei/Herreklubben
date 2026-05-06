@@ -3,6 +3,7 @@ import { getInnloggetBruker } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AlbumDetalj from '@/components/album/AlbumDetalj'
+import TillatLandskap from '@/components/album/TillatLandskap'
 
 export default async function AlbumSide({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -35,6 +36,7 @@ export default async function AlbumSide({ params }: { params: Promise<{ id: stri
 
   return (
     <div style={{ padding: '0 20px 120px' }}>
+      <TillatLandskap />
       <div style={{ paddingTop: 20, marginBottom: 16 }}>
         {arrangement && (
           <Link
