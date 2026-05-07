@@ -2,7 +2,7 @@
 
 Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og kåringer i en gruppe på ca. 17 venner. Lever på [mortensrudherreklubb.no](https://mortensrudherreklubb.no).
 
-> Dette er et privat hobby-prosjekt, ikke en publikt distribuert produkt. Det er bygget med kraftig AI-assistanse (Claude Code, Anthropic). README-en er ærlig om både hva som er gjennomtenkt og hva som er pragmatiske snarveier — se [Ærlig vurdering](#ærlig-vurdering) nederst.
+> Dette er et privat hobby-prosjekt, ikke en publikt distribuert produkt. Det er bygget med kraftig AI-assistanse (Claude Code, Anthropic). README-en dekker både hva som er gjennomtenkt og hva som er pragmatiske snarveier — se [Kritisk vurdering](#kritisk-vurdering) nederst.
 
 ---
 
@@ -16,7 +16,7 @@ Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og k
 - [Mappe-struktur](#mappe-struktur)
 - [Drift og deploy](#drift-og-deploy)
 - [Lokalt utviklingsmiljø](#lokalt-utviklingsmiljø)
-- [Ærlig vurdering](#ærlig-vurdering)
+- [Kritisk vurdering](#kritisk-vurdering)
 
 ---
 
@@ -251,7 +251,7 @@ npx supabase gen types typescript --project-id <id> > lib/supabase/database.type
 
 ---
 
-## Ærlig vurdering
+## Kritisk vurdering
 
 Denne seksjonen er for IT-folk som vurderer kodebasen profesjonelt. Den er bevisst usminket.
 
