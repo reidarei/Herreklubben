@@ -51,6 +51,16 @@ export default function InstallVeiledning() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    // Nullstilling via URL-parameter ?vis-install — for testing og for
+    // brukere som har avvist banneret men ombestemt seg.
+    if (window.location.search.includes('vis-install')) {
+      window.localStorage.removeItem(AVVIST_NOKKEL)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('vis-install')
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+    }
+
     if (window.localStorage.getItem(AVVIST_NOKKEL) === '1') return
 
     // navigator.standalone er en iOS Safari-spesifikk prop som er true når
