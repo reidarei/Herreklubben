@@ -12,21 +12,41 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+// Hvilken iOS-nettleser brukeren er på. Hver av disse har ulik plassering
+// og betegnelse for «Legg til på Hjem-skjerm»-flyten:
+//   - safari: Del-knapp midt i nederste verktøylinje, deretter Legg til på Hjem-skjerm
+//   - chrome: Del-knapp i adresselinjen (... → Del), deretter Legg til på Hjem-skjerm
+//   - edge: tilsvarende Chrome — del-meny via meny-knappen
+//   - firefox: PWA-install er ikke støttet på iOS Firefox per nå
+type IosNettleser = 'safari' | 'chrome' | 'edge' | 'firefox' | null
+
+function detekterIosNettleser(ua: string): IosNettleser {
+  const erIos = /iPhone|iPad|iPod/.test(ua)
+  if (!erIos) return null
+  if (/CriOS/.test(ua)) return 'chrome'
+  if (/EdgiOS/.test(ua)) return 'edge'
+  if (/FxiOS/.test(ua)) return 'firefox'
+  return 'safari'
+}
+
 // Veileder for å installere PWA-en på telefonen.
 //
-//   - **iOS Safari** har ingen programmatisk install-API, så vi viser kun
-//     instruksjoner: «Trykk del-knappen → Legg til på Hjem-skjerm».
-//   - **Android Chrome / Edge / Samsung Browser** triggrer
-//     `beforeinstallprompt` når kriteriene er møtt. Vi fanger eventet og
-//     viser en faktisk Installer-knapp som kaller `prompt()`.
-//   - **Andre nettlesere** (Firefox, eldre osv.) får ingen banner — vi
-//     kan ikke hjelpe dem programmatisk og iOS-instruksjonene gir ikke
-//     mening for dem.
+//   - **Android** (Chrome/Edge/Samsung Browser): triggrer
+//     `beforeinstallprompt`. Vi fanger eventet og viser en faktisk
+//     Installer-knapp som installerer med ett trykk.
+//   - **iOS Safari**: ingen programmatisk install-API. Vi viser steg-
+//     instruksjoner med konkrete plasseringer av knapper.
+//   - **iOS Chrome / Edge**: tilsvarende, men menyene ligger andre steder
+//     enn i Safari. Egne instrukser per nettleser.
+//   - **iOS Firefox**: støtter ikke PWA-install per i dag — vi viser
+//     ingen banner.
+//   - **Andre nettlesere** (desktop, Firefox Android osv.): vi viser
+//     ikke banner; PWA-en er fortsatt fullt brukbar i nettleser.
 //
 // Skjules permanent etter avvisning eller vellykket installasjon
 // (localStorage-flagg).
 export default function InstallVeiledning() {
-  const [iosBanner, setIosBanner] = useState(false)
+  const [iosNettleser, setIosNettleser] = useState<IosNettleser>(null)
   const [androidEvent, setAndroidEvent] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
@@ -42,11 +62,11 @@ export default function InstallVeiledning() {
       window.matchMedia('(display-mode: standalone)').matches
     if (erStandalone) return
 
-    // iOS-banner kun for iPhone/iPad/iPod
-    const erIos = /iPhone|iPad|iPod/.test(window.navigator.userAgent)
+    const nettleser = detekterIosNettleser(window.navigator.userAgent)
     let iosTimer: ReturnType<typeof setTimeout> | null = null
-    if (erIos) {
-      iosTimer = setTimeout(() => setIosBanner(true), 600)
+    // Firefox iOS støtter ikke install — vis ikke noe der
+    if (nettleser && nettleser !== 'firefox') {
+      iosTimer = setTimeout(() => setIosNettleser(nettleser), 600)
     }
 
     // Android (og Chrome desktop) — fang beforeinstallprompt og lagre eventet
@@ -60,7 +80,7 @@ export default function InstallVeiledning() {
     // som avvist så det ikke dukker opp igjen.
     function installerHandler() {
       window.localStorage.setItem(AVVIST_NOKKEL, '1')
-      setIosBanner(false)
+      setIosNettleser(null)
       setAndroidEvent(null)
     }
     window.addEventListener('appinstalled', installerHandler)
@@ -74,7 +94,7 @@ export default function InstallVeiledning() {
 
   function avvis() {
     window.localStorage.setItem(AVVIST_NOKKEL, '1')
-    setIosBanner(false)
+    setIosNettleser(null)
     setAndroidEvent(null)
   }
 
@@ -83,14 +103,12 @@ export default function InstallVeiledning() {
     await androidEvent.prompt()
     const valg = await androidEvent.userChoice
     if (valg.outcome === 'accepted') {
-      // appinstalled-handleren tar resten — men vi kan trygt skjule banneret
-      // her også for raskere visuell feedback.
       window.localStorage.setItem(AVVIST_NOKKEL, '1')
       setAndroidEvent(null)
     }
   }
 
-  const synlig = iosBanner || !!androidEvent
+  const synlig = iosNettleser !== null || !!androidEvent
   if (!synlig) return null
 
   return (
@@ -150,21 +168,49 @@ export default function InstallVeiledning() {
             Installer Herreklubben på telefonen
           </div>
 
-          {iosBanner && (
+          {iosNettleser === 'safari' && (
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              I Safari nederst på skjermen:
-              <ol
-                style={{
-                  margin: '6px 0 0',
-                  paddingLeft: 22,
-                  lineHeight: 1.5,
-                }}
-              >
+              <ol style={{ margin: 0, paddingLeft: 22 }}>
                 <li>
-                  Trykk <strong style={{ color: 'var(--text-primary)' }}>Del</strong>
+                  Trykk{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>Del</strong>-knappen
+                  midt i den nederste verktøylinjen (kvadratisk ikon med pil opp)
+                </li>
+                <li>
+                  Bla ned og velg{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>
+                    Legg til på Hjem-skjerm
+                  </strong>
+                </li>
+              </ol>
+            </div>
+          )}
+
+          {iosNettleser === 'chrome' && (
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <ol style={{ margin: 0, paddingLeft: 22 }}>
+                <li>
+                  Trykk meny-knappen <strong style={{ color: 'var(--text-primary)' }}>⋯</strong>{' '}
+                  nederst til høyre i Chrome
                 </li>
                 <li>
                   Velg{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>Legg til på Hjem-skjerm</strong>
+                </li>
+              </ol>
+            </div>
+          )}
+
+          {iosNettleser === 'edge' && (
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <ol style={{ margin: 0, paddingLeft: 22 }}>
+                <li>
+                  Trykk meny-knappen <strong style={{ color: 'var(--text-primary)' }}>⋯</strong>{' '}
+                  nederst i Edge
+                </li>
+                <li>Velg <strong style={{ color: 'var(--text-primary)' }}>Del</strong></li>
+                <li>
+                  Bla ned og velg{' '}
                   <strong style={{ color: 'var(--text-primary)' }}>
                     Legg til på Hjem-skjerm
                   </strong>
