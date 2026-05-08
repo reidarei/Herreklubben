@@ -5,54 +5,98 @@ import Icon from '@/components/ui/Icon'
 
 const AVVIST_NOKKEL = 'install-veiledning-avvist'
 
-// Veileder for å installere PWA-en på iPhone via Safari (Del → Legg til på
-// Hjem-skjerm). iOS Safari mangler en native «Install»-knapp som Chrome har
-// på Android, så uten denne hint-en finner mange ikke installasjons-flyten.
+// beforeinstallprompt-eventet er en Chrome/Edge/Samsung Browser-ting (ikke
+// i typingen for window-events ennå). Vi typer det inline.
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+// Veileder for å installere PWA-en på telefonen.
 //
-// Vises kun når:
-//   - Enheten er iOS (iPhone/iPad/iPod i UA)
-//   - Appen kjører IKKE som installert PWA (navigator.standalone er false
-//     på iOS Safari, eller matchMedia-display-mode er ikke 'standalone')
-//   - Bruker har ikke avvist veiledningen tidligere (localStorage-flagg)
+//   - **iOS Safari** har ingen programmatisk install-API, så vi viser kun
+//     instruksjoner: «Trykk del-knappen → Legg til på Hjem-skjerm».
+//   - **Android Chrome / Edge / Samsung Browser** triggrer
+//     `beforeinstallprompt` når kriteriene er møtt. Vi fanger eventet og
+//     viser en faktisk Installer-knapp som kaller `prompt()`.
+//   - **Andre nettlesere** (Firefox, eldre osv.) får ingen banner — vi
+//     kan ikke hjelpe dem programmatisk og iOS-instruksjonene gir ikke
+//     mening for dem.
 //
-// Avvisning er permanent fra brukerens perspektiv — vi kan vurdere en
-// re-show-policy senere hvis det viser seg at folk lukker uten å lese.
+// Skjules permanent etter avvisning eller vellykket installasjon
+// (localStorage-flagg).
 export default function InstallVeiledning() {
-  const [synlig, setSynlig] = useState(false)
+  const [iosBanner, setIosBanner] = useState(false)
+  const [androidEvent, setAndroidEvent] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-
-    const erIos = /iPhone|iPad|iPod/.test(window.navigator.userAgent)
-    if (!erIos) return
+    if (window.localStorage.getItem(AVVIST_NOKKEL) === '1') return
 
     // navigator.standalone er en iOS Safari-spesifikk prop som er true når
-    // siden er åpnet fra hjem-skjerm. matchMedia-fallback dekker tilfeller
-    // der nyere iOS skulle endre representasjonen.
+    // siden er åpnet fra hjem-skjerm. matchMedia-fallback dekker Android
+    // og fremtidige iOS-endringer.
     const navAny = window.navigator as Navigator & { standalone?: boolean }
     const erStandalone =
       navAny.standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches
     if (erStandalone) return
 
-    if (window.localStorage.getItem(AVVIST_NOKKEL) === '1') return
+    // iOS-banner kun for iPhone/iPad/iPod
+    const erIos = /iPhone|iPad|iPod/.test(window.navigator.userAgent)
+    let iosTimer: ReturnType<typeof setTimeout> | null = null
+    if (erIos) {
+      iosTimer = setTimeout(() => setIosBanner(true), 600)
+    }
 
-    // Kort delay så banneret ikke flasher inn før resten av siden er klar
-    const timer = setTimeout(() => setSynlig(true), 600)
-    return () => clearTimeout(timer)
+    // Android (og Chrome desktop) — fang beforeinstallprompt og lagre eventet
+    function handler(e: Event) {
+      e.preventDefault()
+      setAndroidEvent(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+
+    // Hvis appen blir installert mens vi er åpen, fjern banneret og marker
+    // som avvist så det ikke dukker opp igjen.
+    function installerHandler() {
+      window.localStorage.setItem(AVVIST_NOKKEL, '1')
+      setIosBanner(false)
+      setAndroidEvent(null)
+    }
+    window.addEventListener('appinstalled', installerHandler)
+
+    return () => {
+      if (iosTimer) clearTimeout(iosTimer)
+      window.removeEventListener('beforeinstallprompt', handler)
+      window.removeEventListener('appinstalled', installerHandler)
+    }
   }, [])
 
   function avvis() {
     window.localStorage.setItem(AVVIST_NOKKEL, '1')
-    setSynlig(false)
+    setIosBanner(false)
+    setAndroidEvent(null)
   }
 
+  async function installerAndroid() {
+    if (!androidEvent) return
+    await androidEvent.prompt()
+    const valg = await androidEvent.userChoice
+    if (valg.outcome === 'accepted') {
+      // appinstalled-handleren tar resten — men vi kan trygt skjule banneret
+      // her også for raskere visuell feedback.
+      window.localStorage.setItem(AVVIST_NOKKEL, '1')
+      setAndroidEvent(null)
+    }
+  }
+
+  const synlig = iosBanner || !!androidEvent
   if (!synlig) return null
 
   return (
     <div
       role="dialog"
-      aria-label="Installer på iPhone"
+      aria-label="Installer på telefonen"
       style={{
         position: 'fixed',
         left: 12,
@@ -78,12 +122,7 @@ export default function InstallVeiledning() {
       `}</style>
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontFamily: 'var(--font-mono)',
@@ -110,32 +149,62 @@ export default function InstallVeiledning() {
           >
             Installer Herreklubben på telefonen
           </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: 'var(--text-secondary)',
-              lineHeight: 1.4,
-            }}
-          >
-            Trykk{' '}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                style={{ verticalAlign: '-2px' }}
+
+          {iosBanner && (
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              Trykk{' '}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ verticalAlign: '-2px' }}
+                >
+                  <path d="M8 12V4l4-4 4 4v8M12 0v15M5 9h2m10 0h2M5 21h14a2 2 0 002-2v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2z" />
+                </svg>
+              </span>{' '}
+              del-knappen i Safari og velg{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>Legg til på Hjem-skjerm</strong>.
+              Da får du eget app-ikon og slipper nettleser-rammen rundt.
+            </div>
+          )}
+
+          {androidEvent && (
+            <>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.4,
+                  marginBottom: 12,
+                }}
               >
-                <path d="M8 12V4l4-4 4 4v8M12 0v15M5 9h2m10 0h2M5 21h14a2 2 0 002-2v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7a2 2 0 002 2z" />
-              </svg>
-            </span>{' '}
-            del-knappen i Safari og velg <strong style={{ color: 'var(--text-primary)' }}>Legg til på Hjem-skjerm</strong>. Da får du eget app-ikon og slipper nettleser-rammen rundt.
-          </div>
+                Få eget app-ikon og slipp nettleser-rammen rundt.
+              </div>
+              <button
+                type="button"
+                onClick={installerAndroid}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: '#0a0a0a',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Installer
+              </button>
+            </>
+          )}
         </div>
         <button
           type="button"
