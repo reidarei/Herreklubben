@@ -15,6 +15,7 @@ type Props = {
 export default function MessengerBadge({ erEgen }: Props) {
   return (
     <div
+      role="img"
       title="Importert fra Messenger"
       aria-label="Importert fra Messenger"
       style={{

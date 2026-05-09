@@ -144,9 +144,18 @@ export default function Chat({
   // spesifikke grener her.
   const hentMeldinger = useCallback(
     async (forTidspunkt?: string): Promise<ChatMelding[]> => {
+      // klubb_chat har i tillegg `fra_facebook` for å vise Messenger-badge på
+      // historisk-importerte meldinger. Andre chat-tabeller har ikke kolonnen.
+      // UPDATE-handleren (under) tar bevisst kun innhold, så endring av
+      // fra_facebook på en eksisterende rad slår ikke gjennom i UI — i
+      // praksis er flagget skrivebeskyttet etter import.
+      const select =
+        tabell === 'klubb_chat'
+          ? 'id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook'
+          : 'id, profil_id, innhold, bilde_url, video_url, opprettet'
       let q = supabase
         .from(konfig.tabell)
-        .select('id, profil_id, innhold, bilde_url, video_url, opprettet')
+        .select(select)
         .order('opprettet', { ascending: false })
         .limit(SIDE_STORRELSE)
       const fkVerdi = konfig.scopeId(scope)
@@ -155,7 +164,7 @@ export default function Chat({
       }
       if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
       const { data } = await q
-      return data ? [...data].reverse() : []
+      return data ? ([...data].reverse() as unknown as ChatMelding[]) : []
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -966,7 +975,7 @@ export default function Chat({
                         playsInline
                         style={{
                           display: 'block',
-                          maxWidth: '100%',
+                          maxWidth: 280,
                           height: 'auto',
                           maxHeight: 280,
                           borderRadius: 8,
