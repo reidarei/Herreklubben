@@ -743,11 +743,12 @@ export default function Chat({
           // og navn/tid-header på fortsettelses-meldinger.
           const erFortsettelse = forrige?.profil_id === m.profil_id
           const erEgen = m.profil_id === brukerId
-          // Slett-knapp: egen melding eller admin. Beskyttet mot mistrykk
-          // med en confirm()-dialog i handleSlett. Gjelder også
-          // FB-importerte — sendte du meldingen i sin tid, kan du slette
-          // den her.
-          const kanSlette = erEgen || erAdmin
+          // Slett-knapp: kun egen-eier. Admin har ingen UI-snarvei for å
+          // slette andres meldinger — om noe må fjernes må admin gjøre det
+          // direkte i DB. Gjelder også FB-importerte: sendte du meldingen
+          // (i appen eller i Messenger som senere ble importert), kan du
+          // slette den her.
+          const kanSlette = erEgen
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
           const bilde = bildeMap.get(m.profil_id)
           const rolle = rolleMap.get(m.profil_id) ?? null
