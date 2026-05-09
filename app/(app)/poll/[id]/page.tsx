@@ -45,7 +45,7 @@ export default async function PollDetalj({
       .single<PollRad>(),
     supabase
       .from('poll_chat')
-      .select('id, profil_id, innhold, bilde_url, opprettet')
+      .select('id, profil_id, innhold, bilde_url, video_url, opprettet')
       .eq('poll_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),

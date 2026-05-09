@@ -15,6 +15,7 @@ import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import BildeLightbox from '@/components/ui/BildeLightbox'
+import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 
@@ -27,7 +28,12 @@ export type ChatMelding = {
   profil_id: string
   innhold: string | null
   bilde_url: string | null
+  video_url: string | null
   opprettet: string
+  // fra_facebook finnes kun på klubb_chat-tabellen — markerer meldinger
+  // som er importert fra Messenger. Valgfritt så typen kan brukes i alle
+  // chat-scopes uten å late som om feltet eksisterer overalt.
+  fra_facebook?: boolean
 }
 
 export type ChatProfil = {
@@ -140,7 +146,7 @@ export default function Chat({
     async (forTidspunkt?: string): Promise<ChatMelding[]> => {
       let q = supabase
         .from(konfig.tabell)
-        .select('id, profil_id, innhold, bilde_url, opprettet')
+        .select('id, profil_id, innhold, bilde_url, video_url, opprettet')
         .order('opprettet', { ascending: false })
         .limit(SIDE_STORRELSE)
       const fkVerdi = konfig.scopeId(scope)
@@ -516,7 +522,9 @@ export default function Chat({
       profil_id: brukerId,
       innhold: melding,
       bilde_url: bildePreview, // viser blob-URL midlertidig
+      video_url: null,
       opprettet: new Date().toISOString(),
+      fra_facebook: false,
     }
     setMeldinger(prev => [...prev, optimistisk])
 
@@ -950,9 +958,26 @@ export default function Chat({
                         />
                       </button>
                     )}
+                    {m.video_url && (
+                      <video
+                        src={m.video_url}
+                        controls
+                        preload="metadata"
+                        playsInline
+                        style={{
+                          display: 'block',
+                          maxWidth: '100%',
+                          height: 'auto',
+                          maxHeight: 280,
+                          borderRadius: 8,
+                          marginBottom: m.innhold ? 8 : 0,
+                        }}
+                      />
+                    )}
                     {m.innhold && renderMedMentions(m.innhold)}
                   </div>
                   )}
+                  {m.fra_facebook && <MessengerBadge erEgen={erEgen} />}
                   {/* Reaksjons-chips — flyter på bunnkanten av bobla, ikke
                       egen linje. Negativ margin trekker dem opp slik at de
                       overlapper bobla, padding holder dem litt inn fra

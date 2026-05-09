@@ -18,7 +18,7 @@ export default async function KlubbChatSide() {
   const [{ data: siste }, { data: profiler }, { count: ulestPrivat }] = await Promise.all([
     supabase
       .from('klubb_chat')
-      .select('id, profil_id, innhold, bilde_url, opprettet')
+      .select('id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook')
       .order('opprettet', { ascending: false })
       .limit(30),
     supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),

@@ -14,10 +14,11 @@ function validerInnhold(
   innhold: string | null,
   bildeUrl: string | null,
   charLimit: number,
+  videoUrl: string | null = null,
 ): { tekst: string | null } {
   const tekst = innhold?.trim() || null
-  if (!tekst && !bildeUrl) {
-    throw new Error('Meldingen må ha tekst eller bilde')
+  if (!tekst && !bildeUrl && !videoUrl) {
+    throw new Error('Meldingen må ha tekst, bilde eller video')
   }
   // Privat har egen min via INNLEGG_MIN_LENGDE; for chat er CHAT_MIN_LENGDE
   // det riktige. Begge er 1, så vi velger basert på charLimit-størrelsen.
@@ -35,9 +36,17 @@ async function sendVarslerEtterPost(
   scope: ChatScope,
   tekst: string | null,
   avsenderId: string,
+  bildeUrl: string | null = null,
+  videoUrl: string | null = null,
 ): Promise<void> {
   if (scope.type === 'privat') {
-    const varselTekst = tekst ?? '📷 Sendte deg et bilde'
+    const varselTekst =
+      tekst ??
+      (videoUrl
+        ? '🎬 Sendte deg en video'
+        : bildeUrl
+          ? '📷 Sendte deg et bilde'
+          : 'Sendte deg en melding')
     await sendPrivatMeldingVarsel(scope.samtaleId, varselTekst, avsenderId)
     return
   }
@@ -103,9 +112,10 @@ export async function sendChatMelding(
   scope: ChatScope,
   innhold: string | null,
   bildeUrl: string | null = null,
+  videoUrl: string | null = null,
 ): Promise<void> {
   const k = konfigFor(scope)
-  const { tekst } = validerInnhold(innhold, bildeUrl, k.charLimit)
+  const { tekst } = validerInnhold(innhold, bildeUrl, k.charLimit, videoUrl)
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -114,11 +124,17 @@ export async function sendChatMelding(
   const fkData = k.fkFelt ? { [k.fkFelt]: k.scopeId(scope) } : {}
   const { error } = await supabase
     .from(k.tabell)
-    .insert({ ...fkData, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
+    .insert({
+      ...fkData,
+      profil_id: user.id,
+      innhold: tekst,
+      bilde_url: bildeUrl,
+      video_url: videoUrl,
+    })
   if (error) throw new Error(error.message)
 
   try {
-    await sendVarslerEtterPost(scope, tekst, user.id)
+    await sendVarslerEtterPost(scope, tekst, user.id, bildeUrl, videoUrl)
   } catch (err) {
     // Varsel-svikt skal ikke feile selve meldingen — den er allerede skrevet
     // til DB. Logg og gå videre.
@@ -137,7 +153,7 @@ export async function oppdaterChatMelding(
   // Eksplisitt sjekk for tom/whitespace etter trim siden validerInnhold med
   // bildeUrl='placeholder' ellers ville la null-tekst slippe gjennom og
   // nulle ut innhold-kolonnen i DB.
-  const { tekst } = validerInnhold(innhold, 'placeholder', k.charLimit)
+  const { tekst } = validerInnhold(innhold, 'placeholder', k.charLimit, null)
   if (!tekst) {
     const minLengde = k.charLimit > 500 ? INNLEGG_MIN_LENGDE : CHAT_MIN_LENGDE
     throw new Error(`Meldingen må være ${minLengde}–${k.charLimit} tegn`)
