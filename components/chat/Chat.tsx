@@ -142,9 +142,9 @@ export default function Chat({
   // kan analysere deps-arrayene under uten "complex expression"-warnings.
   const scopeType = scope.type
   const arrangementId = scope.type === 'arrangement' ? scope.arrangementId : ''
-  const pollId       = scope.type === 'poll'        ? scope.pollId        : ''
-  const meldingId    = scope.type === 'melding'     ? scope.meldingId     : ''
-  const samtaleId    = scope.type === 'privat'      ? scope.samtaleId     : ''
+  const pollId = scope.type === 'poll' ? scope.pollId : ''
+  const meldingId = scope.type === 'melding' ? scope.meldingId : ''
+  const samtaleId = scope.type === 'privat' ? scope.samtaleId : ''
 
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
