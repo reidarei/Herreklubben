@@ -80,13 +80,21 @@ const aws = HAR_R2
 // ───────────────────────────────────────────────────────────────────────
 
 // Facebook eksporterer JSON med UTF-8-byte-sekvenser tolket som latin1.
-// Kopiert fra scripts/foreslaa-messenger-mapping.mjs.
+// Round-trip latin1→utf8 reverserer det. Vi bruker lengde-heuristikk for
+// å detektere om strengen faktisk var mojibake: ekte mojibake gjør UTF-8-
+// flerbyte-tegn til separate latin1-codepoints, så round-trip gir kortere
+// streng. Hvis ikke kortere, var input ren ASCII/utf8 og vi returnerer
+// originalen.
 function fiksEncoding(s) {
-  if (typeof s !== 'string') return s
-  if (/[ÃÂ]|â\x80\x99|â\x80\x9c|â\x80\x9d/.test(s)) {
-    return Buffer.from(s, 'latin1').toString('utf8')
+  if (typeof s !== 'string' || s.length === 0) return s
+  try {
+    const fix = Buffer.from(s, 'latin1').toString('utf8')
+    if (fix.includes('�')) return s // ugyldig UTF-8 etter round-trip — input var ikke mojibake
+    if (fix.length < s.length) return fix // round-trip forkortet = mojibake fjernet
+    return s
+  } catch {
+    return s
   }
-  return s
 }
 
 const SYSTEM_RE = /^.+ (har lagt til|har fjernet|har forlatt|har gitt gruppen navnet)/
@@ -505,7 +513,7 @@ async function kjor() {
         const sql = `
           insert into klubb_chat (profil_id, innhold, bilde_url, video_url, opprettet, kilde_ekstern_id, fra_facebook)
           values ${verdier.join(', ')}
-          on conflict (kilde_ekstern_id) do nothing
+          on conflict (kilde_ekstern_id) where kilde_ekstern_id is not null do nothing
           returning id, kilde_ekstern_id
         `
         const res = await client.query(sql, params)
