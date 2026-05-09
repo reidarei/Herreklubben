@@ -1,9 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 // Enkel fullskjerm-visning av et bilde. Klikk hvor som helst eller Escape
-// lukker visningen.
+// lukker visningen. Rendres via createPortal i document.body slik at
+// stacking-context fra parent-komponenter (som chat-feed) ikke kan dempe
+// z-index — uten dette havner lightbox under bottom-nav.
 export default function BildeLightbox({
   src,
   onLukk,
@@ -11,6 +14,12 @@ export default function BildeLightbox({
   src: string
   onLukk: () => void
 }) {
+  const [montert, setMontert] = useState(false)
+
+  useEffect(() => {
+    setMontert(true)
+  }, [])
+
   useEffect(() => {
     function handleEsc(e: KeyboardEvent) {
       if (e.key === 'Escape') onLukk()
@@ -23,7 +32,9 @@ export default function BildeLightbox({
     }
   }, [onLukk])
 
-  return (
+  if (!montert) return null
+
+  return createPortal(
     <div
       onClick={onLukk}
       role="dialog"
@@ -51,6 +62,7 @@ export default function BildeLightbox({
           borderRadius: 4,
         }}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }
