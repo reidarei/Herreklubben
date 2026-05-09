@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, useMemo, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { opprettArrangement } from '@/lib/actions/arrangementer'
 import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 import SkjemaBar from '@/components/ui/SkjemaBar'
@@ -211,12 +212,14 @@ export default function NyttArrangementSkjema({
       >
         {previewUrl ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
-            {/* Blob-URL for forhåndsvisning — vanlig <img> siden Next/Image
-                ikke håndterer blob-URLer */}
-            <img
+            {/* Blob-URL for forhåndsvisning — unoptimized fordi den ikke kan optimaliseres serverside */}
+            <Image
               src={previewUrl}
               alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              fill
+              unoptimized
+              style={{ objectFit: 'cover' }}
+              sizes="(max-width: 512px) 100vw, 512px"
             />
           </div>
         ) : (

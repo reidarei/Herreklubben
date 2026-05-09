@@ -138,6 +138,14 @@ export default function Chat({
   const tabell = konfig.tabell
   const kanalNavn = konfig.kanalNavn(scope)
 
+  // Ekstraherte scope-felter — flate verdier slik at react-hooks/exhaustive-deps
+  // kan analysere deps-arrayene under uten "complex expression"-warnings.
+  const scopeType = scope.type
+  const arrangementId = scope.type === 'arrangement' ? scope.arrangementId : ''
+  const pollId = scope.type === 'poll' ? scope.pollId : ''
+  const meldingId = scope.type === 'melding' ? scope.meldingId : ''
+  const samtaleId = scope.type === 'privat' ? scope.samtaleId : ''
+
   // Helper — henter meldinger med riktig scope-filter. Returnerer i
   // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
   // Bruker CHAT_KONFIG til å slå opp tabell + FK-filter — ingen scope-
@@ -166,15 +174,11 @@ export default function Chat({
       const { data } = await q
       return data ? ([...data].reverse() as unknown as ChatMelding[]) : []
     },
+    // konfig/scope/tabell utelates bevisst — de er rent utledet av scope-feltene over,
+    // og parent sender inline scope-objekter (ny identitet per render) som ville trigget
+    // unødvendige re-fetches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      scope.type,
-      scope.type === 'arrangement' ? scope.arrangementId : '',
-      scope.type === 'poll' ? scope.pollId : '',
-      scope.type === 'melding' ? scope.meldingId : '',
-      scope.type === 'privat' ? scope.samtaleId : '',
-      supabase,
-    ],
+    [scopeType, arrangementId, pollId, meldingId, samtaleId, supabase],
   )
 
   // Frigjør blob-URL når preview byttes
@@ -364,15 +368,11 @@ export default function Chat({
       cancelled = true
       if (channelRef) supabase.removeChannel(channelRef)
     }
+    // kanalNavn/konfig/scope/tabell utelates bevisst — alle utledet av scope-feltene over,
+    // og parent sender inline scope-objekter (ny identitet per render) som ville trigget
+    // unødvendige re-subscribes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    scope.type,
-    scope.type === 'arrangement' ? scope.arrangementId : '',
-    scope.type === 'poll' ? scope.pollId : '',
-    scope.type === 'melding' ? scope.meldingId : '',
-    scope.type === 'privat' ? scope.samtaleId : '',
-    supabase,
-  ])
+  }, [scopeType, arrangementId, pollId, meldingId, samtaleId, supabase])
 
   // Hent reaksjoner — kun for meldings-ID-er vi ikke har hentet før. På
   // mount: fetch for alle. Ved scrollback (Vis eldre): fetch for nye

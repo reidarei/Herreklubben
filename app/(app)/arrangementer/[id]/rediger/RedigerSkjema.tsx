@@ -266,11 +266,14 @@ export default function RedigerSkjema({
         {previewUrl ? (
           <div style={{ position: 'relative', aspectRatio: '16/9' }}>
             {previewUrl.startsWith('blob:') ? (
-              // Lokal forhåndsvisning før upload
-              <img
+              // Lokal forhåndsvisning før upload — unoptimized fordi blob-URL-er ikke kan optimaliseres serverside
+              <Image
                 src={previewUrl}
                 alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                fill
+                unoptimized
+                style={{ objectFit: 'cover' }}
+                sizes="(max-width: 512px) 100vw, 512px"
               />
             ) : (
               <Image

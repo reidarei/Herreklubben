@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { opprettMelding } from '@/lib/actions/meldinger'
 import { lastOppBilde } from '@/lib/actions/bilde-opplasting'
 import SkjemaBar from '@/components/ui/SkjemaBar'
@@ -118,10 +119,13 @@ export default function NyMeldingSkjema() {
           {previewUrl ? (
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '4/3', borderRadius: 'var(--radius-card)', overflow: 'hidden' }}>
-                <img
+                <Image
                   src={previewUrl}
                   alt="Forhåndsvisning"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  fill
+                  unoptimized
+                  style={{ objectFit: 'cover' }}
+                  sizes="(max-width: 512px) 100vw, 512px"
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
