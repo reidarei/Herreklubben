@@ -1,0 +1,92 @@
+{
+  "Alexander Svensen": {
+    "profile_id": "8f64ed4a-d907-424f-82ae-d6220c7fb02c",
+    "profile_navn": "Alexander Svensen",
+    "confidence": "high"
+  },
+  "André Heede": {
+    "profile_id": "f3d71e5a-367a-461e-ba13-a6c4de144e32",
+    "profile_navn": "André Heede",
+    "confidence": "high"
+  },
+  "Andreas Eriksen": {
+    "profile_id": "b6ac7c0c-e8b8-470b-8c01-1005cca236b3",
+    "profile_navn": "Andreas Eriksen",
+    "confidence": "high"
+  },
+  "Chris Reitan": {
+    "profile_id": "ae1834e3-2e82-4619-8372-76e2d04b65d4",
+    "profile_navn": "Christopher Reitan",
+    "confidence": "low"
+  },
+  "Espen Sørum Hagen": {
+    "profile_id": "4409273c-47f3-49e9-89be-9a7018ebac5c",
+    "profile_navn": "Espen Hagen",
+    "confidence": "low"
+  },
+  "Espen Waldem": {
+    "profile_id": "b2398344-4259-460c-a1b0-53d8a44643b3",
+    "profile_navn": "Espen Waldem",
+    "confidence": "high"
+  },
+  "Jon Erik Dahl": {
+    "profile_id": "6673601b-c7f4-4c09-929a-3dfaa4d6fdc6",
+    "profile_navn": "Jon Erik Dahl ",
+    "confidence": "high"
+  },
+  "Kenneth Lunde": {
+    "profile_id": "97f2a53f-a386-45d0-b53e-bde46a995767",
+    "profile_navn": "Kenneth Lunde",
+    "confidence": "high"
+  },
+  "Klas Kristoffer Liland": {
+    "profile_id": "4093f488-8c3c-4daf-a743-c087c74adc6d",
+    "profile_navn": "Klas Kristoffer Liland",
+    "confidence": "high"
+  },
+  "Kristian Andresen": {
+    "profile_id": "f291592e-74c2-4556-b043-a6ebd7b9c8ac",
+    "profile_navn": "Richard Andresen",
+    "confidence": "low"
+  },
+  "Kristoffer Benco Arntzen": {
+    "profile_id": "8bf2a096-1807-417f-8fe0-c33ec99d7178",
+    "profile_navn": "Kristoffer Benco Arntzen ",
+    "confidence": "high"
+  },
+  "Michael Johansen": {
+    "profile_id": "82093eaa-0a43-4191-b483-669569745b33",
+    "profile_navn": "Michael Johansen",
+    "confidence": "high"
+  },
+  "Pål Erik Biseth Kind": {
+    "profile_id": "be8e72f2-1538-4b4c-a907-bf843813754f",
+    "profile_navn": "Pål Erik",
+    "confidence": "low"
+  },
+  "Reidar Haavik": {
+    "profile_id": "ad597350-53e3-47aa-95a5-d207f383ef39",
+    "profile_navn": "Reidar Eik Haavik",
+    "confidence": "low"
+  },
+  "Richard Andresen": {
+    "profile_id": "f291592e-74c2-4556-b043-a6ebd7b9c8ac",
+    "profile_navn": "Richard Andresen",
+    "confidence": "high"
+  },
+  "Thomas Formo Riise": {
+    "profile_id": "a567e184-215e-4350-a667-54672ec86916",
+    "profile_navn": "Thomas Formo Riise",
+    "confidence": "high"
+  },
+  "Øyvind Rekve": {
+    "profile_id": "76801c77-b2db-41cd-ba30-6f55d10729ba",
+    "profile_navn": "Øyvind Rekve",
+    "confidence": "high"
+  },
+  "Øyvind Verket": {
+    "profile_id": "4accc876-7906-4a48-b73c-a88d0f6d114b",
+    "profile_navn": "Øyvind Verket",
+    "confidence": "high"
+  }
+}
