@@ -2,11 +2,15 @@
 -- Brukes til å skille importerte historiske meldinger fra ekte meldinger i appen
 -- (UI-en kan vise dem litt annerledes — f.eks. med en "fra Messenger"-merkelapp).
 --
--- Speiler 062 for arrangementer-tabellen — samme idempotens-strategi for re-import.
+-- Speiler 062 (arrangementer-tabellen) på `fra_facebook`-flagget og partial
+-- indeksen for å filtrere FB-historikk effektivt.
 --
--- kilde_ekstern_id har format `messenger:{timestamp_ms}:{idx}` og brukes for
--- idempotent re-import: unik-indeksen sørger for at samme melding ikke kan
--- importeres to ganger selv om import-skriptet kjøres på nytt.
+-- I tillegg introduseres her `kilde_ekstern_id` + partial unique index — en
+-- idempotens-mekanisme som 062 ikke har. Klubb-chat-import kan generere
+-- mange tusen rader, og uten unik ekstern id ville re-kjøring av
+-- import-skriptet gitt duplikater. Format: `messenger:{timestamp_ms}:{idx}`.
+-- Unik-indeksen er partial (kun rader med ikke-null id), så manuelt
+-- opprettede meldinger uten ekstern id ikke berøres.
 alter table klubb_chat
   add column if not exists fra_facebook boolean not null default false;
 
