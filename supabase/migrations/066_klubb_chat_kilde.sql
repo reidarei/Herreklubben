@@ -2,6 +2,8 @@
 -- Brukes til å skille importerte historiske meldinger fra ekte meldinger i appen
 -- (UI-en kan vise dem litt annerledes — f.eks. med en "fra Messenger"-merkelapp).
 --
+-- Speiler 062 for arrangementer-tabellen — samme idempotens-strategi for re-import.
+--
 -- kilde_ekstern_id har format `messenger:{timestamp_ms}:{idx}` og brukes for
 -- idempotent re-import: unik-indeksen sørger for at samme melding ikke kan
 -- importeres to ganger selv om import-skriptet kjøres på nytt.
