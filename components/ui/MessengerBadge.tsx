@@ -3,6 +3,10 @@
 // vi tegner en stilisert chat-boble med et lyn inni for å antyde
 // «kommer fra et annet sted, men er en melding». Plasseres absolutt i
 // hjørnet av bobla via wrapper-divens position: relative (.chat-boble).
+// Plassering: top-corner motsatt slett-knappen (slett er top: -6, samme
+// side som boblas «egen-side»). Badgen havner derfor i motsatt
+// top-hjørne, så den ikke overlapper hverken slett-knapp eller
+// reaksjons-chips som ligger nederst.
 
 type Props = {
   erEgen: boolean
@@ -15,8 +19,8 @@ export default function MessengerBadge({ erEgen }: Props) {
       aria-label="Importert fra Messenger"
       style={{
         position: 'absolute',
-        bottom: -4,
-        [erEgen ? 'right' : 'left']: -4,
+        top: -6,
+        [erEgen ? 'right' : 'left']: -6,
         width: 16,
         height: 16,
         borderRadius: '50%',
@@ -25,7 +29,6 @@ export default function MessengerBadge({ erEgen }: Props) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        pointerEvents: 'none',
         opacity: 0.6,
         zIndex: 2,
       }}
