@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import Icon from '@/components/ui/Icon'
 
 // Enkel fullskjerm-visning av et bilde. Klikk hvor som helst eller Escape
 // lukker visningen. Rendres via createPortal i document.body slik at
@@ -62,6 +63,32 @@ export default function BildeLightbox({
           borderRadius: 4,
         }}
       />
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onLukk()
+        }}
+        aria-label="Lukk"
+        style={{
+          position: 'absolute',
+          top: 'max(16px, env(safe-area-inset-top))',
+          right: 16,
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(0,0,0,0.65)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.25)',
+        }}
+      >
+        <Icon name="x" size={20} color="currentColor" strokeWidth={2.5} />
+      </button>
     </div>,
     document.body,
   )
