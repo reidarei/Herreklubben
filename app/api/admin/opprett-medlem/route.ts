@@ -19,8 +19,9 @@ export async function POST(request: Request) {
   const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
   if (!kanAdministrere(profil?.rolle)) return NextResponse.json({ feil: 'Ikke admin' }, { status: 403 })
 
-  const { navn: rawNavn, epost } = await request.json()
+  const { navn: rawNavn, epost: rawEpost } = await request.json()
   const navn = (rawNavn ?? '').trim()
+  const epost = (rawEpost ?? '').trim().toLowerCase()
   if (!navn || !epost) return NextResponse.json({ feil: 'Mangler navn eller e-post' }, { status: 400 })
 
   // Bruk service-role for å opprette bruker
