@@ -408,8 +408,10 @@ async function kjor() {
   let antEksisterendeKlubbChat = 0
   let antNyeReaksjoner = 0
   let antEksisterendeReaksjoner = 0
+  let antReaksjonerPlanlagt = 0
   let antR2Lastet = 0
   let antR2Hoppet = 0
+  let antR2Planlagt = 0
 
   try {
     // Sjekk hvilke kilde_ekstern_id-er som allerede finnes
@@ -443,7 +445,6 @@ async function kjor() {
 
     /** @type {Map<string, string>} */
     const uriTilPublicUrl = new Map()
-    let antR2Planlagt = 0
     if (DRY_RUN) {
       // I dry-run: bare planlegg, ikke kall R2.
       for (const uri of uriBrukt) {
@@ -547,7 +548,6 @@ async function kjor() {
     console.log(`  reaksjons-rader bygget: ${reaksjonsRader.length}`)
 
     // 11. Sjekk eksisterende reaksjoner
-    let antReaksjonerPlanlagt = 0
     if (DRY_RUN) {
       // I DRY_RUN kan vi ikke sjekke mot eksisterende chat_reaksjoner siden mange
       // melding-id-er er placeholder. Alt regnes derfor som planlagt — ikke faktisk innsatt.
