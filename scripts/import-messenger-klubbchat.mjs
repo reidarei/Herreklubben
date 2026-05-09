@@ -443,13 +443,16 @@ async function kjor() {
 
     /** @type {Map<string, string>} */
     const uriTilPublicUrl = new Map()
+    let antR2Planlagt = 0
     if (DRY_RUN) {
       // I dry-run: bare planlegg, ikke kall R2.
       for (const uri of uriBrukt) {
         const r2sti = r2PathFor(uri)
         uriTilPublicUrl.set(uri, `${R2_PUBLIC_URL || 'https://example/r2'}/${r2sti}`)
       }
-      antR2Lastet = uriBrukt.size
+      // I DRY_RUN sjekker vi ikke om noen URIs allerede ligger i R2 — alt regnes som planlagt.
+      antR2Planlagt = uriBrukt.size
+      antR2Lastet = 0
     } else {
       if (!HAR_R2 && uriBrukt.size > 0) {
         throw new Error('R2-credentials mangler, men det finnes media å laste opp. Avbryter.')
@@ -544,8 +547,12 @@ async function kjor() {
     console.log(`  reaksjons-rader bygget: ${reaksjonsRader.length}`)
 
     // 11. Sjekk eksisterende reaksjoner
+    let antReaksjonerPlanlagt = 0
     if (DRY_RUN) {
-      antNyeReaksjoner = reaksjonsRader.length
+      // I DRY_RUN kan vi ikke sjekke mot eksisterende chat_reaksjoner siden mange
+      // melding-id-er er placeholder. Alt regnes derfor som planlagt — ikke faktisk innsatt.
+      antReaksjonerPlanlagt = reaksjonsRader.length
+      antNyeReaksjoner = 0
       antEksisterendeReaksjoner = 0
     } else if (reaksjonsRader.length > 0) {
       // Hent alle eksisterende reaksjoner for de aktuelle melding-id-ene
@@ -598,12 +605,15 @@ async function kjor() {
       kandidat_rader: kandidater.length,
       rader_droppet_pga_manglende_media_og_innhold: antRaderDroppet,
       rader_til_db: finalKandidater.length,
-      klubb_chat_nye: antNyeKlubbChat,
+      klubb_chat_planlagt_insertet: DRY_RUN ? antNyeKlubbChat : 0,
+      klubb_chat_insertet: DRY_RUN ? 0 : antNyeKlubbChat,
       klubb_chat_eksisterer: antEksisterendeKlubbChat,
-      chat_reaksjoner_nye: antNyeReaksjoner,
+      chat_reaksjoner_planlagt_insertet: DRY_RUN ? antReaksjonerPlanlagt : 0,
+      chat_reaksjoner_insertet: DRY_RUN ? 0 : antNyeReaksjoner,
       chat_reaksjoner_eksisterer: antEksisterendeReaksjoner,
       media_unike_uri: uniqueUris.length,
       media_manglende_uri: manglendeUriEr.size,
+      r2_planlagt_uploads: DRY_RUN ? antR2Planlagt : 0,
       r2_lastet_opp: antR2Lastet,
       r2_hoppet_over: antR2Hoppet,
     },
