@@ -1,8 +1,13 @@
 // Slett FB-duplikater og fiks navn-mapping
 import pg from 'pg'
 
-const PROJECT_REF = 'tdlfswmxezjdnxcbbiwn'
-const DB_PASSWORD = 'd2F3j$G!-@j!i94'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'tdlfswmxezjdnxcbbiwn'
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
+
+if (!DB_PASSWORD) {
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local ...`')
+  process.exit(1)
+}
 
 const client = new pg.Client({
   host: `db.${PROJECT_REF}.supabase.co`,

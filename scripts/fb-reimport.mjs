@@ -5,8 +5,14 @@ import pg from 'pg'
 import { readFile } from 'node:fs/promises'
 import { fromZonedTime } from 'date-fns-tz'
 
-const PROJECT_REF = 'tdlfswmxezjdnxcbbiwn'
-const DB_PASSWORD = 'd2F3j$G!-@j!i94'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'tdlfswmxezjdnxcbbiwn'
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
+
+if (!DB_PASSWORD) {
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local ...`')
+  process.exit(1)
+}
+
 const R2_PUBLIC_URL = 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev'
 
 // FB-navn → DB-navn (fra profiles-tabellen). Trailing space er bevisst der

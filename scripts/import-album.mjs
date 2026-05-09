@@ -38,7 +38,7 @@ if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_PUBLIC_U
 }
 
 if (!DB_PASSWORD) {
-  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local …`')
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local ...`')
   process.exit(1)
 }
 

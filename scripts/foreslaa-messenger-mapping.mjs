@@ -27,7 +27,7 @@ const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
 const DB_HOST = `db.${PROJECT_REF}.supabase.co`
 
 if (!DB_PASSWORD) {
-  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local …`')
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local ...`')
   process.exit(1)
 }
 
