@@ -10,9 +10,12 @@ import { normaliserTelefon } from '@/lib/telefon'
 export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
   const { supabase, user } = await ensureInnlogget()
 
+  const navn = data.navn.trim()
+  const visningsnavn = (data.visningsnavn || data.navn).trim()
+
   const oppdatering: Record<string, unknown> = {
-    navn: data.navn,
-    visningsnavn: data.visningsnavn || data.navn,
+    navn,
+    visningsnavn,
     telefon: normaliserTelefon(data.telefon),
     fodselsdato: data.fodselsdato || null,
     oppdatert: naa(),
@@ -32,10 +35,13 @@ export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: str
 export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visningsnavn: string; telefon: string; rolle: string; aktiv: boolean; fodselsdato?: string }) {
   const { supabase } = await ensureAdmin()
 
+  const navn = data.navn.trim()
+  const visningsnavn = (data.visningsnavn || data.navn).trim()
+
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
     .from('profiles')
-    .update({ navn: data.navn, visningsnavn: data.visningsnavn || data.navn, telefon: normaliserTelefon(data.telefon), fodselsdato: data.fodselsdato || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: naa() })
+    .update({ navn, visningsnavn, telefon: normaliserTelefon(data.telefon), fodselsdato: data.fodselsdato || null, rolle: data.rolle, aktiv: data.aktiv, oppdatert: naa() })
     .eq('id', id)
 
   if (error) throw new Error(error.message)
