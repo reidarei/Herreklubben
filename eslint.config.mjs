@@ -13,7 +13,6 @@ const config = [
       'coverage/**',
       'playwright-report/**',
       'test-results/**',
-      'public/**',
       'lib/supabase/database.types.ts',
     ],
   },
