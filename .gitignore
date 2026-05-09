@@ -31,6 +31,9 @@ Thumbs.db
 /.screenshots/
 /.cache/
 
+# Messenger-eksport (rådata fra Facebook) — kun ferdig mapping committes
+scripts/data/herreklubben_chat.json
+
 # FB-import — generert lokalt, lastes opp til R2
 /scripts/fb-crops/
 /scripts/fb-kalibrer-out/
