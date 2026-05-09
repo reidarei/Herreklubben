@@ -21,3 +21,7 @@ export const PAAMINNELSE_DAGER = {
 // 1 dag — kort vindu reduserer eksponering hvis godkjenneren glemmer å
 // trekke tilbake.
 export const PASS_TILGANG_TIMER = 24
+
+// Kommentarseksjonen på agenda-arrangementer kollapses automatisk når
+// det er stille; brukeren kan fortsatt åpne manuelt via chevron.
+export const KOMMENTARER_KOLLAPS_DAGER = 7
