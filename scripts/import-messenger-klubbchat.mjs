@@ -40,9 +40,14 @@ import { AwsClient } from 'aws4fetch'
 // Konfig
 // ───────────────────────────────────────────────────────────────────────
 
-const PROJECT_REF = 'tdlfswmxezjdnxcbbiwn'
-const DB_PASSWORD = 'd2F3j$G!-@j!i94'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'tdlfswmxezjdnxcbbiwn'
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
 const DB_HOST = `db.${PROJECT_REF}.supabase.co`
+
+if (!DB_PASSWORD) {
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local …`')
+  process.exit(1)
+}
 
 const DRY_RUN = process.env.DRY_RUN === '1'
 const DEFAULT_KILDE_DIR = 'scripts/data'

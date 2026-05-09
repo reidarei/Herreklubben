@@ -22,8 +22,8 @@ if (!bilderMappe || !arrangementId || !albumTittel) {
   process.exit(1)
 }
 
-const PROJECT_REF = 'tdlfswmxezjdnxcbbiwn'
-const DB_PASSWORD = 'd2F3j$G!-@j!i94'
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? 'tdlfswmxezjdnxcbbiwn'
+const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
@@ -34,6 +34,11 @@ const R2_JURISDICTION = (process.env.R2_JURISDICTION ?? 'default').toLowerCase()
 
 if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_PUBLIC_URL) {
   console.error('Mangler R2-env. Kjør `vercel env pull .env.local` først.')
+  process.exit(1)
+}
+
+if (!DB_PASSWORD) {
+  console.error('Mangler SUPABASE_DB_PASSWORD. Kjør med `node --env-file=.env.local …`')
   process.exit(1)
 }
 
