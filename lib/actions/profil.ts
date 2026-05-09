@@ -11,7 +11,8 @@ export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: str
   const { supabase, user } = await ensureInnlogget()
 
   const navn = data.navn.trim()
-  const visningsnavn = (data.visningsnavn || data.navn).trim()
+  if (!navn) throw new Error('Navn kan ikke være tomt')
+  const visningsnavn = (data.visningsnavn?.trim() || navn)
 
   const oppdatering: Record<string, unknown> = {
     navn,
@@ -36,7 +37,8 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
   const { supabase } = await ensureAdmin()
 
   const navn = data.navn.trim()
-  const visningsnavn = (data.visningsnavn || data.navn).trim()
+  if (!navn) throw new Error('Navn kan ikke være tomt')
+  const visningsnavn = (data.visningsnavn?.trim() || navn)
 
   // Bruk service-role for å oppdatere profiles (RLS tillater admin å oppdatere andres)
   const { error } = await supabase
