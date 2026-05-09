@@ -2,6 +2,11 @@
 // Idempotent via klubb_chat.kilde_ekstern_id (format: "messenger:{ts_ms}:{idx}") —
 // re-kjøring legger ikke til duplikater, så det er trygt å kjøre flere ganger.
 //
+// Engangsskript: dette er ment å kjøres én gang mot en stabil Facebook-eksport.
+// Re-import fra en NY eksport (f.eks. ny dump fra Facebook) er IKKE støttet
+// uten manuell sletting først, ettersom timestamp_ms+idx-rekkefølger kan endre
+// seg mellom eksporter og forårsake duplikater eller dataforvirring.
+//
 // Kjøring (dry-run anbefalt først):
 //   DRY_RUN=1 MESSENGER_KILDE_DIR=<path> node --env-file=.env.local scripts/import-messenger-klubbchat.mjs
 //   MESSENGER_KILDE_DIR=<path> node --env-file=.env.local scripts/import-messenger-klubbchat.mjs
@@ -12,18 +17,23 @@
 //   - MESSENGER_KILDE_DIR peker på inbox-mappen for tråden, f.eks.
 //     <fb-export-rot>/your_facebook_activity/messages/inbox/herreklubben_8095345443874168
 //     Hvis ikke satt: scripts/data/ — skriptet leter da etter herreklubben_chat.json der
-//     og forventer ingen media-filer (bare tekst-meldinger).
+//     og forventer ingen media-filer (bare tekst-meldinger). Default-modus skanner
+//     IKKE søsken-mapper; media-resolving krever at MESSENGER_KILDE_DIR settes
+//     eksplisitt til inbox-mappa.
 //   - scripts/data/messenger-mapping.json med komplett {navn → profile_id}-mapping.
 //
 // Miljøvariabler:
-//   - DRY_RUN=1 — analyser og rapporter, men ikke skriv til DB eller R2.
+//   - DRY_RUN=1 — analyser og rapporter. Leser fra DB for status (sjekker
+//     eksisterende rader/reaksjoner), men skriver hverken til DB eller R2.
 //
-// Skriver scripts/data/import-rapport.json med totaler og advarsler.
+// Skriver scripts/data/import-rapport.json med totaler, advarsler og
+// liste over manglende media-URI-er.
 
 import pg from 'pg'
 import { readFile, writeFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { AwsClient } from 'aws4fetch'
 
 // ───────────────────────────────────────────────────────────────────────
@@ -35,7 +45,9 @@ const DB_PASSWORD = 'd2F3j$G!-@j!i94'
 const DB_HOST = `db.${PROJECT_REF}.supabase.co`
 
 const DRY_RUN = process.env.DRY_RUN === '1'
-const KILDE_DIR = process.env.MESSENGER_KILDE_DIR ?? 'scripts/data'
+const DEFAULT_KILDE_DIR = 'scripts/data'
+const KILDE_DIR = process.env.MESSENGER_KILDE_DIR ?? DEFAULT_KILDE_DIR
+const ER_DEFAULT_KILDE = !process.env.MESSENGER_KILDE_DIR
 
 const MAPPING_FIL = 'scripts/data/messenger-mapping.json'
 const RAPPORT_FIL = 'scripts/data/import-rapport.json'
@@ -154,13 +166,18 @@ async function r2Upload(sti, data, contentType) {
 function r2PathFor(uri) {
   // uri eksempel: "your_facebook_activity/messages/inbox/herreklubben_X/photos/foo.jpg"
   // eller        "your_facebook_activity/messages/stickers_used/123.png"
-  const filnavn = path.basename(uri)
-  const ext = path.extname(filnavn).toLowerCase()
+  // Vi prefikser med en kort SHA1-hash av hele URI-en for å garantere unikhet —
+  // ellers kan to filer med samme basename i ulike mapper (eller part1/part2)
+  // kollidere på R2-pathen, og HEAD-dedup tror den andre er allerede uploaded
+  // → stille datafeil. path.posix.basename brukes fordi URI-er bruker '/'.
+  const filnavn = path.posix.basename(uri)
+  const ext = path.posix.extname(filnavn).toLowerCase()
+  const hash = crypto.createHash('sha1').update(uri).digest('hex').slice(0, 8)
   const erVideo = ext === '.mp4' || ext === '.mov'
   const erSticker = uri.includes('/stickers_used/')
-  if (erVideo) return `video/chat/import/${filnavn}`
-  if (erSticker) return `chat/import/sticker-${filnavn}`
-  return `chat/import/${filnavn}`
+  if (erVideo) return `video/chat/import/${hash}-${filnavn}`
+  if (erSticker) return `chat/import/sticker-${hash}-${filnavn}`
+  return `chat/import/${hash}-${filnavn}`
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -201,10 +218,19 @@ async function kjor() {
   }
   console.log(`✓ ${data.messages.length} meldinger totalt, ${data.participants.length} deltakere`)
 
-  // 3. Bestem søk-roter for media-filer
-  const partRot = path.resolve(KILDE_DIR, '..', '..', '..', '..')
-  const roter = await finnSosken(partRot)
-  console.log(`✓ Søker media i ${roter.length} eksport-rot(er): ${roter.map(r => path.basename(r)).join(', ')}`)
+  // 3. Bestem søk-roter for media-filer.
+  // Hvis MESSENGER_KILDE_DIR ikke er satt eksplisitt, antar vi tekst-only-modus
+  // (scripts/data) og skanner ikke søsken-mapper — ellers ville path.resolve
+  // bevege seg helt opp til disk-roten og lete der.
+  let roter
+  if (ER_DEFAULT_KILDE) {
+    roter = [KILDE_DIR]
+    console.log('✓ Default kilde-katalog — søker media kun i samme mappe (tekst-only-modus)')
+  } else {
+    const partRot = path.resolve(KILDE_DIR, '..', '..', '..', '..')
+    roter = await finnSosken(partRot)
+    console.log(`✓ Søker media i ${roter.length} eksport-rot(er): ${roter.map(r => path.basename(r)).join(', ')}`)
+  }
 
   // 4. Filtrer + bygg rad-kandidater
   const advarsler = []
@@ -238,6 +264,22 @@ async function kjor() {
         aktor_navn: aktorNavn,
       }
     })
+
+    // Advar hvis en melding har flere media-typer satt samtidig — vi prosesserer
+    // bare den første matchende grenen under (photos > videos > gifs > sticker),
+    // så de andre ville vært stille droppet uten denne loggen. Sjeldent i praksis.
+    const mediaTyper = []
+    if (m.photos && m.photos.length > 0) mediaTyper.push('photos')
+    if (m.videos && m.videos.length > 0) mediaTyper.push('videos')
+    if (m.gifs && m.gifs.length > 0) mediaTyper.push('gifs')
+    if (m.sticker) mediaTyper.push('sticker')
+    if (mediaTyper.length > 1) {
+      advarsler.push(`Melding @ ${tsMs} (${senderRaa}) har flere media-typer (${mediaTyper.join('+')}) — bare første prosesseres`)
+    }
+    // audio_files er ikke støttet i klubb_chat; advar men forsøk å beholde tekst.
+    if (m.audio_files && m.audio_files.length > 0) {
+      advarsler.push(`Melding @ ${tsMs} (${senderRaa}) har audio_files (${m.audio_files.length}) — droppes, beholder tekst hvis mulig`)
+    }
 
     // Splitt etter media-type
     if (m.photos && m.photos.length > 0) {
@@ -389,6 +431,14 @@ async function kjor() {
       const uri = k.bilde_uri ?? k.video_uri
       if (!uri) continue
       uriBrukt.add(uri)
+    }
+
+    // Pre-validér ekstensjoner FØR upload-loopen, slik at vi feiler raskt og
+    // ikke ender med halvferdige R2-uploads hvis én fil har ukjent type.
+    for (const uri of uriBrukt) {
+      const fsSti = uriTilSti.get(uri)
+      // Kaster ved ukjent ekstensjon — kall mot fs-sti for å få riktig basename på alle OS.
+      ekstensjonTilContentType(path.basename(fsSti ?? uri))
     }
 
     /** @type {Map<string, string>} */
@@ -558,6 +608,7 @@ async function kjor() {
       r2_hoppet_over: antR2Hoppet,
     },
     advarsler,
+    manglende_uris: [...manglendeUriEr],
   }
   await writeFile(RAPPORT_FIL, JSON.stringify(rapport, null, 2) + '\n', 'utf8')
   console.log(`\n✓ Rapport: ${RAPPORT_FIL}`)
