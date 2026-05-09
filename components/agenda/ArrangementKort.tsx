@@ -4,6 +4,7 @@ import Icon from '@/components/ui/Icon'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato, aarHvisAvvik } from '@/lib/dato'
+import { KOMMENTARER_KOLLAPS_DAGER } from '@/lib/konstanter'
 
 export type ArrangementKortData = {
   id: string
@@ -62,6 +63,11 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
   const tid = formaterDato(iso, 'HH:mm')
   const aar = aarHvisAvvik(iso)
   const scene = sceneFor(arr.type)
+
+  const siste = kommentarer[kommentarer.length - 1]
+  const alderMs = siste ? Date.now() - new Date(siste.opprettet).getTime() : 0
+  const skalKollapse =
+    kommentarer.length > 0 && alderMs > KOMMENTARER_KOLLAPS_DAGER * 24 * 60 * 60 * 1000
 
   return (
     <Link
@@ -249,6 +255,7 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'arrangement', id: arr.id }}
+            startKollapset={skalKollapse}
           />
         )}
       </Card>

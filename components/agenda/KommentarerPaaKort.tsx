@@ -46,11 +46,13 @@ function relativTid(iso: string): string {
 export default function KommentarerPaaKort({
   kommentarer,
   scope,
+  startKollapset = false,
 }: {
   kommentarer: KommentarKortData[]
   scope: KommentarScope
+  startKollapset?: boolean
 }) {
-  const [apen, setApen] = useState(true)
+  const [apen, setApen] = useState(!startKollapset)
   const [tekst, setTekst] = useState('')
   const [sender, startTransition] = useTransition()
   const router = useRouter()
