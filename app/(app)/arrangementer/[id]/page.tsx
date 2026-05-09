@@ -66,7 +66,7 @@ export default async function ArrangementDetaljer({
       .single(),
     supabase
       .from('arrangement_chat')
-      .select('id, profil_id, innhold, bilde_url, opprettet')
+      .select('id, profil_id, innhold, bilde_url, video_url, opprettet')
       .eq('arrangement_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),

@@ -35,9 +35,13 @@ async function sendVarslerEtterPost(
   scope: ChatScope,
   tekst: string | null,
   avsenderId: string,
+  bildeUrl: string | null = null,
 ): Promise<void> {
   if (scope.type === 'privat') {
-    const varselTekst = tekst ?? '📷 Sendte deg et bilde'
+    // Defensiv — validerInnhold skal ha kastet før vi når denne grenen uten
+    // tekst eller bilde, men vi beholder fallback for trygghet.
+    const varselTekst =
+      tekst ?? (bildeUrl ? '📷 Sendte deg et bilde' : 'Sendte deg en melding')
     await sendPrivatMeldingVarsel(scope.samtaleId, varselTekst, avsenderId)
     return
   }
@@ -114,11 +118,16 @@ export async function sendChatMelding(
   const fkData = k.fkFelt ? { [k.fkFelt]: k.scopeId(scope) } : {}
   const { error } = await supabase
     .from(k.tabell)
-    .insert({ ...fkData, profil_id: user.id, innhold: tekst, bilde_url: bildeUrl })
+    .insert({
+      ...fkData,
+      profil_id: user.id,
+      innhold: tekst,
+      bilde_url: bildeUrl,
+    })
   if (error) throw new Error(error.message)
 
   try {
-    await sendVarslerEtterPost(scope, tekst, user.id)
+    await sendVarslerEtterPost(scope, tekst, user.id, bildeUrl)
   } catch (err) {
     // Varsel-svikt skal ikke feile selve meldingen — den er allerede skrevet
     // til DB. Logg og gå videre.

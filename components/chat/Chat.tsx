@@ -15,6 +15,7 @@ import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import BildeLightbox from '@/components/ui/BildeLightbox'
+import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 
@@ -27,7 +28,12 @@ export type ChatMelding = {
   profil_id: string
   innhold: string | null
   bilde_url: string | null
+  video_url: string | null
   opprettet: string
+  // fra_facebook finnes kun på klubb_chat-tabellen — markerer meldinger
+  // som er importert fra Messenger. Valgfritt så typen kan brukes i alle
+  // chat-scopes uten å late som om feltet eksisterer overalt.
+  fra_facebook?: boolean
 }
 
 export type ChatProfil = {
@@ -138,9 +144,18 @@ export default function Chat({
   // spesifikke grener her.
   const hentMeldinger = useCallback(
     async (forTidspunkt?: string): Promise<ChatMelding[]> => {
+      // klubb_chat har i tillegg `fra_facebook` for å vise Messenger-badge på
+      // historisk-importerte meldinger. Andre chat-tabeller har ikke kolonnen.
+      // UPDATE-handleren (under) tar bevisst kun innhold, så endring av
+      // fra_facebook på en eksisterende rad slår ikke gjennom i UI — i
+      // praksis er flagget skrivebeskyttet etter import.
+      const select =
+        tabell === 'klubb_chat'
+          ? 'id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook'
+          : 'id, profil_id, innhold, bilde_url, video_url, opprettet'
       let q = supabase
         .from(konfig.tabell)
-        .select('id, profil_id, innhold, bilde_url, opprettet')
+        .select(select)
         .order('opprettet', { ascending: false })
         .limit(SIDE_STORRELSE)
       const fkVerdi = konfig.scopeId(scope)
@@ -149,7 +164,7 @@ export default function Chat({
       }
       if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
       const { data } = await q
-      return data ? [...data].reverse() : []
+      return data ? ([...data].reverse() as unknown as ChatMelding[]) : []
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -516,7 +531,9 @@ export default function Chat({
       profil_id: brukerId,
       innhold: melding,
       bilde_url: bildePreview, // viser blob-URL midlertidig
+      video_url: null,
       opprettet: new Date().toISOString(),
+      fra_facebook: false,
     }
     setMeldinger(prev => [...prev, optimistisk])
 
@@ -950,9 +967,26 @@ export default function Chat({
                         />
                       </button>
                     )}
+                    {m.video_url && (
+                      <video
+                        src={m.video_url}
+                        controls
+                        preload="metadata"
+                        playsInline
+                        style={{
+                          display: 'block',
+                          maxWidth: 280,
+                          height: 'auto',
+                          maxHeight: 280,
+                          borderRadius: 8,
+                          marginBottom: m.innhold ? 8 : 0,
+                        }}
+                      />
+                    )}
                     {m.innhold && renderMedMentions(m.innhold)}
                   </div>
                   )}
+                  {m.fra_facebook && <MessengerBadge erEgen={erEgen} />}
                   {/* Reaksjons-chips — flyter på bunnkanten av bobla, ikke
                       egen linje. Negativ margin trekker dem opp slik at de
                       overlapper bobla, padding holder dem litt inn fra

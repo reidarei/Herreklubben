@@ -59,7 +59,7 @@ export default async function MeldingDetalj({
       .eq('melding_id', id),
     supabase
       .from('melding_chat')
-      .select('id, profil_id, innhold, bilde_url, opprettet')
+      .select('id, profil_id, innhold, bilde_url, video_url, opprettet')
       .eq('melding_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),
