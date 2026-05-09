@@ -744,10 +744,10 @@ export default function Chat({
           const erFortsettelse = forrige?.profil_id === m.profil_id
           const erEgen = m.profil_id === brukerId
           // Slett-knapp: egen melding eller admin. Beskyttet mot mistrykk
-          // med en confirm()-dialog i handleSlett.
-          // FB-importerte meldinger er frosne — hverken egen-eier eller
-          // admin kan slette via UI (RLS i 067 håndhever det også i DB).
-          const kanSlette = (erEgen || erAdmin) && !m.fra_facebook
+          // med en confirm()-dialog i handleSlett. Gjelder også
+          // FB-importerte — sendte du meldingen i sin tid, kan du slette
+          // den her.
+          const kanSlette = erEgen || erAdmin
           const navn = profilMap.get(m.profil_id) ?? 'Ukjent'
           const bilde = bildeMap.get(m.profil_id)
           const rolle = rolleMap.get(m.profil_id) ?? null
