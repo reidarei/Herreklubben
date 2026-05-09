@@ -47,9 +47,10 @@ export async function lastOppVideo(formData: FormData): Promise<{ url: string }>
       throw new Error('Ugyldig filtype eller filendelse')
     }
 
-    const data = new Uint8Array(await fil.arrayBuffer())
+    // Send Blob direkte til R2 — sparer en ekstra kopi i minnet (50 MB ×).
+    // lastOppR2 leser size fra Blob og setter Content-Length korrekt.
     const sti = videoSti(kategori, filnavn)
-    const url = await lastOppR2(sti, data, fil.type)
+    const url = await lastOppR2(sti, fil, fil.type)
 
     return { url }
   } catch (err) {
