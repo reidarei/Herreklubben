@@ -17,6 +17,15 @@ const DB_HOST = `db.${PROJECT_REF}.supabase.co`
 const KILDE = 'scripts/data/herreklubben_chat.json'
 const UTFIL = 'scripts/data/messenger-mapping.json'
 
+// Antall fra herreklubbens chat ved eksport 2026-05
+const FORVENTET_DELTAKERE = 18
+
+// Levenshtein-avstander over denne grensen regnes som «ingen rimelig match»
+// — confidence settes til 'none' og krever manuell avklaring før import.
+// Satt slik at dagens kjente low-treff (maks ~13: «Pål Erik Biseth Kind» → «Pål Erik»)
+// fortsatt klassifiseres som low, men reelle ikke-treff fanges.
+const MAKS_AVSTAND_FOR_LOW = 13
+
 // Facebook eksporterer JSON med UTF-8 byte-sekvenser tolket som latin1 — typisk mojibake.
 // Hvis vi ser disse markørene, gjør vi en latin1→utf8 round-trip.
 function fiksEncoding(s) {
@@ -67,14 +76,17 @@ async function kjor() {
   // 1. Les Messenger-deltakere
   const raa = await readFile(KILDE, 'utf8')
   const data = JSON.parse(raa)
+  if (!data.participants) {
+    throw new Error(`Mangler 'participants' i ${KILDE} — verifiser at filen er en gyldig Messenger-eksport`)
+  }
   const navnSet = new Set()
-  for (const p of data.participants ?? []) {
+  for (const p of data.participants) {
     if (p?.name) navnSet.add(fiksEncoding(p.name))
   }
   const messengerNavn = [...navnSet].sort((a, b) => a.localeCompare(b, 'nb'))
   console.log(`✓ Leste ${messengerNavn.length} Messenger-deltakere fra ${KILDE}`)
-  if (messengerNavn.length !== 18) {
-    console.warn(`⚠  Forventet 18 deltakere, fant ${messengerNavn.length} — verifiser eksport`)
+  if (messengerNavn.length !== FORVENTET_DELTAKERE) {
+    console.warn(`⚠  Forventet ${FORVENTET_DELTAKERE} deltakere, fant ${messengerNavn.length} — verifiser eksport`)
   }
 
   // 2. Hent profiler
@@ -89,11 +101,16 @@ async function kjor() {
   await client.connect()
   console.log('✓ Tilkoblet Supabase')
 
-  const { rows: profiler } = await client.query(
-    'select id, navn, visningsnavn from profiles where aktiv = true',
-  )
-  console.log(`✓ Hentet ${profiler.length} aktive profiler`)
-  await client.end()
+  let profiler
+  try {
+    const res = await client.query(
+      'select id, navn, visningsnavn from profiles where aktiv = true',
+    )
+    profiler = res.rows
+    console.log(`✓ Hentet ${profiler.length} aktive profiler`)
+  } finally {
+    await client.end()
+  }
 
   // 3. Forhåndsnormaliser profil-navn
   const profilerNorm = profiler.map(p => ({
@@ -112,6 +129,7 @@ async function kjor() {
     const msgNorm = normaliser(msg)
     let beste = null
     let besteAvstand = Infinity
+    let besteFelt = null // 'navn' | 'visningsnavn' — hvilket felt ga den minste avstanden
     const scoreliste = [] // for unik-sjekk
 
     for (const p of profilerNorm) {
@@ -120,10 +138,12 @@ async function kjor() {
         ? levenshtein(msgNorm, p.visningsnavnNorm)
         : Infinity
       const d = Math.min(dNavn, dVis)
-      scoreliste.push({ p, d })
+      const felt = dVis < dNavn ? 'visningsnavn' : 'navn'
+      scoreliste.push({ p, d, felt })
       if (d < besteAvstand) {
         besteAvstand = d
         beste = p
+        besteFelt = felt
       }
     }
 
@@ -133,22 +153,30 @@ async function kjor() {
     let confidence
     if (besteAvstand === 0) confidence = 'high'
     else if (besteAvstand === 1 && unik) confidence = 'high'
+    else if (besteAvstand > MAKS_AVSTAND_FOR_LOW) confidence = 'none'
     else confidence = 'low'
 
     resultat[msg] = {
-      profile_id: beste.id,
-      profile_navn: beste.navn,
+      profile_id: confidence === 'none' ? null : beste.id,
+      profile_navn: confidence === 'none' ? null : beste.navn,
       confidence,
     }
 
-    if (confidence === 'low') {
-      // Vis topp-3 kandidater for review
+    if (confidence === 'low' || confidence === 'none') {
+      // Vis topp-3 kandidater for review, med hvilket felt som ga matchen
       const topp = [...scoreliste]
         .sort((a, b) => a.d - b.d)
         .slice(0, 3)
-        .map(x => `${x.p.navn} (${x.d})`)
+        .map(x => `${x.p.navn} (${x.d}, via ${x.felt})`)
         .join(', ')
-      lowTreff.push({ msg, beste: beste.navn, avstand: besteAvstand, topp })
+      lowTreff.push({
+        msg,
+        beste: beste?.navn ?? '(ingen)',
+        avstand: besteAvstand,
+        felt: besteFelt,
+        topp,
+        confidence,
+      })
     }
   }
 
@@ -161,11 +189,13 @@ async function kjor() {
   // 6. Oppsummering
   const high = Object.values(resultat).filter(r => r.confidence === 'high').length
   const low = Object.values(resultat).filter(r => r.confidence === 'low').length
-  console.log(`\n=== Resultat: ${high} high-confidence, ${low} low-confidence ===`)
-  if (low > 0) {
-    console.log('\nLow-confidence — verifiser manuelt:')
+  const none = Object.values(resultat).filter(r => r.confidence === 'none').length
+  console.log(`\n=== Resultat: ${high} high-confidence, ${low} low-confidence, ${none} ingen match ===`)
+  if (lowTreff.length > 0) {
+    console.log('\nKrever manuell review:')
     for (const t of lowTreff) {
-      console.log(`  "${t.msg}" → "${t.beste}" (avstand ${t.avstand})`)
+      const merke = t.confidence === 'none' ? '[INGEN MATCH]' : '[low]'
+      console.log(`  ${merke} "${t.msg}" → "${t.beste}" (avstand ${t.avstand}, via ${t.felt ?? '-'})`)
       console.log(`    kandidater: ${t.topp}`)
     }
   }
