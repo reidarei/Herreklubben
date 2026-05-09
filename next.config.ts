@@ -16,6 +16,14 @@ const nextConfig: NextConfig = {
     BUILD_TIMESTAMP: new Date().toLocaleString('nb-NO', { timeZone: 'Europe/Oslo', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
     APP_VERSION: appVersjon(),
   },
+  // Server actions sin default body-grense på 1 MB er for liten for
+  // video-opplasting. Vi gir 52 MB — litt slack over MAKS_BYTES (50 MB)
+  // i video-opplasting.ts slik at multipart-overhead ikke spiser av grensa.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '52mb',
+    },
+  },
   images: {
     remotePatterns: [
       {

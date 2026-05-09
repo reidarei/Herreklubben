@@ -30,6 +30,16 @@ export function bildeSti(kategori: BildeKategori, filnavn: string): string {
   return `${kategori}/${filnavn}`
 }
 
+// Videokategorier i R2 — egen topp-mappe `video/` slik at video og bilder
+// holdes adskilt i bucket-en. Foreløpig kun chat og album; legg til ny
+// kategori her når en ny upload-sti tas i bruk.
+export const VIDEO_KATEGORIER = ['chat', 'album'] as const
+export type VideoKategori = (typeof VIDEO_KATEGORIER)[number]
+
+export function videoSti(kategori: VideoKategori, filnavn: string): string {
+  return `video/${kategori}/${filnavn}`
+}
+
 // Felles helper: skalerer et bilde til maks `maks` på lang side, returnerer
 // JPEG-Blob med gitt kvalitet. Bruk i komprimer() og lagThumbnail().
 function skalerOgEksporter(
