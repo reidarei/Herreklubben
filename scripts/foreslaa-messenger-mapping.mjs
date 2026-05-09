@@ -5,7 +5,19 @@
 //
 // Forutsetter manuell review av low-confidence treff før import (#115).
 //
+// Forutsetninger:
+//   - scripts/data/herreklubben_chat.json må hentes fra Facebook-eksport-zipen
+//     før skriptet kjøres. Filen ligger i zipen på stien:
+//       your_facebook_activity/messages/inbox/herreklubben_8095345443874168/message_1.json
+//     Kopier den til scripts/data/herreklubben_chat.json.
+//     Fila er gitignorert (rådata) — kun den ferdige messenger-mapping.json committes.
+//
+// Kjøring:
 //   node --env-file=.env.local scripts/foreslaa-messenger-mapping.mjs
+//
+// Exit-koder:
+//   0 = alle rader fikk match (high eller low)
+//   1 = én eller flere rader fikk confidence: 'none' og må fylles inn manuelt
 
 import pg from 'pg'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -180,13 +192,36 @@ async function kjor() {
     }
   }
 
-  // 5. Skriv ut sortert
+  // 5. Duplikat-detektering: samme profile_id tildelt flere Messenger-navn
+  // demoter ALLE rader som kolliderer til 'low' slik at Reidar må fikse manuelt.
+  const idTilNavn = new Map() // profile_id → [messengerNavn, ...]
+  for (const [msg, r] of Object.entries(resultat)) {
+    if (r.profile_id == null) continue
+    const liste = idTilNavn.get(r.profile_id) ?? []
+    liste.push(msg)
+    idTilNavn.set(r.profile_id, liste)
+  }
+  const duplikater = [] // { profile_id, profile_navn, kolliderende: [msg, ...] }
+  for (const [id, navnListe] of idTilNavn) {
+    if (navnListe.length > 1) {
+      const profilNavn = resultat[navnListe[0]].profile_navn
+      for (const msg of navnListe) {
+        // Demote til low — behold profile_id slik at det er synlig hvilken kollisjon
+        if (resultat[msg].confidence === 'high') {
+          resultat[msg].confidence = 'low'
+        }
+      }
+      duplikater.push({ profile_id: id, profile_navn: profilNavn, kolliderende: navnListe })
+    }
+  }
+
+  // 6. Skriv ut sortert
   const sortert = {}
   for (const navn of messengerNavn) sortert[navn] = resultat[navn]
   await writeFile(UTFIL, JSON.stringify(sortert, null, 2) + '\n', 'utf8')
   console.log(`✓ Skrev ${UTFIL}`)
 
-  // 6. Oppsummering
+  // 7. Oppsummering
   const high = Object.values(resultat).filter(r => r.confidence === 'high').length
   const low = Object.values(resultat).filter(r => r.confidence === 'low').length
   const none = Object.values(resultat).filter(r => r.confidence === 'none').length
@@ -198,6 +233,19 @@ async function kjor() {
       console.log(`  ${merke} "${t.msg}" → "${t.beste}" (avstand ${t.avstand}, via ${t.felt ?? '-'})`)
       console.log(`    kandidater: ${t.topp}`)
     }
+  }
+
+  if (duplikater.length > 0) {
+    console.log('\n⚠  Duplikat-tilordning oppdaget — flere Messenger-navn peker på samme profil:')
+    for (const d of duplikater) {
+      console.log(`  → "${d.profile_navn}" (${d.profile_id}) tildelt fra: ${d.kolliderende.map(n => `"${n}"`).join(', ')}`)
+    }
+    console.log('  Disse er demotet til confidence: low — fiks manuelt før import.')
+  }
+
+  if (none > 0) {
+    console.error(`\n✗ ${none} rader mangler match (confidence: none) — fyll inn manuelt før import.`)
+    process.exit(1)
   }
 }
 
