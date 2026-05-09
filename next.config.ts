@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   // Server actions sin default body-grense på 1 MB er for liten for
   // video-opplasting. Vi gir 52 MB — litt slack over MAKS_BYTES (50 MB)
   // i video-opplasting.ts slik at multipart-overhead ikke spiser av grensa.
+  // NB: I Next 15.5.x ligger `serverActions` fortsatt under `experimental`
+  // i config-schemaet. Top-level-plassering gir warning «Unrecognized key».
   experimental: {
     serverActions: {
       bodySizeLimit: '52mb',

@@ -4,19 +4,18 @@ import { ensureInnlogget } from '@/lib/auth'
 import { lastOppR2, slettR2, r2StiFraUrl } from '@/lib/r2'
 import { videoSti, VIDEO_KATEGORIER, type VideoKategori } from '@/lib/bilde-utils'
 
-// Maksstørrelse for video. 50 MB rommer noen sekunder med høy bitrate eller
-// et halvt minutt typisk mobilopptak. Vi avviser større filer eksplisitt
-// for å unngå at urimelig store råfiler slipper gjennom.
+// Maksstørrelse for video. 50 MB er en pragmatisk grense som rommer korte
+// mobilopptak; vi avviser større filer eksplisitt for å unngå at urimelig
+// store råfiler slipper gjennom.
 const MAKS_BYTES = 50 * 1024 * 1024
 
-// Tillatte MIME-typer. mp4 er standard, quicktime (.mov) er det iPhones
-// produserer som standard. Andre formater (webm, avi, mkv) avvises.
-const TILLATTE_TYPER = ['video/mp4', 'video/quicktime']
-
-// Beltesele mot MIME-spoofing — sjekker også filendelsen i tillegg til
-// Content-Type. Klienter kan lyge om MIME, men endelsen kommer fra
-// faktisk filnavn vi selv har generert/akseptert.
-const TILLATTE_EKSTENSJONER = ['mp4', 'mov']
+// Tillatte (MIME, ekstensjon)-par. Vi krysssjekker for å hindre at en
+// klient sender f.eks. .mov-ekstensjon med video/mp4-MIME (eller motsatt).
+// mp4 er standard; quicktime (.mov) er det iPhones produserer som default.
+const TILLATTE_PAR: ReadonlyArray<{ mime: string; ext: string }> = [
+  { mime: 'video/mp4', ext: 'mp4' },
+  { mime: 'video/quicktime', ext: 'mov' },
+]
 
 function erKategori(v: unknown): v is VideoKategori {
   return typeof v === 'string' && (VIDEO_KATEGORIER as readonly string[]).includes(v)
@@ -42,9 +41,11 @@ export async function lastOppVideo(formData: FormData): Promise<{ url: string }>
     if (!(fil instanceof File)) throw new Error('Mangler fil')
     if (typeof filnavn !== 'string' || !filnavn.trim()) throw new Error('Mangler filnavn')
     if (!erKategori(kategori)) throw new Error('Ugyldig kategori')
-    if (fil.size > MAKS_BYTES) throw new Error('Filen er for stor (maks 50 MB)')
-    if (!TILLATTE_TYPER.includes(fil.type)) throw new Error('Ugyldig filtype')
-    if (!TILLATTE_EKSTENSJONER.includes(ekstensjon(filnavn))) throw new Error('Ugyldig filendelse')
+    if (fil.size > MAKS_BYTES) throw new Error(`Filen er for stor (maks ${MAKS_BYTES / 1024 / 1024} MB)`)
+    const ext = ekstensjon(filnavn)
+    if (!TILLATTE_PAR.some((p) => p.mime === fil.type && p.ext === ext)) {
+      throw new Error('Ugyldig filtype eller filendelse')
+    }
 
     const data = new Uint8Array(await fil.arrayBuffer())
     const sti = videoSti(kategori, filnavn)
