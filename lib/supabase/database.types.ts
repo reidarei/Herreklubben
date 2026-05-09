@@ -125,6 +125,7 @@ export type Database = {
           innhold: string | null
           opprettet: string
           profil_id: string
+          video_url: string | null
         }
         Insert: {
           arrangement_id: string
@@ -133,6 +134,7 @@ export type Database = {
           innhold?: string | null
           opprettet?: string
           profil_id: string
+          video_url?: string | null
         }
         Update: {
           arrangement_id?: string
@@ -141,6 +143,7 @@ export type Database = {
           innhold?: string | null
           opprettet?: string
           profil_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -414,24 +417,33 @@ export type Database = {
       klubb_chat: {
         Row: {
           bilde_url: string | null
+          fra_facebook: boolean
           id: string
           innhold: string | null
+          kilde_ekstern_id: string | null
           opprettet: string
           profil_id: string
+          video_url: string | null
         }
         Insert: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
           innhold?: string | null
+          kilde_ekstern_id?: string | null
           opprettet?: string
           profil_id: string
+          video_url?: string | null
         }
         Update: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
           innhold?: string | null
+          kilde_ekstern_id?: string | null
           opprettet?: string
           profil_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -451,6 +463,7 @@ export type Database = {
           melding_id: string
           opprettet: string
           profil_id: string
+          video_url: string | null
         }
         Insert: {
           bilde_url?: string | null
@@ -459,6 +472,7 @@ export type Database = {
           melding_id: string
           opprettet?: string
           profil_id: string
+          video_url?: string | null
         }
         Update: {
           bilde_url?: string | null
@@ -467,6 +481,7 @@ export type Database = {
           melding_id?: string
           opprettet?: string
           profil_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -735,6 +750,7 @@ export type Database = {
           opprettet: string
           poll_id: string
           profil_id: string
+          video_url: string | null
         }
         Insert: {
           bilde_url?: string | null
@@ -743,6 +759,7 @@ export type Database = {
           opprettet?: string
           poll_id: string
           profil_id: string
+          video_url?: string | null
         }
         Update: {
           bilde_url?: string | null
@@ -751,6 +768,7 @@ export type Database = {
           opprettet?: string
           poll_id?: string
           profil_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -966,6 +984,7 @@ export type Database = {
           opprettet: string
           profil_id: string
           samtale_id: string
+          video_url: string | null
         }
         Insert: {
           bilde_url?: string | null
@@ -975,6 +994,7 @@ export type Database = {
           opprettet?: string
           profil_id: string
           samtale_id: string
+          video_url?: string | null
         }
         Update: {
           bilde_url?: string | null
@@ -984,6 +1004,7 @@ export type Database = {
           opprettet?: string
           profil_id?: string
           samtale_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
