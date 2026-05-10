@@ -151,7 +151,6 @@ async function behandleKaaringspoller(admin: Admin) {
       const status = rad.status as string
 
       const { sendt } = await behandleKaaringspollAvsluttResultat({
-        admin,
         pollId: poll.id,
         spoersmaal: poll.spoersmaal,
         status,

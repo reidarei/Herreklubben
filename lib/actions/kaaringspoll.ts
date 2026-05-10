@@ -258,7 +258,6 @@ export async function lukkKaaringspollNaa(pollId: string) {
   }
 
   await behandleKaaringspollAvsluttResultat({
-    admin,
     pollId,
     spoersmaal: poll.spoersmaal,
     status: rad.status as string,

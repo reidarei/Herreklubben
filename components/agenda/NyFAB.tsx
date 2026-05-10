@@ -25,13 +25,8 @@ const VALG: Valg[] = [
  * Plussknapp i agenda-header som ekspanderer til en meny med valg av
  * hva slags nytt element som skal opprettes. Lukkes ved klikk utenfor
  * eller ved å trykke knappen igjen. Esc er ikke støttet — mobil først.
- *
- * `kanAdministrere`-propen er beholdt som no-op for å unngå å bryte
- * eksisterende kallsteder; den hadde tidligere innflytelse over om
- * «Kåring» ble vist, men kåringer flyttet til /kaaringer-siden i #144.
  */
-export default function NyFAB({ kanAdministrere: _kanAdministrere = false }: { kanAdministrere?: boolean }) {
-  void _kanAdministrere
+export default function NyFAB() {
   const [apen, setApen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 

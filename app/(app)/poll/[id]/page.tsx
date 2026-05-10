@@ -77,6 +77,11 @@ export default async function PollDetalj({
     // Aggregat via RPC — gir totalen uavhengig av RLS-skjul. For ikke-
     // kåringspoller er resultatet tomt, og vi bruker poll_stemme-radene
     // direkte slik som før. Se mig. 079.
+    //
+    // Bevisst ubetinget: vi kjenner ikke poll.kaaring_mal_id før første
+    // spørring er ferdig, og å sekvensere ville koste mer enn én ekstra
+    // billig RPC i parallell. RPCen returnerer tomt-set raskt for
+    // ikke-kåringspoller.
     hentPollStemmerAggregat(supabase, id),
   ])
 
@@ -424,7 +429,7 @@ function KaaringVisning({
             mineStemmer={mineStemmer}
           />
           {kanLoeseTiebreak && poll.kaaring_mal_id && (
-            <LukkNaaKnapp pollId={poll.id} />
+            <LukkNaaKnapp pollId={poll.id} disabled={antallStemmere === 0} />
           )}
         </section>
       ) : venterTiebreak ? (

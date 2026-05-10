@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { lukkKaaringspollNaa } from '@/lib/actions/kaaringspoll'
 
-export default function LukkNaaKnapp({ pollId }: { pollId: string }) {
+export default function LukkNaaKnapp({
+  pollId,
+  disabled = false,
+}: {
+  pollId: string
+  disabled?: boolean
+}) {
   const [isPending, startTransition] = useTransition()
   const [feil, setFeil] = useState<string | null>(null)
   const router = useRouter()
@@ -22,12 +28,14 @@ export default function LukkNaaKnapp({ pollId }: { pollId: string }) {
     })
   }
 
+  const erDisabled = isPending || disabled
   return (
     <div style={{ marginTop: 24 }}>
       <button
         type="button"
         onClick={handleLukk}
-        disabled={isPending}
+        disabled={erDisabled}
+        title={disabled ? 'Ingen har stemt ennå' : undefined}
         style={{
           display: 'block',
           width: '100%',
@@ -39,8 +47,8 @@ export default function LukkNaaKnapp({ pollId }: { pollId: string }) {
           fontFamily: 'var(--font-body)',
           fontSize: 14,
           fontWeight: 500,
-          cursor: isPending ? 'wait' : 'pointer',
-          opacity: isPending ? 0.6 : 1,
+          cursor: erDisabled ? (isPending ? 'wait' : 'not-allowed') : 'pointer',
+          opacity: erDisabled ? 0.6 : 1,
         }}
       >
         {isPending ? 'Lukker…' : 'Lukk kåringen nå'}

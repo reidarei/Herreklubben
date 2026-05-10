@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
-import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
-import { kanAdministrere } from '@/lib/roller'
+import { getInnloggetBruker } from '@/lib/auth-cache'
 import { formaterDato, norskAar, norskDatoNaa } from '@/lib/dato'
 import { subMonths } from 'date-fns'
 import SectionLabel from '@/components/ui/SectionLabel'
@@ -30,12 +29,10 @@ import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
 export default async function Forside() {
-  const [user, supabase, profil] = await Promise.all([
+  const [user, supabase] = await Promise.all([
     getInnloggetBruker(),
     createServerClient(),
-    getProfil(),
   ])
-  const erAdmin = kanAdministrere(profil?.rolle)
 
   const naa = norskDatoNaa()
   // Vis tidligere arrangementer 24 mnd tilbake på forsiden — eldre vises
@@ -168,7 +165,7 @@ export default async function Forside() {
   // andres stemmer for vanlige medlemmer på åpne kåringspoller. For
   // vanlige polls bruker vi poll_stemme-radene direkte slik som før.
   const kaaringspollIder = (pollerRaad ?? [])
-    .filter(p => (p as { kaaring_mal_id: string | null }).kaaring_mal_id !== null)
+    .filter(p => p.kaaring_mal_id !== null)
     .map(p => p.id)
   const kaaringAggregater = await hentPollStemmerAggregatBatch(supabase, kaaringspollIder)
 
@@ -183,8 +180,8 @@ export default async function Forside() {
       .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
       .map(v => ({ id: v.id, tekst: v.tekst }))
 
-    const erKaaring = (p as { kaaring_mal_id: string | null }).kaaring_mal_id !== null
-    let stemmerPerValg: Record<string, number> = {}
+    const erKaaring = p.kaaring_mal_id !== null
+    const stemmerPerValg: Record<string, number> = {}
     let antallStemmer = 0
 
     if (erKaaring) {
@@ -428,7 +425,7 @@ export default async function Forside() {
           </h1>
         </div>
 
-        <NyFAB kanAdministrere={erAdmin} />
+        <NyFAB />
       </header>
 
       <PushPaaminnelse />
