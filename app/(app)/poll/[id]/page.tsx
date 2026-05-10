@@ -76,6 +76,21 @@ export default async function PollDetalj({
 
   if (!poll) notFound()
 
+  // Vinner hentes fra kaaring_vinnere (lesbar for alle, RLS skjuler stemmer
+  // for vanlige medlemmer så vi kan ikke utlede vinner fra stemmetall i
+  // klienten). Tabellen er kilden til sannhet — RPC eller manuell tiebreak
+  // skriver dit.
+  let vinnerRad: { profil_id: string | null; arrangement_id: string | null } | null = null
+  if (poll.kaaring_mal_id && poll.aar !== null) {
+    const { data: v } = await supabase
+      .from('kaaring_vinnere')
+      .select('profil_id, arrangement_id')
+      .eq('mal_id', poll.kaaring_mal_id)
+      .eq('aar', poll.aar)
+      .maybeSingle()
+    vinnerRad = v ?? null
+  }
+
   const erAvsluttet = new Date(poll.svarfrist) <= new Date() || poll.avsluttet_paa !== null
   const erAdmin = kanAdministrere(profil?.rolle)
   const kanSlette = poll.opprettet_av === user!.id || erAdmin
@@ -113,6 +128,7 @@ export default async function PollDetalj({
         chatMeldinger={chatMeldinger ?? []}
         userId={user!.id}
         kanSlette={kanSlette}
+        vinnerRad={vinnerRad}
       />
     )
   }
@@ -240,6 +256,7 @@ function KaaringVisning({
   chatMeldinger,
   userId,
   kanSlette,
+  vinnerRad,
 }: {
   poll: PollRad
   valg: ValgRad[]
@@ -253,6 +270,7 @@ function KaaringVisning({
   chatMeldinger: ChatMelding[]
   userId: string
   kanSlette: boolean
+  vinnerRad: { profil_id: string | null; arrangement_id: string | null } | null
 }) {
   // Bygg KaaringValg-liste med denormalisert kandidat-data.
   const profilMap = new Map(chatProfiler.map(p => [p.id, p]))
@@ -284,20 +302,24 @@ function KaaringVisning({
   const erAvgjort = poll.tiebreak_status === 'avgjort'
   const ingenStemmer = poll.avsluttet_paa !== null && antallStemmere === 0
 
-  // Vinner — velg fra valg-rad med høyest stemmetall (ved avgjort).
+  // Vinner — utledes fra kaaring_vinnere (kilden til sannhet). Vi kan ikke
+  // bruke stemmer-aggregatet siden RLS skjuler andres stemmer for vanlige
+  // medlemmer. Vinneren er enten en profil-kandidat eller en arrangement-
+  // kandidat; vi finner riktig poll_valg-rad og bruker den til
+  // banner-rendering, slik at navn/bilde/rolle blir konsistente.
   let vinner: KaaringValg | null = null
-  if (erAvgjort) {
-    let topp = 0
-    for (const v of kaaringValg) {
-      const n = stemmerPerValg.get(v.id) ?? 0
-      if (n > topp) {
-        topp = n
-        vinner = v
-      }
+  if (erAvgjort && vinnerRad) {
+    if (vinnerRad.profil_id) {
+      vinner =
+        kaaringValg.find(
+          v => valg.find(r => r.id === v.id)?.referanse_profil_id === vinnerRad.profil_id,
+        ) ?? null
+    } else if (vinnerRad.arrangement_id) {
+      vinner =
+        kaaringValg.find(
+          v => valg.find(r => r.id === v.id)?.referanse_arrangement_id === vinnerRad.arrangement_id,
+        ) ?? null
     }
-    // Hvis tiebreak ble avgjort manuelt og tellingen er lik, kan vi ikke
-    // tippe vinneren her — kaaring_vinnere er kilden til sannhet. Vi
-    // viser i så fall en fallback uten banner.
   }
 
   return (
