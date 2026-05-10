@@ -388,6 +388,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kaaring_vinnere_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "kaaring_vinnere_profil_id_fkey"
             columns: ["profil_id"]
             isOneToOne: false
@@ -709,8 +716,8 @@ export type Database = {
       }
       poll: {
         Row: {
-          arrangement_id: string | null
           aar: number | null
+          arrangement_id: string | null
           avsluttet_paa: string | null
           flervalg: boolean
           id: string
@@ -724,8 +731,8 @@ export type Database = {
           tiebreak_status: string | null
         }
         Insert: {
-          arrangement_id?: string | null
           aar?: number | null
+          arrangement_id?: string | null
           avsluttet_paa?: string | null
           flervalg?: boolean
           id?: string
@@ -739,8 +746,8 @@ export type Database = {
           tiebreak_status?: string | null
         }
         Update: {
-          arrangement_id?: string | null
           aar?: number | null
+          arrangement_id?: string | null
           avsluttet_paa?: string | null
           flervalg?: boolean
           id?: string
@@ -754,6 +761,20 @@ export type Database = {
           tiebreak_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "poll_arrangement_id_fkey"
+            columns: ["arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "arrangementer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_kaaring_mal_id_fkey"
+            columns: ["kaaring_mal_id"]
+            isOneToOne: false
+            referencedRelation: "kaaringmaler"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "poll_opprettet_av_fkey"
             columns: ["opprettet_av"]
@@ -885,6 +906,20 @@ export type Database = {
             columns: ["poll_id"]
             isOneToOne: false
             referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_valg_referanse_arrangement_id_fkey"
+            columns: ["referanse_arrangement_id"]
+            isOneToOne: false
+            referencedRelation: "arrangementer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_valg_referanse_profil_id_fkey"
+            columns: ["referanse_profil_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1135,6 +1170,13 @@ export type Database = {
             referencedRelation: "arrangementer"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "varsel_logg_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "poll"
+            referencedColumns: ["id"]
+          },
         ]
       }
       varsel_preferanser: {
@@ -1273,10 +1315,10 @@ export type Database = {
       avslutt_kaaringspoll: {
         Args: { p_poll_id: string }
         Returns: {
-          vinner_profil_id: string | null
-          vinner_arrangement_id: string | null
-          var_ny: boolean
           status: string
+          var_ny: boolean
+          vinner_arrangement_id: string
+          vinner_profil_id: string
         }[]
       }
       er_admin: { Args: never; Returns: boolean }
