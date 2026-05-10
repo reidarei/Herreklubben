@@ -304,7 +304,17 @@ function KaaringVisning({
 
   const venterTiebreak = poll.tiebreak_status === 'venter_paa_tiebreak'
   const erAvgjort = poll.tiebreak_status === 'avgjort'
-  const ingenStemmer = poll.avsluttet_paa !== null && antallStemmere === 0
+  // RLS skjuler andres stemmer for vanlige medlemmer, så `antallStemmere`
+  // er ikke en pålitelig indikator alene. Vi vet det var stemmer dersom
+  // det finnes en vinner eller poll-en venter på tiebreak. "Ingen stemmer"
+  // er kun riktig når avsluttet, ingen vinner registrert, ingen tiebreak,
+  // OG vi heller ikke ser noen stemmer selv.
+  const ingenStemmer =
+    poll.avsluttet_paa !== null &&
+    !erAvgjort &&
+    !venterTiebreak &&
+    vinnerRad === null &&
+    antallStemmere === 0
 
   // Vinner — utledes fra kaaring_vinnere (kilden til sannhet). Vi kan ikke
   // bruke stemmer-aggregatet siden RLS skjuler andres stemmer for vanlige
@@ -476,8 +486,11 @@ function KaaringVisning({
             </p>
           )}
         </section>
-      ) : erAdmin ? (
-        // Avgjort, admin/generalsekretær: vis stemmefordeling
+      ) : erAdmin && poll.avsluttet_paa !== null ? (
+        // Avgjort, admin/generalsekretær: vis stemmefordeling.
+        // Gates eksplisitt på `avsluttet_paa` slik at admin ikke ser
+        // RLS-filtrert (kun egne) stemmer i vinduet mellom svarfrist
+        // passert og cron-kjøringen som setter avsluttet_paa.
         <section style={{ marginBottom: 24 }}>
           <SectionLabel count={antallStemmere}>Stemmefordeling</SectionLabel>
           <PollResultat
