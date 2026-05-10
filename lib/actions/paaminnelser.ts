@@ -1,5 +1,5 @@
 import { addDays } from 'date-fns'
-import { norskDatoNaa } from '@/lib/dato'
+import { norskDatoNaa, naa } from '@/lib/dato'
 import {
   sendPaaminneVarsler,
   sendPurringVarsler,
@@ -109,16 +109,17 @@ async function behandleKaaringspoller(admin: Admin) {
     .select('id, spoersmaal')
     .not('kaaring_mal_id', 'is', null)
     .is('avsluttet_paa', null)
-    .lt('svarfrist', new Date().toISOString())
+    .lt('svarfrist', naa())
 
   if (!aapne || aapne.length === 0) {
     return { lukketKaaringer, sendteVarsler, kaaringFeil }
   }
 
-  // Profiler som skal varsles ved tiebreak — typisk generalsekretær.
-  // Vi bruker faarIssueVarsler-rettigheten (admin + generalsekretær) som
-  // proxy: alle som har den får også tiebreak-varsel. Generalsekretær
-  // har den per definisjon false i dag, så vi bytter til kanAdministrere.
+  // Mottakere av tiebreak- og ingen-stemmer-varsel: alle med
+  // admin-rettigheter (admin + generalsekretær). Hvorvidt det burde
+  // begrenses til kun generalsekretær er en åpen produkt-beslutning —
+  // se PR-kommentar #87. Hvis det skal smalne, lag rettighet
+  // `loeserTiebreak` i lib/roller.ts og bruk den her i stedet.
   const adminRoller = rollerMed('kanAdministrere')
   const { data: adminProfiler } = await admin
     .from('profiles')
