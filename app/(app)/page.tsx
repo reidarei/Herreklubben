@@ -150,19 +150,16 @@ export default async function Forside() {
       )
       .not('arrangement_id', 'is', null),
     // Totalt antall kommentarer per arrangement og poll — ren id-spørring
-    // uten join eller limit (innenfor 3-mnd-vinduet). Brukes til overskriften
-    // «X kommentarer» på agenda-kort så tallet ikke begrenses til de 3 siste
-    // vi henter for visning. For meldinger holder vi oss til limit(60)-uttrekket
-    // i meldingKommentarer over — meldinger-feeden er selv limit 60, så
-    // dekningen er praktisk talt total uten en egen tellespørring.
+    // uten join, limit eller dato-filter. Brukes til overskriften «X kommentarer»
+    // på agenda-kort så tallet er den faktiske totalen, ikke begrenset av
+    // visningsvinduet eller topp-3-uttrekket. For meldinger holder vi oss til
+    // limit(60)-uttrekket i meldingKommentarer over.
     supabase
       .from('arrangement_chat')
-      .select('arrangement_id')
-      .gte('opprettet', treMndSiden.toISOString()),
+      .select('arrangement_id'),
     supabase
       .from('poll_chat')
-      .select('poll_id')
-      .gte('opprettet', treMndSiden.toISOString()),
+      .select('poll_id'),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
