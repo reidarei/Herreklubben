@@ -108,8 +108,10 @@ export default function KommentarerPaaKort({
       }}
       onClick={stopp}
     >
-      {/* Toggle-header vises kun hvis det er kommentarer å skjule */}
-      {kommentarer.length > 0 && (
+      {/* Toggle-header vises hvis det finnes kommentarer totalt — også når
+          listen er tom fordi alle ligger utenfor topp-30-uttaket men innenfor
+          24-mnd-totalvinduet. */}
+      {visTall > 0 && (
         <span
           role="button"
           tabIndex={0}
