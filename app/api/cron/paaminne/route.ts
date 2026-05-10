@@ -9,8 +9,11 @@ async function handle(req: NextRequest) {
   }
 
   const admin = createAdminClient()
-  const { behandlet, feil } = await kjorPaaminnelser(admin)
-  return NextResponse.json({ ok: true, behandlet, feil })
+  const result = await kjorPaaminnelser(admin)
+  // Returner 500 hvis noe feilet — synliggjør cron-feil i GitHub Actions-loggen
+  // i stedet for å skjule dem bak en 200.
+  const status = result.feil > 0 ? 500 : 200
+  return NextResponse.json({ ok: result.feil === 0, ...result }, { status })
 }
 
 // Vercel Cron sender GET-requests

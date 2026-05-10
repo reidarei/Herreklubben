@@ -97,6 +97,18 @@ export default async function ArrangementDetaljer({
       .limit(1),
   ])
 
+  // Kåringspoll knyttet til arrangementet (#87). Vi henter separat for å
+  // ikke gjøre Promise.all-blokken over mer kompleks; resultatet er
+  // typisk 0 eller 1 rad.
+  const { data: koblede } = await supabase
+    .from('poll')
+    .select('id, spoersmaal, svarfrist, avsluttet_paa')
+    .eq('arrangement_id', id)
+    .not('kaaring_mal_id', 'is', null)
+    .order('svarfrist', { ascending: false })
+    .limit(1)
+  const koblet_kaaringspoll = koblede?.[0] ?? null
+
   if (!arr) notFound()
 
   const erAdmin = kanAdministrere(profil?.rolle)
@@ -582,6 +594,39 @@ export default async function ArrangementDetaljer({
               Generalsekretæren godkjenner — du får tilgang i 24 timer.
             </div>
             <PassListe arrangementId={id} deltakere={passDeltakere} />
+          </section>
+        )}
+
+        {/* Tilknyttet kåringspoll (#87) — vises bare hvis koblet */}
+        {koblet_kaaringspoll && (
+          <section style={{ marginBottom: 24 }}>
+            <Link
+              href={`/poll/${koblet_kaaringspoll.id}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '14px 16px',
+                border: '0.5px solid var(--accent)',
+                borderRadius: 'var(--radius-card)',
+                background: 'var(--accent-soft)',
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-body)',
+                fontSize: 14,
+              }}
+            >
+              <Icon name="trophy" size={20} color="var(--accent)" />
+              <span style={{ flex: 1 }}>
+                {koblet_kaaringspoll.avsluttet_paa
+                  ? 'Kåring: avgjort'
+                  : 'Kåring: åpen for stemming'}
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {koblet_kaaringspoll.spoersmaal}
+                </div>
+              </span>
+              <Icon name="chevron" size={16} color="var(--text-tertiary)" />
+            </Link>
           </section>
         )}
 

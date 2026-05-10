@@ -1,5 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server'
-import { kanAdministrere } from '@/lib/roller'
+import { kanAdministrere, loeserTiebreak } from '@/lib/roller'
 
 // Sentral autorisasjons-helper for server actions og route handlers.
 // Bruk denne i stedet for å duplisere "hent user → hent profil → sjekk
@@ -22,6 +22,28 @@ export async function ensureAdmin() {
     .single()
 
   if (!kanAdministrere(profil?.rolle)) throw new Error('Ikke admin')
+
+  return { supabase, user, profil }
+}
+
+// Variant for handlinger som kun generalsekretær (eller andre roller med
+// `loeserTiebreak`-rettighet) skal kunne gjøre — i praksis: avgjøre
+// kåringspoller som endte uavgjort. Admin har ikke denne tilgangen,
+// selv om de ellers har full CRUD i appen.
+export async function ensureLoeserTiebreak() {
+  const supabase = await createServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Ikke innlogget')
+
+  const { data: profil } = await supabase
+    .from('profiles')
+    .select('rolle')
+    .eq('id', user.id)
+    .single()
+
+  if (!loeserTiebreak(profil?.rolle)) throw new Error('Kun generalsekretær kan løse tiebreak')
 
   return { supabase, user, profil }
 }

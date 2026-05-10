@@ -5,6 +5,7 @@ import {
   kanAdministrere,
   harGulGloed,
   faarIssueVarsler,
+  loeserTiebreak,
   tittelFor,
   rollerMed,
   rettigheterFor,
@@ -51,6 +52,20 @@ describe('roller – rettighetsmatrise', () => {
     })
   })
 
+  describe('loeserTiebreak', () => {
+    it('kun generalsekretær løser tiebreak', () => {
+      expect(loeserTiebreak('generalsekretaer')).toBe(true)
+      expect(loeserTiebreak('admin')).toBe(false)
+      expect(loeserTiebreak('medlem')).toBe(false)
+    })
+
+    it('ukjente/null-roller løser ikke tiebreak', () => {
+      expect(loeserTiebreak(null)).toBe(false)
+      expect(loeserTiebreak(undefined)).toBe(false)
+      expect(loeserTiebreak('tull')).toBe(false)
+    })
+  })
+
   describe('tittelFor', () => {
     it('gir norsk tittel for hver rolle', () => {
       expect(tittelFor('medlem')).toBe('Medlem')
@@ -69,6 +84,7 @@ describe('roller – rettighetsmatrise', () => {
       expect(rollerMed('kanAdministrere').sort()).toEqual(['admin', 'generalsekretaer'])
       expect(rollerMed('faarIssueVarsler')).toEqual(['admin'])
       expect(rollerMed('harGulGloed')).toEqual(['generalsekretaer'])
+      expect(rollerMed('loeserTiebreak')).toEqual(['generalsekretaer'])
     })
   })
 
@@ -88,6 +104,7 @@ describe('roller – rettighetsmatrise', () => {
         kanAdministrere: true,
         faarIssueVarsler: false,
         harGulGloed: true,
+        loeserTiebreak: true,
       })
     })
   })

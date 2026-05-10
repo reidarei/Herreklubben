@@ -1,7 +1,15 @@
 import { addDays } from 'date-fns'
-import { norskDatoNaa } from '@/lib/dato'
-import { sendPaaminneVarsler, sendPurringVarsler, sendArrangorPurringVarsler } from '@/lib/varsler'
+import { norskDatoNaa, naa } from '@/lib/dato'
+import {
+  sendPaaminneVarsler,
+  sendPurringVarsler,
+  sendArrangorPurringVarsler,
+  sendKaaringspollVinnerVarsel,
+  sendKaaringspollTiebreakVarsel,
+  sendKaaringspollIngenStemmerVarsel,
+} from '@/lib/varsler'
 import { PAAMINNELSE_DAGER } from '@/lib/konstanter'
+import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -76,7 +84,103 @@ export async function kjorPaaminnelser(admin: Admin) {
   const behandlet = utfall
     .filter((r): r is PromiseFulfilledResult<{ id: string; type: string }> => r.status === 'fulfilled')
     .map(r => r.value)
-  const feil = utfall.filter(r => r.status === 'rejected').length
+  let feil = utfall.filter(r => r.status === 'rejected').length
 
-  return { behandlet, feil }
+  // ─── Kåringspoll: lukk de som har passert frist ───────────────────────────
+  // RPC-en avslutt_kaaringspoll er idempotent, så å kjøre den hver dag på
+  // samme poll er trygt — den returnerer var_ny=false andre gang. Status-
+  // verdien styrer hvilket varsel vi sender.
+  const { lukketKaaringer, sendteVarsler, kaaringFeil } =
+    await behandleKaaringspoller(admin)
+  feil += kaaringFeil
+
+  return { behandlet, feil, lukketKaaringer, sendteVarsler }
+}
+
+async function behandleKaaringspoller(admin: Admin) {
+  let lukketKaaringer = 0
+  let sendteVarsler = 0
+  let kaaringFeil = 0
+
+  // Hent åpne kåringspoller med utløpt frist. partial-indexen
+  // poll_kaaring_aapne dekker dette filteret presist.
+  const { data: aapne } = await admin
+    .from('poll')
+    .select('id, spoersmaal')
+    .not('kaaring_mal_id', 'is', null)
+    .is('avsluttet_paa', null)
+    .lt('svarfrist', naa())
+
+  if (!aapne || aapne.length === 0) {
+    return { lukketKaaringer, sendteVarsler, kaaringFeil }
+  }
+
+  // To ulike mottaker-grupper:
+  //  - Tiebreak-varsel: kun de som faktisk skal løse den (generalsekretær).
+  //    Det er han som har siste ord ved likt antall stemmer — admin-flokken
+  //    skal ikke pinges på et valg de ikke kan ta.
+  //  - Ingen-stemmer-varsel: går til alle med admin-rettigheter, fordi
+  //    dette er ren info om at en kåring ble avlyst og bør følges opp.
+  const tiebreakRoller = rollerMed('loeserTiebreak')
+  const adminRoller = rollerMed('kanAdministrere')
+  const trengteRoller = Array.from(new Set([...tiebreakRoller, ...adminRoller]))
+  const { data: relevanteProfiler } = await admin
+    .from('profiles')
+    .select('id, rolle')
+    .in('rolle', trengteRoller)
+    .eq('aktiv', true)
+  const tiebreakIder = (relevanteProfiler ?? [])
+    .filter(p => tiebreakRoller.includes(p.rolle as (typeof tiebreakRoller)[number]))
+    .map(p => p.id)
+  const adminIder = (relevanteProfiler ?? [])
+    .filter(p => adminRoller.includes(p.rolle as (typeof adminRoller)[number]))
+    .map(p => p.id)
+
+  for (const poll of aapne) {
+    try {
+      const { data: rpcRes, error: rpcErr } = await admin.rpc(
+        'avslutt_kaaringspoll',
+        { p_poll_id: poll.id },
+      )
+      if (rpcErr) {
+        kaaringFeil += 1
+        continue
+      }
+      const rad = Array.isArray(rpcRes) ? rpcRes[0] : rpcRes
+      if (!rad || !rad.var_ny) continue
+
+      lukketKaaringer += 1
+      const status = rad.status as string
+
+      if (status === 'avgjort') {
+        await sendKaaringspollVinnerVarsel({
+          pollId: poll.id,
+          spoersmaal: poll.spoersmaal,
+        })
+        sendteVarsler += 1
+      } else if (status === 'venter_paa_tiebreak') {
+        if (tiebreakIder.length > 0) {
+          await sendKaaringspollTiebreakVarsel({
+            pollId: poll.id,
+            spoersmaal: poll.spoersmaal,
+            mottakere: tiebreakIder,
+          })
+          sendteVarsler += 1
+        }
+      } else if (status === 'ingen_stemmer') {
+        if (adminIder.length > 0) {
+          await sendKaaringspollIngenStemmerVarsel({
+            pollId: poll.id,
+            spoersmaal: poll.spoersmaal,
+            mottakere: adminIder,
+          })
+          sendteVarsler += 1
+        }
+      }
+    } catch {
+      kaaringFeil += 1
+    }
+  }
+
+  return { lukketKaaringer, sendteVarsler, kaaringFeil }
 }
