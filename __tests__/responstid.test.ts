@@ -146,6 +146,7 @@ describe('responstid – cron-jobb overhead', () => {
     // Mock alt som trengs
     vi.doMock('@/lib/dato', () => ({
       norskDatoNaa: () => new Date(2026, 5, 10),
+      naa: () => '2026-06-10T00:00:00.000Z',
     }))
     vi.doMock('@/lib/varsler', () => ({
       sendPaaminneVarsler: vi.fn().mockResolvedValue(undefined),
@@ -153,23 +154,22 @@ describe('responstid – cron-jobb overhead', () => {
       sendArrangorPurringVarsler: vi.fn().mockResolvedValue(undefined),
     }))
 
+    // Fleksibel chainable mock: alle filter-metoder returnerer chain-en
+    // selv, og hele kjeden er thenable. Dekker alle tabell-kall i
+    // kjorPaaminnelser inkludert behandleKaaringspoller (poll, profiles).
+    function lagChain(): Record<string, unknown> {
+      const chain: Record<string, unknown> = {}
+      const metoder = ['select', 'eq', 'in', 'gte', 'lt', 'is', 'not', 'limit', 'order']
+      for (const m of metoder) {
+        chain[m] = vi.fn().mockReturnValue(chain)
+      }
+      chain.then = (r: (v: unknown) => void) =>
+        Promise.resolve({ data: [], error: null }).then(r)
+      return chain
+    }
     const mockAdmin = {
-      from: vi.fn(() => ({
-        select: vi.fn().mockReturnValue({
-          gte: vi.fn().mockReturnValue({
-            lt: vi.fn().mockReturnValue({
-              then: (r: (v: unknown) => void) => Promise.resolve({ data: [] }).then(r),
-            }),
-          }),
-          eq: vi.fn().mockReturnValue({
-            is: vi.fn().mockReturnValue({
-              not: vi.fn().mockReturnValue({
-                then: (r: (v: unknown) => void) => Promise.resolve({ data: [] }).then(r),
-              }),
-            }),
-          }),
-        }),
-      })),
+      from: vi.fn(() => lagChain()),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     }
 
     const { kjorPaaminnelser } = await import('@/lib/actions/paaminnelser')

@@ -5,6 +5,7 @@ import { lagChain } from './helpers/supabase-mock'
 // Mock dato-modul
 vi.mock('@/lib/dato', () => ({
   norskDatoNaa: () => new Date(2026, 5, 10), // 10. juni 2026
+  naa: () => '2026-06-10T00:00:00.000Z',
 }))
 
 // Mock varsler
