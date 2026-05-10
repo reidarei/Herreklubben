@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
 
 type Tab = {
@@ -54,6 +55,18 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   //   5. Reset ved pathname-endring + 300ms polling KUN når tastaturApent
   //      er true (slik at vi ikke vekker prosessoren unødvendig)
   const [tastaturApent, setTastaturApent] = useState(false)
+
+  // Portal-mount-flagg. Dokken rendres via createPortal mot document.body
+  // for å garantere at INGEN stamfar i React-treet kan etablere ny
+  // "containing block" for position:fixed (transform/filter/backdrop-
+  // filter/perspective/will-change/contain). Dette er defense-in-depth
+  // mot regresjoner som #147 der dokken begynte å følge med scroll på iOS
+  // selv om koden i BottomNav var uendret. SSR-safe: portalen monteres
+  // først etter første client-render via useEffect.
+  const [montert, setMontert] = useState(false)
+  useEffect(() => {
+    setMontert(true)
+  }, [])
 
   // Reset ved navigasjon — fanger tilfeller der focusout aldri fyrer
   useEffect(() => {
@@ -176,7 +189,9 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     marginInline: 'auto',
   }
 
-  return (
+  if (!montert) return null
+
+  return createPortal(
     <nav className="fixed" style={containerStyle} aria-label="Hovednavigasjon">
       {/* Top glint overlay */}
       <span
@@ -256,7 +271,8 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
           </NavElementer>
         )
       })}
-    </nav>
+    </nav>,
+    document.body,
   )
 }
 
