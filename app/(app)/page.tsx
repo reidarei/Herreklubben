@@ -25,6 +25,7 @@ import {
   type MeldingRaad,
 } from '@/lib/agenda-sortering'
 import { subDays } from 'date-fns'
+import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
 
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
@@ -86,6 +87,7 @@ export default async function Forside() {
       .from('poll')
       .select(
         `id, spoersmaal, svarfrist, flervalg, opprettet_av,
+         kaaring_mal_id, aar, avsluttet_paa, tiebreak_status,
          poll_valg (id, tekst, rekkefoelge),
          poll_stemme (profil_id, valg_id)`,
       )
@@ -162,6 +164,14 @@ export default async function Forside() {
       .select('poll_id'),
   ])
 
+  // Kåringspoll-aggregater hentes via RPC (mig. 079), fordi RLS skjuler
+  // andres stemmer for vanlige medlemmer på åpne kåringspoller. For
+  // vanlige polls bruker vi poll_stemme-radene direkte slik som før.
+  const kaaringspollIder = (pollerRaad ?? [])
+    .filter(p => (p as { kaaring_mal_id: string | null }).kaaring_mal_id !== null)
+    .map(p => p.id)
+  const kaaringAggregater = await hentPollStemmerAggregatBatch(supabase, kaaringspollIder)
+
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
   // blant dem, + hvilke valg jeg har stemt på. Valgene sorteres etter
   // rekkefølge så inline-knappene rendres i opprettet rekkefølge.
@@ -172,17 +182,34 @@ export default async function Forside() {
     const valg = [...(p.poll_valg ?? [])]
       .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
       .map(v => ({ id: v.id, tekst: v.tekst }))
-    const stemmerPerValg: Record<string, number> = {}
-    for (const s of stemmer) {
-      stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+
+    const erKaaring = (p as { kaaring_mal_id: string | null }).kaaring_mal_id !== null
+    let stemmerPerValg: Record<string, number> = {}
+    let antallStemmer = 0
+
+    if (erKaaring) {
+      // Aggregat fra RPC — totalen er sannheten siden RLS skjuler andres
+      // stemmer. harStemt utledes fortsatt fra poll_stemme: egne stemmer
+      // er synlige for kalleren.
+      const agg = kaaringAggregater.get(p.id) ?? new Map<string, number>()
+      for (const [valgId, antall] of agg) {
+        stemmerPerValg[valgId] = antall
+        antallStemmer += antall
+      }
+    } else {
+      for (const s of stemmer) {
+        stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+      }
+      antallStemmer = unike.size
     }
+
     return {
       id: p.id,
       spoersmaal: p.spoersmaal,
       svarfrist: p.svarfrist,
       flervalg: p.flervalg,
       opprettet_av: p.opprettet_av,
-      antallStemmer: unike.size,
+      antallStemmer,
       harStemt: unike.has(user!.id),
       valg,
       mineStemmer: mine,

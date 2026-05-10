@@ -15,6 +15,8 @@ import KaaringPollStemming, {
 import VinnerBanner from '@/components/poll/VinnerBanner'
 import Chat from '@/components/chat/Chat'
 import SlettPollKnapp from './SlettPollKnapp'
+import LukkNaaKnapp from './LukkNaaKnapp'
+import { hentPollStemmerAggregat } from '@/lib/queries/poll'
 
 type ValgRad = {
   id: string
@@ -51,7 +53,7 @@ export default async function PollDetalj({
     getProfil(),
   ])
 
-  const [{ data: poll }, { data: chatMeldinger }, { data: chatProfiler }] = await Promise.all([
+  const [{ data: poll }, { data: chatMeldinger }, { data: chatProfiler }, stemmerAggregat] = await Promise.all([
     supabase
       .from('poll')
       .select(
@@ -72,6 +74,10 @@ export default async function PollDetalj({
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
+    // Aggregat via RPC — gir totalen uavhengig av RLS-skjul. For ikke-
+    // kåringspoller er resultatet tomt, og vi bruker poll_stemme-radene
+    // direkte slik som før. Se mig. 079.
+    hentPollStemmerAggregat(supabase, id),
   ])
 
   if (!poll) notFound()
@@ -115,13 +121,17 @@ export default async function PollDetalj({
 
   // ─── Kåringspoll-rendering ─────────────────────────────────────────────
   if (erKaaring) {
+    // Aggregat fra RPC er kilden til sannhet for kåringspoll, fordi RLS
+    // skjuler andres stemmer for vanlige medlemmer (mig. 076).
+    let kaaringTotalt = 0
+    for (const v of stemmerAggregat.values()) kaaringTotalt += v
     return (
       <KaaringVisning
         poll={poll}
         valg={valg}
         chatProfiler={chatProfiler ?? []}
-        stemmerPerValg={stemmerPerValg}
-        antallStemmere={antallStemmere}
+        stemmerPerValg={stemmerAggregat}
+        antallStemmere={kaaringTotalt}
         mineStemmer={mineStemmer}
         datoLang={datoLang}
         erAvsluttet={erAvsluttet}
@@ -304,17 +314,7 @@ function KaaringVisning({
 
   const venterTiebreak = poll.tiebreak_status === 'venter_paa_tiebreak'
   const erAvgjort = poll.tiebreak_status === 'avgjort'
-  // RLS skjuler andres stemmer for vanlige medlemmer, så `antallStemmere`
-  // er ikke en pålitelig indikator alene. Vi vet det var stemmer dersom
-  // det finnes en vinner eller poll-en venter på tiebreak. "Ingen stemmer"
-  // er kun riktig når avsluttet, ingen vinner registrert, ingen tiebreak,
-  // OG vi heller ikke ser noen stemmer selv.
-  const ingenStemmer =
-    poll.avsluttet_paa !== null &&
-    !erAvgjort &&
-    !venterTiebreak &&
-    vinnerRad === null &&
-    antallStemmere === 0
+  const harStemt = mineStemmer.length > 0
 
   // Vinner — utledes fra kaaring_vinnere (kilden til sannhet). Vi kan ikke
   // bruke stemmer-aggregatet siden RLS skjuler andres stemmer for vanlige
@@ -406,38 +406,26 @@ function KaaringVisning({
       {/* Tilstandsspesifikk seksjon */}
       {!erAvsluttet ? (
         <section style={{ marginBottom: 24 }}>
+          {harStemt && (
+            <div style={{ marginBottom: 24 }}>
+              <SectionLabel count={antallStemmere}>Foreløpig</SectionLabel>
+              <PollResultat
+                valg={valg}
+                stemmerPerValg={stemmerPerValg}
+                antallStemmere={antallStemmere}
+                mineStemmer={mineStemmer}
+              />
+            </div>
+          )}
           <SectionLabel>Velg din kandidat</SectionLabel>
           <KaaringPollStemming
             pollId={poll.id}
             valg={kaaringValg}
             mineStemmer={mineStemmer}
           />
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              color: 'var(--text-tertiary)',
-              marginTop: 14,
-              fontStyle: 'italic',
-            }}
-          >
-            Stemmene er anonyme. Resultatet vises etter svarfristen.
-          </p>
-        </section>
-      ) : ingenStemmer ? (
-        <section style={{ marginBottom: 24 }}>
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 14,
-              color: 'var(--text-secondary)',
-              padding: 16,
-              border: '0.5px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-card)',
-            }}
-          >
-            Ingen stemmer ble avgitt — ingen vinner kåret.
-          </p>
+          {kanLoeseTiebreak && poll.kaaring_mal_id && (
+            <LukkNaaKnapp pollId={poll.id} />
+          )}
         </section>
       ) : venterTiebreak ? (
         <section style={{ marginBottom: 24 }}>

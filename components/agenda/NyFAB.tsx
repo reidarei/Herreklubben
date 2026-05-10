@@ -12,28 +12,26 @@ type Valg = {
 
 // De fire typene element som kan opprettes på agenda. Speiler typene
 // definert i lib/agenda-sortering.ts (Møte/Tur er underkategorier av
-// arrangement, Poll og Melding er egne tabeller). «Kåring» legges på
-// kun for admin/generalsekretær (#87).
-const BASIS_VALG: Valg[] = [
+// arrangement, Poll og Melding er egne tabeller). Kåringer opprettes
+// fra /kaaringer-siden (#144), ikke fra denne menyen.
+const VALG: Valg[] = [
   { label: 'Møte', href: '/arrangementer/ny?type=moete', ikon: 'calendar' },
   { label: 'Tur', href: '/arrangementer/ny?type=tur', ikon: 'plane' },
   { label: 'Poll', href: '/poll/ny', ikon: 'chart' },
   { label: 'Melding', href: '/meldinger/ny', ikon: 'message' },
 ]
 
-const KAARING_VALG: Valg = {
-  label: 'Kåring',
-  href: '/kaaringspoll/ny',
-  ikon: 'trophy',
-}
-
 /**
  * Plussknapp i agenda-header som ekspanderer til en meny med valg av
  * hva slags nytt element som skal opprettes. Lukkes ved klikk utenfor
  * eller ved å trykke knappen igjen. Esc er ikke støttet — mobil først.
+ *
+ * `kanAdministrere`-propen er beholdt som no-op for å unngå å bryte
+ * eksisterende kallsteder; den hadde tidligere innflytelse over om
+ * «Kåring» ble vist, men kåringer flyttet til /kaaringer-siden i #144.
  */
-export default function NyFAB({ kanAdministrere = false }: { kanAdministrere?: boolean }) {
-  const VALG = kanAdministrere ? [...BASIS_VALG, KAARING_VALG] : BASIS_VALG
+export default function NyFAB({ kanAdministrere: _kanAdministrere = false }: { kanAdministrere?: boolean }) {
+  void _kanAdministrere
   const [apen, setApen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
