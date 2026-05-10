@@ -62,7 +62,6 @@ export default async function Forside() {
     { data: albumMedArrangement },
     { data: arrKommTotalt },
     { data: pollKommTotalt },
-    { data: meldingKommTotalt },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -150,9 +149,12 @@ export default async function Forside() {
         'arrangement_id, cover:album_bilde!album_cover_fk (bilde_url), antall:album_bilde!album_bilde_album_id_fkey (count)',
       )
       .not('arrangement_id', 'is', null),
-    // Totalt antall kommentarer per arrangement/poll/melding — ren id-spørring
-    // uten join eller limit. Brukes til overskriften «X kommentarer» på agenda-
-    // kort så tallet ikke begrenses til de 3 siste vi henter for visning.
+    // Totalt antall kommentarer per arrangement og poll — ren id-spørring
+    // uten join eller limit (innenfor 3-mnd-vinduet). Brukes til overskriften
+    // «X kommentarer» på agenda-kort så tallet ikke begrenses til de 3 siste
+    // vi henter for visning. For meldinger holder vi oss til limit(60)-uttrekket
+    // i meldingKommentarer over — meldinger-feeden er selv limit 60, så
+    // dekningen er praktisk talt total uten en egen tellespørring.
     supabase
       .from('arrangement_chat')
       .select('arrangement_id')
@@ -161,9 +163,6 @@ export default async function Forside() {
       .from('poll_chat')
       .select('poll_id')
       .gte('opprettet', treMndSiden.toISOString()),
-    supabase
-      .from('melding_chat')
-      .select('melding_id'),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -262,9 +261,12 @@ export default async function Forside() {
     r => r.melding_id,
   )
 
-  // Totalt antall kommentarer per arrangement/poll/melding. Egne, ubegrensede
-  // id-only-spørringer (se Promise.all over) som lar overskriften «X kommentarer»
-  // vise korrekt tall selv om vi kun henter 3 kommentarer per kort til visning.
+  // Totalt antall kommentarer per arrangement/poll/melding. For arr/poll har vi
+  // egne id-only-spørringer (se Promise.all over) innenfor 3-mnd-vinduet så
+  // overskriften «X kommentarer» viser korrekt tall selv når vi kun henter
+  // 3 kommentarer per kort til visning. For meldinger teller vi direkte fra
+  // meldingKommentarer (limit 60) — meldinger-feeden er selv limit 60, så
+  // dekningen er praktisk talt total.
   const totaltPerArr = new Map<string, number>()
   for (const r of (arrKommTotalt ?? []) as { arrangement_id: string }[]) {
     totaltPerArr.set(r.arrangement_id, (totaltPerArr.get(r.arrangement_id) ?? 0) + 1)
@@ -274,7 +276,7 @@ export default async function Forside() {
     totaltPerPoll.set(r.poll_id, (totaltPerPoll.get(r.poll_id) ?? 0) + 1)
   }
   const antallKommPerMelding = new Map<string, number>()
-  for (const r of (meldingKommTotalt ?? []) as { melding_id: string }[]) {
+  for (const r of (meldingKommentarer ?? []) as unknown as RawMeldKomm[]) {
     antallKommPerMelding.set(r.melding_id, (antallKommPerMelding.get(r.melding_id) ?? 0) + 1)
   }
 
