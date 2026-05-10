@@ -338,6 +338,7 @@ export type Database = {
           oppdatert: string
           opprettet: string
           opprettet_av: string
+          poll_id: string | null
           profil_id: string | null
         }
         Insert: {
@@ -349,6 +350,7 @@ export type Database = {
           oppdatert?: string
           opprettet?: string
           opprettet_av: string
+          poll_id?: string | null
           profil_id?: string | null
         }
         Update: {
@@ -360,6 +362,7 @@ export type Database = {
           oppdatert?: string
           opprettet?: string
           opprettet_av?: string
+          poll_id?: string | null
           profil_id?: string | null
         }
         Relationships: [
@@ -396,18 +399,21 @@ export type Database = {
       kaaringmaler: {
         Row: {
           id: string
+          kandidat_kilde: string
           navn: string
           opprettet: string
           rekkefolge: number
         }
         Insert: {
           id?: string
+          kandidat_kilde?: string
           navn: string
           opprettet?: string
           rekkefolge?: number
         }
         Update: {
           id?: string
+          kandidat_kilde?: string
           navn?: string
           opprettet?: string
           rekkefolge?: number
@@ -703,34 +709,49 @@ export type Database = {
       }
       poll: {
         Row: {
+          arrangement_id: string | null
+          aar: number | null
+          avsluttet_paa: string | null
           flervalg: boolean
           id: string
+          kaaring_mal_id: string | null
           kontekst: string | null
           kontekst_data: Json | null
           opprettet: string
           opprettet_av: string
           spoersmaal: string
           svarfrist: string
+          tiebreak_status: string | null
         }
         Insert: {
+          arrangement_id?: string | null
+          aar?: number | null
+          avsluttet_paa?: string | null
           flervalg?: boolean
           id?: string
+          kaaring_mal_id?: string | null
           kontekst?: string | null
           kontekst_data?: Json | null
           opprettet?: string
           opprettet_av: string
           spoersmaal: string
           svarfrist: string
+          tiebreak_status?: string | null
         }
         Update: {
+          arrangement_id?: string | null
+          aar?: number | null
+          avsluttet_paa?: string | null
           flervalg?: boolean
           id?: string
+          kaaring_mal_id?: string | null
           kontekst?: string | null
           kontekst_data?: Json | null
           opprettet?: string
           opprettet_av?: string
           spoersmaal?: string
           svarfrist?: string
+          tiebreak_status?: string | null
         }
         Relationships: [
           {
@@ -833,19 +854,28 @@ export type Database = {
       poll_valg: {
         Row: {
           id: string
+          opprettet: string
           poll_id: string
+          referanse_arrangement_id: string | null
+          referanse_profil_id: string | null
           rekkefoelge: number
           tekst: string
         }
         Insert: {
           id?: string
+          opprettet?: string
           poll_id: string
+          referanse_arrangement_id?: string | null
+          referanse_profil_id?: string | null
           rekkefoelge?: number
           tekst: string
         }
         Update: {
           id?: string
+          opprettet?: string
           poll_id?: string
+          referanse_arrangement_id?: string | null
+          referanse_profil_id?: string | null
           rekkefoelge?: number
           tekst?: string
         }
@@ -1058,6 +1088,7 @@ export type Database = {
           lest: boolean
           melding: string
           opprettet: string | null
+          poll_id: string | null
           profil_id: string
           tittel: string
           type: string | null
@@ -1070,6 +1101,7 @@ export type Database = {
           lest?: boolean
           melding: string
           opprettet?: string | null
+          poll_id?: string | null
           profil_id: string
           tittel: string
           type?: string | null
@@ -1082,6 +1114,7 @@ export type Database = {
           lest?: boolean
           melding?: string
           opprettet?: string | null
+          poll_id?: string | null
           profil_id?: string
           tittel?: string
           type?: string | null
@@ -1237,6 +1270,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      avslutt_kaaringspoll: {
+        Args: { p_poll_id: string }
+        Returns: {
+          vinner_profil_id: string | null
+          vinner_arrangement_id: string | null
+          var_ny: boolean
+          status: string
+        }[]
+      }
       er_admin: { Args: never; Returns: boolean }
       get_statistikk: { Args: never; Returns: Json }
       har_pass_tilgang: { Args: { eier: string }; Returns: boolean }
@@ -1376,4 +1418,3 @@ export const Constants = {
     },
   },
 } as const
-

@@ -1,7 +1,15 @@
 import { addDays } from 'date-fns'
 import { norskDatoNaa } from '@/lib/dato'
-import { sendPaaminneVarsler, sendPurringVarsler, sendArrangorPurringVarsler } from '@/lib/varsler'
+import {
+  sendPaaminneVarsler,
+  sendPurringVarsler,
+  sendArrangorPurringVarsler,
+  sendKaaringspollVinnerVarsel,
+  sendKaaringspollTiebreakVarsel,
+  sendKaaringspollIngenStemmerVarsel,
+} from '@/lib/varsler'
 import { PAAMINNELSE_DAGER } from '@/lib/konstanter'
+import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -76,7 +84,94 @@ export async function kjorPaaminnelser(admin: Admin) {
   const behandlet = utfall
     .filter((r): r is PromiseFulfilledResult<{ id: string; type: string }> => r.status === 'fulfilled')
     .map(r => r.value)
-  const feil = utfall.filter(r => r.status === 'rejected').length
+  let feil = utfall.filter(r => r.status === 'rejected').length
 
-  return { behandlet, feil }
+  // ─── Kåringspoll: lukk de som har passert frist ───────────────────────────
+  // RPC-en avslutt_kaaringspoll er idempotent, så å kjøre den hver dag på
+  // samme poll er trygt — den returnerer var_ny=false andre gang. Status-
+  // verdien styrer hvilket varsel vi sender.
+  const { lukketKaaringer, sendteVarsler, kaaringFeil } =
+    await behandleKaaringspoller(admin)
+  feil += kaaringFeil
+
+  return { behandlet, feil, lukketKaaringer, sendteVarsler }
+}
+
+async function behandleKaaringspoller(admin: Admin) {
+  let lukketKaaringer = 0
+  let sendteVarsler = 0
+  let kaaringFeil = 0
+
+  // Hent åpne kåringspoller med utløpt frist. partial-indexen
+  // poll_kaaring_aapne dekker dette filteret presist.
+  const { data: aapne } = await admin
+    .from('poll')
+    .select('id, spoersmaal')
+    .not('kaaring_mal_id', 'is', null)
+    .is('avsluttet_paa', null)
+    .lt('svarfrist', new Date().toISOString())
+
+  if (!aapne || aapne.length === 0) {
+    return { lukketKaaringer, sendteVarsler, kaaringFeil }
+  }
+
+  // Profiler som skal varsles ved tiebreak — typisk generalsekretær.
+  // Vi bruker faarIssueVarsler-rettigheten (admin + generalsekretær) som
+  // proxy: alle som har den får også tiebreak-varsel. Generalsekretær
+  // har den per definisjon false i dag, så vi bytter til kanAdministrere.
+  const adminRoller = rollerMed('kanAdministrere')
+  const { data: adminProfiler } = await admin
+    .from('profiles')
+    .select('id')
+    .in('rolle', adminRoller)
+    .eq('aktiv', true)
+  const adminIder = (adminProfiler ?? []).map(p => p.id)
+
+  for (const poll of aapne) {
+    try {
+      const { data: rpcRes, error: rpcErr } = await admin.rpc(
+        'avslutt_kaaringspoll',
+        { p_poll_id: poll.id },
+      )
+      if (rpcErr) {
+        kaaringFeil += 1
+        continue
+      }
+      const rad = Array.isArray(rpcRes) ? rpcRes[0] : rpcRes
+      if (!rad || !rad.var_ny) continue
+
+      lukketKaaringer += 1
+      const status = rad.status as string
+
+      if (status === 'avgjort') {
+        await sendKaaringspollVinnerVarsel({
+          pollId: poll.id,
+          spoersmaal: poll.spoersmaal,
+        })
+        sendteVarsler += 1
+      } else if (status === 'venter_paa_tiebreak') {
+        if (adminIder.length > 0) {
+          await sendKaaringspollTiebreakVarsel({
+            pollId: poll.id,
+            spoersmaal: poll.spoersmaal,
+            mottakere: adminIder,
+          })
+          sendteVarsler += 1
+        }
+      } else if (status === 'ingen_stemmer') {
+        if (adminIder.length > 0) {
+          await sendKaaringspollIngenStemmerVarsel({
+            pollId: poll.id,
+            spoersmaal: poll.spoersmaal,
+            mottakere: adminIder,
+          })
+          sendteVarsler += 1
+        }
+      }
+    } catch {
+      kaaringFeil += 1
+    }
+  }
+
+  return { lukketKaaringer, sendteVarsler, kaaringFeil }
 }

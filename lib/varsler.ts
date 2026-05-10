@@ -104,6 +104,7 @@ export async function sendVarsel({
   knappTekst = 'Åpne i appen',
   type,
   arrangementId,
+  pollId,
   tillatDuplikat = false,
 }: {
   mottakere?: string[]
@@ -113,6 +114,7 @@ export async function sendVarsel({
   knappTekst?: string
   type: string
   arrangementId?: string
+  pollId?: string
   tillatDuplikat?: boolean
 }) {
   // Dev-guard: Blokker utsending fra lokal dev-server mot prod-DB.
@@ -137,13 +139,23 @@ export async function sendVarsel({
 
   const supabase = createAdminClient()
 
-  // 1. Dedup-sjekk
+  // 1. Dedup-sjekk — gjelder enten arrangement_id eller poll_id alt etter
+  // hvilken referanse varselet bærer. Først match som finnes vinner.
   if (!tillatDuplikat && arrangementId) {
     const { data: eksisterende } = await supabase
       .from('varsel_logg')
       .select('id')
       .eq('type', type)
       .eq('arrangement_id', arrangementId)
+      .limit(1)
+    if (eksisterende && eksisterende.length > 0) return
+  }
+  if (!tillatDuplikat && pollId) {
+    const { data: eksisterende } = await supabase
+      .from('varsel_logg')
+      .select('id')
+      .eq('type', type)
+      .eq('poll_id', pollId)
       .limit(1)
     if (eksisterende && eksisterende.length > 0) return
   }
@@ -212,6 +224,7 @@ export async function sendVarsel({
           kanal,
           url: url ?? null,
           arrangement_id: arrangementId ?? null,
+          poll_id: pollId ?? null,
         })
         .select('id')
         .single()
@@ -340,6 +353,84 @@ export async function sendNyPollVarsler({
     // for dedup, men vår pollId peker ikke dit. Sett tillatDuplikat for å
     // unngå at den uansett tolker vår context feil.
     tillatDuplikat: true,
+  })
+}
+
+// ─── KÅRINGSPOLL-VARSLER (#87) ──────────────────────────────────────────────
+
+export async function sendKaaringspollOpprettetVarsel({
+  pollId,
+  spoersmaal,
+  svarfrist,
+}: {
+  pollId: string
+  spoersmaal: string
+  svarfrist: string
+}) {
+  const frist = formaterDatoKlokke(svarfrist)
+  await sendVarsel({
+    tittel: 'Ny kåring',
+    melding: `${spoersmaal} — svarfrist ${frist}`,
+    url: `${BASE_URL}/poll/${pollId}`,
+    knappTekst: 'Stem nå',
+    type: 'kaaringspoll_opprettet',
+    pollId,
+  })
+}
+
+export async function sendKaaringspollVinnerVarsel({
+  pollId,
+  spoersmaal,
+}: {
+  pollId: string
+  spoersmaal: string
+}) {
+  await sendVarsel({
+    tittel: 'Kåringen er avgjort',
+    melding: `${spoersmaal} — vinneren er kåret`,
+    url: `${BASE_URL}/poll/${pollId}`,
+    knappTekst: 'Se vinneren',
+    type: 'kaaringspoll_vinner',
+    pollId,
+  })
+}
+
+export async function sendKaaringspollTiebreakVarsel({
+  pollId,
+  spoersmaal,
+  mottakere,
+}: {
+  pollId: string
+  spoersmaal: string
+  mottakere: string[]
+}) {
+  await sendVarsel({
+    mottakere,
+    tittel: 'Likt antall stemmer',
+    melding: `${spoersmaal} — du må velge vinneren`,
+    url: `${BASE_URL}/kaaringspoll/${pollId}/tiebreak`,
+    knappTekst: 'Velg vinner',
+    type: 'kaaringspoll_tiebreak',
+    pollId,
+  })
+}
+
+export async function sendKaaringspollIngenStemmerVarsel({
+  pollId,
+  spoersmaal,
+  mottakere,
+}: {
+  pollId: string
+  spoersmaal: string
+  mottakere: string[]
+}) {
+  await sendVarsel({
+    mottakere,
+    tittel: 'Kåring uten stemmer',
+    melding: `${spoersmaal} — ingen stemte, ingen vinner kåret`,
+    url: `${BASE_URL}/poll/${pollId}`,
+    type: 'kaaringspoll_ingen_stemmer',
+    pollId,
   })
 }
 

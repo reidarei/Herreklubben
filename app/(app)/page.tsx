@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
-import { getInnloggetBruker } from '@/lib/auth-cache'
+import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
+import { kanAdministrere } from '@/lib/roller'
 import { formaterDato, norskAar, norskDatoNaa } from '@/lib/dato'
 import { subMonths } from 'date-fns'
 import SectionLabel from '@/components/ui/SectionLabel'
@@ -28,7 +29,12 @@ import { subDays } from 'date-fns'
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
 export default async function Forside() {
-  const [user, supabase] = await Promise.all([getInnloggetBruker(), createServerClient()])
+  const [user, supabase, profil] = await Promise.all([
+    getInnloggetBruker(),
+    createServerClient(),
+    getProfil(),
+  ])
+  const erAdmin = kanAdministrere(profil?.rolle)
 
   const naa = norskDatoNaa()
   // Vis tidligere arrangementer 24 mnd tilbake på forsiden — eldre vises
@@ -372,7 +378,7 @@ export default async function Forside() {
           </h1>
         </div>
 
-        <NyFAB />
+        <NyFAB kanAdministrere={erAdmin} />
       </header>
 
       <PushPaaminnelse />
