@@ -4,10 +4,8 @@ import {
   sendPaaminneVarsler,
   sendPurringVarsler,
   sendArrangorPurringVarsler,
-  sendKaaringspollVinnerVarsel,
-  sendKaaringspollTiebreakVarsel,
-  sendKaaringspollIngenStemmerVarsel,
 } from '@/lib/varsler'
+import { behandleKaaringspollAvsluttResultat } from '@/lib/varsler-kaaringspoll'
 import { PAAMINNELSE_DAGER } from '@/lib/konstanter'
 import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -152,31 +150,15 @@ async function behandleKaaringspoller(admin: Admin) {
       lukketKaaringer += 1
       const status = rad.status as string
 
-      if (status === 'avgjort') {
-        await sendKaaringspollVinnerVarsel({
-          pollId: poll.id,
-          spoersmaal: poll.spoersmaal,
-        })
-        sendteVarsler += 1
-      } else if (status === 'venter_paa_tiebreak') {
-        if (tiebreakIder.length > 0) {
-          await sendKaaringspollTiebreakVarsel({
-            pollId: poll.id,
-            spoersmaal: poll.spoersmaal,
-            mottakere: tiebreakIder,
-          })
-          sendteVarsler += 1
-        }
-      } else if (status === 'ingen_stemmer') {
-        if (adminIder.length > 0) {
-          await sendKaaringspollIngenStemmerVarsel({
-            pollId: poll.id,
-            spoersmaal: poll.spoersmaal,
-            mottakere: adminIder,
-          })
-          sendteVarsler += 1
-        }
-      }
+      const { sendt } = await behandleKaaringspollAvsluttResultat({
+        admin,
+        pollId: poll.id,
+        spoersmaal: poll.spoersmaal,
+        status,
+        tiebreakIder,
+        adminIder,
+      })
+      if (sendt) sendteVarsler += 1
     } catch {
       kaaringFeil += 1
     }

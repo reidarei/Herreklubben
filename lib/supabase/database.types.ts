@@ -1321,7 +1321,24 @@ export type Database = {
           vinner_profil_id: string
         }[]
       }
+      lukk_kaaringspoll_naa: {
+        Args: { p_poll_id: string }
+        Returns: {
+          status: string
+          var_ny: boolean
+          vinner_arrangement_id: string
+          vinner_profil_id: string
+        }[]
+      }
+      tell_poll_stemmer: {
+        Args: { p_poll_id: string }
+        Returns: {
+          valg_id: string
+          antall: number
+        }[]
+      }
       er_admin: { Args: never; Returns: boolean }
+      er_generalsekretaer: { Args: never; Returns: boolean }
       get_statistikk: { Args: never; Returns: Json }
       har_pass_tilgang: { Args: { eier: string }; Returns: boolean }
     }
