@@ -22,6 +22,8 @@ export type Rettigheter = {
   faarIssueVarsler: boolean
   /** Spesiell gul glød rundt profilbildet */
   harGulGloed: boolean
+  /** Løser tiebreak når en kåringspoll ender uavgjort */
+  loeserTiebreak: boolean
 }
 
 export const ROLLER: Record<Rolle, Rettigheter> = {
@@ -30,18 +32,21 @@ export const ROLLER: Record<Rolle, Rettigheter> = {
     kanAdministrere: false,
     faarIssueVarsler: false,
     harGulGloed: false,
+    loeserTiebreak: false,
   },
   admin: {
     tittel: 'Admin',
     kanAdministrere: true,
     faarIssueVarsler: true,
     harGulGloed: false,
+    loeserTiebreak: false,
   },
   generalsekretaer: {
     tittel: 'Generalsekretær',
     kanAdministrere: true,
     faarIssueVarsler: false,
     harGulGloed: true,
+    loeserTiebreak: true,
   },
 }
 
@@ -65,6 +70,9 @@ export const harGulGloed = (rolle: string | null | undefined): boolean =>
 
 export const faarIssueVarsler = (rolle: string | null | undefined): boolean =>
   rettigheterFor(rolle).faarIssueVarsler
+
+export const loeserTiebreak = (rolle: string | null | undefined): boolean =>
+  rettigheterFor(rolle).loeserTiebreak
 
 export const tittelFor = (rolle: string | null | undefined): string =>
   rettigheterFor(rolle).tittel

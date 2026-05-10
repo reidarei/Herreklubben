@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
-import { kanAdministrere } from '@/lib/roller'
+import { kanAdministrere, loeserTiebreak } from '@/lib/roller'
 import { formaterDato } from '@/lib/dato'
 import SectionLabel from '@/components/ui/SectionLabel'
 import PollStemming from '@/components/poll/PollStemming'
@@ -93,6 +93,7 @@ export default async function PollDetalj({
 
   const erAvsluttet = new Date(poll.svarfrist) <= new Date() || poll.avsluttet_paa !== null
   const erAdmin = kanAdministrere(profil?.rolle)
+  const kanLoeseTiebreak = loeserTiebreak(profil?.rolle)
   const kanSlette = poll.opprettet_av === user!.id || erAdmin
   const erKaaring = poll.kaaring_mal_id !== null
 
@@ -128,6 +129,7 @@ export default async function PollDetalj({
         chatMeldinger={chatMeldinger ?? []}
         userId={user!.id}
         kanSlette={kanSlette}
+        kanLoeseTiebreak={kanLoeseTiebreak}
         vinnerRad={vinnerRad}
       />
     )
@@ -256,6 +258,7 @@ function KaaringVisning({
   chatMeldinger,
   userId,
   kanSlette,
+  kanLoeseTiebreak,
   vinnerRad,
 }: {
   poll: PollRad
@@ -270,6 +273,7 @@ function KaaringVisning({
   chatMeldinger: ChatMelding[]
   userId: string
   kanSlette: boolean
+  kanLoeseTiebreak: boolean
   vinnerRad: { profil_id: string | null; arrangement_id: string | null } | null
 }) {
   // Bygg KaaringValg-liste med denormalisert kandidat-data.
@@ -427,7 +431,7 @@ function KaaringVisning({
         </section>
       ) : venterTiebreak ? (
         <section style={{ marginBottom: 24 }}>
-          {erAdmin ? (
+          {kanLoeseTiebreak ? (
             <div
               style={{
                 padding: 16,

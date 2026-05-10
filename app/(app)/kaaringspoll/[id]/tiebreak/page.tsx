@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { ensureAdmin } from '@/lib/auth'
+import { ensureLoeserTiebreak } from '@/lib/auth'
 import TiebreakSkjema from './TiebreakSkjema'
 
 type ValgRad = {
@@ -16,7 +16,7 @@ export default async function TiebreakSide({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const { supabase } = await ensureAdmin()
+  const { supabase } = await ensureLoeserTiebreak()
 
   const { data: poll } = await supabase
     .from('poll')

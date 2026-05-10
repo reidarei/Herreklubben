@@ -1,6 +1,6 @@
 'use server'
 
-import { ensureAdmin } from '@/lib/auth'
+import { ensureAdmin, ensureLoeserTiebreak } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -141,7 +141,7 @@ export async function opprettKaaringspoll(input: OpprettInput) {
  * kaaring_vinnere og sender ett vinner-varsel.
  */
 export async function velgTiebreakVinner(pollId: string, valgId: string) {
-  const { user, profil } = await ensureAdmin()
+  const { user, profil } = await ensureLoeserTiebreak()
   const admin = createAdminClient()
 
   const { data: poll } = await admin

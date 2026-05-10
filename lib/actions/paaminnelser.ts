@@ -115,18 +115,26 @@ async function behandleKaaringspoller(admin: Admin) {
     return { lukketKaaringer, sendteVarsler, kaaringFeil }
   }
 
-  // Mottakere av tiebreak- og ingen-stemmer-varsel: alle med
-  // admin-rettigheter (admin + generalsekretær). Hvorvidt det burde
-  // begrenses til kun generalsekretær er en åpen produkt-beslutning —
-  // se PR-kommentar #87. Hvis det skal smalne, lag rettighet
-  // `loeserTiebreak` i lib/roller.ts og bruk den her i stedet.
+  // To ulike mottaker-grupper:
+  //  - Tiebreak-varsel: kun de som faktisk skal løse den (generalsekretær).
+  //    Det er han som har siste ord ved likt antall stemmer — admin-flokken
+  //    skal ikke pinges på et valg de ikke kan ta.
+  //  - Ingen-stemmer-varsel: går til alle med admin-rettigheter, fordi
+  //    dette er ren info om at en kåring ble avlyst og bør følges opp.
+  const tiebreakRoller = rollerMed('loeserTiebreak')
   const adminRoller = rollerMed('kanAdministrere')
-  const { data: adminProfiler } = await admin
+  const trengteRoller = Array.from(new Set([...tiebreakRoller, ...adminRoller]))
+  const { data: relevanteProfiler } = await admin
     .from('profiles')
-    .select('id')
-    .in('rolle', adminRoller)
+    .select('id, rolle')
+    .in('rolle', trengteRoller)
     .eq('aktiv', true)
-  const adminIder = (adminProfiler ?? []).map(p => p.id)
+  const tiebreakIder = (relevanteProfiler ?? [])
+    .filter(p => tiebreakRoller.includes(p.rolle as (typeof tiebreakRoller)[number]))
+    .map(p => p.id)
+  const adminIder = (relevanteProfiler ?? [])
+    .filter(p => adminRoller.includes(p.rolle as (typeof adminRoller)[number]))
+    .map(p => p.id)
 
   for (const poll of aapne) {
     try {
@@ -151,11 +159,11 @@ async function behandleKaaringspoller(admin: Admin) {
         })
         sendteVarsler += 1
       } else if (status === 'venter_paa_tiebreak') {
-        if (adminIder.length > 0) {
+        if (tiebreakIder.length > 0) {
           await sendKaaringspollTiebreakVarsel({
             pollId: poll.id,
             spoersmaal: poll.spoersmaal,
-            mottakere: adminIder,
+            mottakere: tiebreakIder,
           })
           sendteVarsler += 1
         }

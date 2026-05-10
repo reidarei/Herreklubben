@@ -14,6 +14,12 @@ type Mal = {
   kandidat_kilde: string
 }
 
+type ArrangementValg = {
+  id: string
+  tittel: string
+  start_tidspunkt: string
+}
+
 const monoLabel: CSSProperties = {
   fontFamily: 'var(--font-mono)',
   fontSize: 9.5,
@@ -61,12 +67,20 @@ type Props = {
   defaultAar: number
   medlemAntall: number
   moeteAntall: number
+  arrangementer: ArrangementValg[]
 }
 
-export default function OpprettSkjema({ maler, defaultAar, medlemAntall, moeteAntall }: Props) {
+export default function OpprettSkjema({
+  maler,
+  defaultAar,
+  medlemAntall,
+  moeteAntall,
+  arrangementer,
+}: Props) {
   const [malId, setMalId] = useState(maler[0]?.id ?? '')
   const [aar, setAar] = useState(defaultAar)
   const [frist, setFrist] = useState(defaultFrist())
+  const [arrangementId, setArrangementId] = useState<string>('')
   const [feil, setFeil] = useState('')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -95,6 +109,7 @@ export default function OpprettSkjema({ maler, defaultAar, medlemAntall, moeteAn
           kaaringMalId: malId,
           aar,
           svarfrist: datetimeLocalTilIso(frist),
+          arrangementId: arrangementId || null,
         })
       } catch (err) {
         if (
@@ -162,7 +177,7 @@ export default function OpprettSkjema({ maler, defaultAar, medlemAntall, moeteAn
             style={inputStil}
           />
         </Rad>
-        <Rad last>
+        <Rad>
           <div style={monoLabel}>Svarfrist</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <input
@@ -173,6 +188,34 @@ export default function OpprettSkjema({ maler, defaultAar, medlemAntall, moeteAn
             />
             <Icon name="calendar" size={15} color="var(--text-tertiary)" />
           </div>
+        </Rad>
+        <Rad last>
+          <div style={monoLabel}>Arrangement (valgfritt)</div>
+          {arrangementer.length === 0 ? (
+            <div
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                color: 'var(--text-tertiary)',
+                fontStyle: 'italic',
+              }}
+            >
+              Ingen aktuelle arrangementer å koble til — la den stå tom
+            </div>
+          ) : (
+            <select
+              value={arrangementId}
+              onChange={e => setArrangementId(e.target.value)}
+              style={{ ...inputStil, fontSize: 16 }}
+            >
+              <option value="">— ikke koblet —</option>
+              {arrangementer.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.tittel} ({formaterDato(a.start_tidspunkt, 'd. MMM yyyy')})
+                </option>
+              ))}
+            </select>
+          )}
         </Rad>
       </SkjemaSeksjon>
 
