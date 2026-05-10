@@ -213,7 +213,12 @@ export async function velgTiebreakVinner(pollId: string, valgId: string) {
  * internt (belte og seler — RLS-bypass via SECURITY DEFINER krever det).
  */
 export async function lukkKaaringspollNaa(pollId: string) {
-  await ensureLoeserTiebreak()
+  // Vi trenger brukerens supabase-klient for selve RPC-kallet — RPC-en er
+  // SECURITY DEFINER og sjekker `er_generalsekretaer()` internt, som leser
+  // `auth.uid()`. Med service_role-klienten er auth.uid() null, og RPC-en
+  // ville alltid kaste 'forbudt'. Mottaker-oppslagene under bruker fortsatt
+  // admin-klienten fordi de leser på tvers av brukere.
+  const { supabase: brukerKlient } = await ensureLoeserTiebreak()
   const admin = createAdminClient()
 
   const { data: poll, error: pollErr } = await admin
@@ -242,7 +247,7 @@ export async function lukkKaaringspollNaa(pollId: string) {
     .filter(p => adminRoller.includes(p.rolle as (typeof adminRoller)[number]))
     .map(p => p.id)
 
-  const { data: rpcRes, error: rpcErr } = await admin.rpc(
+  const { data: rpcRes, error: rpcErr } = await brukerKlient.rpc(
     'lukk_kaaringspoll_naa',
     { p_poll_id: pollId },
   )

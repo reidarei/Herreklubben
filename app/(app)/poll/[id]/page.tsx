@@ -74,14 +74,15 @@ export default async function PollDetalj({
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
-    // Aggregat via RPC — gir totalen uavhengig av RLS-skjul. For ikke-
-    // kåringspoller er resultatet tomt, og vi bruker poll_stemme-radene
-    // direkte slik som før. Se mig. 079.
+    // Aggregat via RPC — gir totalen uavhengig av RLS-skjul. RPCen
+    // returnerer tellinger for alle poll-typer (filtrerer kun på poll_id),
+    // men vi bruker bare resultatet for kåringspoller; for vanlige poller
+    // er poll_stemme-radene fullt synlige og vi teller dem direkte som før.
+    // Se mig. 079.
     //
     // Bevisst ubetinget: vi kjenner ikke poll.kaaring_mal_id før første
     // spørring er ferdig, og å sekvensere ville koste mer enn én ekstra
-    // billig RPC i parallell. RPCen returnerer tomt-set raskt for
-    // ikke-kåringspoller.
+    // billig RPC i parallell.
     hentPollStemmerAggregat(supabase, id),
   ])
 

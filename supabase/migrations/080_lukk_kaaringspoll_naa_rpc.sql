@@ -9,6 +9,12 @@
 -- Tilgang: kun generalsekretær. Vi sjekker dette i SQL via en hjelper
 -- som speiler Policy: Roller fra app-laget. Samme som er_admin() — RLS
 -- må kjenne rollene fordi SECURITY DEFINER omgår normal RLS.
+--
+-- Vi setter også svarfrist = least(svarfrist, now()) når vi lukker.
+-- Insert-policyen for poll_stemme (mig. 049) sjekker `svarfrist > now()`,
+-- ikke avsluttet_paa, så uten denne oppdateringen kunne medlemmer fortsette
+-- å stemme etter manuell lukking — og potensielt endre vinneren etter at
+-- den allerede er beregnet og varsler er sendt.
 
 create or replace function er_generalsekretaer()
 returns boolean
@@ -83,7 +89,8 @@ begin
 
   if v_topp_antall is null or v_topp_antall = 0 then
     update poll
-       set avsluttet_paa = now()
+       set avsluttet_paa = now(),
+           svarfrist     = least(svarfrist, now())
      where id = p_poll_id;
     return query select null::uuid, null::uuid, true, 'ingen_stemmer'::text;
     return;
@@ -92,6 +99,7 @@ begin
   if v_topp_count > 1 then
     update poll
        set avsluttet_paa   = now(),
+           svarfrist       = least(svarfrist, now()),
            tiebreak_status = 'venter_paa_tiebreak'
      where id = p_poll_id;
     return query select null::uuid, null::uuid, true, 'venter_paa_tiebreak'::text;
@@ -127,6 +135,7 @@ begin
 
   update poll
      set avsluttet_paa   = now(),
+         svarfrist       = least(svarfrist, now()),
          tiebreak_status = 'avgjort'
    where id = p_poll_id;
 
