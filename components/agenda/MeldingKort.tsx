@@ -223,6 +223,7 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'melding', id: melding.id }}
+            totaltAntall={melding.antallKommentarer}
           />
         )}
       </Card>

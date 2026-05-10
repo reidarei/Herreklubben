@@ -29,6 +29,8 @@ type Props = {
   /** Plasser kortet i «tidligere»-stil (dempet opacity). */
   tidligere?: boolean
   kommentarer?: KommentarKortData[]
+  /** Totalt antall kommentarer (overskrift kan ellers vise maks 3). */
+  totaltKommentarer?: number
 }
 
 function fristLabel(avsluttet: boolean, iso: string): string {
@@ -40,7 +42,7 @@ function fristLabel(avsluttet: boolean, iso: string): string {
   return `frist ${dag}. ${mnd}${aar ? ` ${aar}` : ''} ${tid}`
 }
 
-export default function PollKort({ poll, tidligere = false, kommentarer = [] }: Props) {
+export default function PollKort({ poll, tidligere = false, kommentarer = [], totaltKommentarer }: Props) {
   const erInline = !poll.avsluttet && !tidligere && poll.valg.length <= MAKS_INLINE_VALG
 
   // Felles topp-innhold (label + spørsmål). Både inline og kompakt bruker
@@ -143,6 +145,7 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'poll', id: poll.id }}
+            totaltAntall={totaltKommentarer}
           />
         </Card>
       </Link>
@@ -223,6 +226,7 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [] }: 
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'poll', id: poll.id }}
+            totaltAntall={totaltKommentarer}
           />
         )}
       </Card>

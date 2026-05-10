@@ -47,11 +47,15 @@ export default function KommentarerPaaKort({
   kommentarer,
   scope,
   startKollapset = false,
+  totaltAntall,
 }: {
   kommentarer: KommentarKortData[]
   scope: KommentarScope
   startKollapset?: boolean
+  /** Totalt antall kommentarer (for korrekt overskrift når listen er begrenset til 3). */
+  totaltAntall?: number
 }) {
+  const visTall = totaltAntall ?? kommentarer.length
   const [apen, setApen] = useState(!startKollapset)
   const [tekst, setTekst] = useState('')
   const [sender, startTransition] = useTransition()
@@ -145,7 +149,7 @@ export default function KommentarerPaaKort({
           >
             <path d="M9 6l6 6-6 6" />
           </svg>
-          {kommentarer.length} {kommentarer.length === 1 ? 'kommentar' : 'kommentarer'}
+          {visTall} {visTall === 1 ? 'kommentar' : 'kommentarer'}
         </span>
       )}
 

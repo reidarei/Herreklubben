@@ -60,6 +60,9 @@ export default async function Forside() {
     { data: meldingReaksjoner },
     { data: meldingKommentarer },
     { data: albumMedArrangement },
+    { data: arrKommTotalt },
+    { data: pollKommTotalt },
+    { data: meldingKommTotalt },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -147,6 +150,20 @@ export default async function Forside() {
         'arrangement_id, cover:album_bilde!album_cover_fk (bilde_url), antall:album_bilde!album_bilde_album_id_fkey (count)',
       )
       .not('arrangement_id', 'is', null),
+    // Totalt antall kommentarer per arrangement/poll/melding — ren id-spørring
+    // uten join eller limit. Brukes til overskriften «X kommentarer» på agenda-
+    // kort så tallet ikke begrenses til de 3 siste vi henter for visning.
+    supabase
+      .from('arrangement_chat')
+      .select('arrangement_id')
+      .gte('opprettet', treMndSiden.toISOString()),
+    supabase
+      .from('poll_chat')
+      .select('poll_id')
+      .gte('opprettet', treMndSiden.toISOString()),
+    supabase
+      .from('melding_chat')
+      .select('melding_id'),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -245,13 +262,20 @@ export default async function Forside() {
     r => r.melding_id,
   )
 
-  // Antall kommentarer er ikke nødvendigvis det samme som top-3 vi har
-  // hentet — men 60 rader fordelt på sist_aktivitet dekker normalt antallet
-  // på agenda. For nøyaktige tall ville vi trengt en separat count-query;
-  // her aksepterer vi at antall = `min(faktisk antall, 60 / antall_meldinger)`.
+  // Totalt antall kommentarer per arrangement/poll/melding. Egne, ubegrensede
+  // id-only-spørringer (se Promise.all over) som lar overskriften «X kommentarer»
+  // vise korrekt tall selv om vi kun henter 3 kommentarer per kort til visning.
+  const totaltPerArr = new Map<string, number>()
+  for (const r of (arrKommTotalt ?? []) as { arrangement_id: string }[]) {
+    totaltPerArr.set(r.arrangement_id, (totaltPerArr.get(r.arrangement_id) ?? 0) + 1)
+  }
+  const totaltPerPoll = new Map<string, number>()
+  for (const r of (pollKommTotalt ?? []) as { poll_id: string }[]) {
+    totaltPerPoll.set(r.poll_id, (totaltPerPoll.get(r.poll_id) ?? 0) + 1)
+  }
   const antallKommPerMelding = new Map<string, number>()
-  for (const k of (meldingKommentarer ?? []) as unknown as RawMeldKomm[]) {
-    antallKommPerMelding.set(k.melding_id, (antallKommPerMelding.get(k.melding_id) ?? 0) + 1)
+  for (const r of (meldingKommTotalt ?? []) as { melding_id: string }[]) {
+    antallKommPerMelding.set(r.melding_id, (antallKommPerMelding.get(r.melding_id) ?? 0) + 1)
   }
 
   // Aggreger reaksjoner per melding+emoji
@@ -416,9 +440,9 @@ export default async function Forside() {
               if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
               if (i.kind === 'poll')
-                return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
+                return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} />
               if (i.kind === 'arrangement')
-                return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
+                return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} />
               // Meldinger plasseres kun i toppseksjonen (eller Tidligere) — ikke her
               return null
             })}
@@ -432,12 +456,12 @@ export default async function Forside() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {kommende.map(i => {
             if (i.kind === 'arrangement')
-              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} />
+              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} />
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
             if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
             if (i.kind === 'poll')
-              return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} />
+              return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} />
             if (i.kind === 'highlight') return <HighlightKort key={i.data.id} arr={i.data} />
             // Meldinger plasseres kun i toppseksjonen eller Tidligere
             return null
