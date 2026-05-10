@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
@@ -57,30 +58,61 @@ export default async function Kaaringer() {
       <div style={{ marginBottom: 28, marginTop: 12 }}>
         <div
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            fontWeight: 600,
-            color: 'var(--text-tertiary)',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            marginBottom: 6,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 12,
           }}
         >
-          Kåringer
+          <div>
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 600,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                marginBottom: 6,
+              }}
+            >
+              Kåringer
+            </div>
+            <h1
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 38,
+                fontWeight: 500,
+                color: 'var(--text-primary)',
+                letterSpacing: '-0.5px',
+                margin: 0,
+                lineHeight: 1,
+              }}
+            >
+              Hall of Fame
+            </h1>
+          </div>
+          {erAdmin && (
+            <Link
+              href="/kaaringspoll/ny"
+              style={{
+                display: 'inline-block',
+                padding: '8px 16px',
+                background: 'var(--accent-soft)',
+                border: '0.5px solid var(--border-strong)',
+                borderRadius: 999,
+                color: 'var(--accent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                fontWeight: 600,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Ny kåring
+            </Link>
+          )}
         </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 38,
-            fontWeight: 500,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.5px',
-            margin: 0,
-            lineHeight: 1,
-          }}
-        >
-          Hall of Fame
-        </h1>
       </div>
 
       {!harMaler ? (

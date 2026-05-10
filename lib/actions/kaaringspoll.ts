@@ -8,7 +8,8 @@ import {
   sendKaaringspollOpprettetVarsel,
   sendKaaringspollVinnerVarsel,
 } from '@/lib/varsler'
-import { kanAdministrere } from '@/lib/roller'
+import { behandleKaaringspollAvsluttResultat } from '@/lib/varsler-kaaringspoll'
+import { kanAdministrere, rollerMed } from '@/lib/roller'
 
 type OpprettInput = {
   kaaringMalId: string
@@ -201,6 +202,77 @@ export async function velgTiebreakVinner(pollId: string, valgId: string) {
   revalidatePath(`/poll/${pollId}`)
   revalidatePath('/kaaringer')
   redirect(`/poll/${pollId}`)
+}
+
+/**
+ * Generalsekretær lukker en kåringspoll umiddelbart — uten å vente på at
+ * svarfristen passerer og cron tar den. Speiler cron-flyten i
+ * `behandleKaaringspoller`: kaller RPC, sender riktig varsel basert på
+ * status, og revaliderer relevante stier. Tilgang gates av
+ * `ensureLoeserTiebreak()` + RPC-en sjekker også `er_generalsekretaer()`
+ * internt (belte og seler — RLS-bypass via SECURITY DEFINER krever det).
+ */
+export async function lukkKaaringspollNaa(pollId: string) {
+  // Vi trenger brukerens supabase-klient for selve RPC-kallet — RPC-en er
+  // SECURITY DEFINER og sjekker `er_generalsekretaer()` internt, som leser
+  // `auth.uid()`. Med service_role-klienten er auth.uid() null, og RPC-en
+  // ville alltid kaste 'forbudt'. Mottaker-oppslagene under bruker fortsatt
+  // admin-klienten fordi de leser på tvers av brukere.
+  const { supabase: brukerKlient } = await ensureLoeserTiebreak()
+  const admin = createAdminClient()
+
+  const { data: poll, error: pollErr } = await admin
+    .from('poll')
+    .select('id, spoersmaal, kaaring_mal_id')
+    .eq('id', pollId)
+    .single()
+  if (pollErr || !poll) throw new Error('Pollen finnes ikke')
+  if (!poll.kaaring_mal_id) throw new Error('Ikke en kåringspoll')
+
+  // Mottakerlister identisk med cron-flyten — tiebreak går kun til de
+  // som faktisk skal løse den (generalsekretær), ingen-stemmer-info går
+  // til alle med admin-rettigheter.
+  const tiebreakRoller = rollerMed('loeserTiebreak')
+  const adminRoller = rollerMed('kanAdministrere')
+  const trengteRoller = Array.from(new Set([...tiebreakRoller, ...adminRoller]))
+  const { data: relevanteProfiler } = await admin
+    .from('profiles')
+    .select('id, rolle')
+    .in('rolle', trengteRoller)
+    .eq('aktiv', true)
+  const tiebreakIder = (relevanteProfiler ?? [])
+    .filter(p => tiebreakRoller.includes(p.rolle as (typeof tiebreakRoller)[number]))
+    .map(p => p.id)
+  const adminIder = (relevanteProfiler ?? [])
+    .filter(p => adminRoller.includes(p.rolle as (typeof adminRoller)[number]))
+    .map(p => p.id)
+
+  const { data: rpcRes, error: rpcErr } = await brukerKlient.rpc(
+    'lukk_kaaringspoll_naa',
+    { p_poll_id: pollId },
+  )
+  if (rpcErr) throw new Error(rpcErr.message)
+  const rad = Array.isArray(rpcRes) ? rpcRes[0] : rpcRes
+  if (!rad) throw new Error('RPC returnerte ingen rad')
+  if (!rad.var_ny) {
+    // Allerede lukket — idempotent, men gi UI noe å vise via revalidate.
+    revalidatePath(`/poll/${pollId}`)
+    revalidatePath('/kaaringer')
+    revalidatePath('/')
+    return
+  }
+
+  await behandleKaaringspollAvsluttResultat({
+    pollId,
+    spoersmaal: poll.spoersmaal,
+    status: rad.status as string,
+    tiebreakIder,
+    adminIder,
+  }).catch(console.error)
+
+  revalidatePath(`/poll/${pollId}`)
+  revalidatePath('/kaaringer')
+  revalidatePath('/')
 }
 
 // Eksportert kun for typesjekk i kall-stedet — voider unused-varselet.
