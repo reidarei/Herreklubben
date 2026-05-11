@@ -97,20 +97,17 @@ body {
   animation: page-fadein 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
-/* Dock-skjuling håndteres i BottomNav.tsx via inline `display: none`.
-   I tillegg toggler BottomNav klassen `tastatur-oppe` på <html> for å
-   la <main> fjerne sin pb-24 (bunnpadding reservert til dock). Uten det
-   blir det dødt mellomrom mellom chat-input og tastaturet. Begge styres
-   fra samme state — ingen risiko for divergens. */
-html.tastatur-oppe main {
+/* Dock-skjuling: hooken `useSkjulBottomNavVedFokus` i lib/hooks/ setter
+   attributtet `data-chat-input-fokusert` på <html> mens en chat-input har
+   fokus. Selve skjulingen og padding-nullingen skjer her. BottomNav er
+   passiv. Se CLAUDE.md → Policy: Bottom-nav-skjul. */
+html[data-chat-input-fokusert] nav[aria-label="Hovednavigasjon"] {
+  display: none;
+}
+html[data-chat-input-fokusert] main {
   padding-bottom: 0 !important;
 }
-
-/* Sider bruker inline-style `padding: 0 20px 120px` for å gi plass til
-   docken under innholdet. Når docken er skjult (tastatur oppe) blir det
-   dødt mellomrom mellom siste innhold og tastaturet. Vi nuller bunnen
-   via attribut-selektor — !important slår inline-padding-shorthand. */
-html.tastatur-oppe [style*="20px 120px"] {
+html[data-chat-input-fokusert] [style*="20px 120px"] {
   padding-bottom: 0 !important;
 }
 

@@ -41,21 +41,6 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const pathname = usePathname()
   const initial = initialAv(brukerNavn ?? undefined)
 
-  // Skjul dokken når tastaturet er åpent — ellers flyter den over
-  // chat-input og skjemaer. BottomNav er den ENESTE sannhets-kilden for
-  // dock-synlighet (issue #99): tidligere fantes en parallell mekanisme
-  // i Chat.tsx + globals.css som kunne komme ut av synk og etterlate
-  // docken skjult etter iOS swipe-back.
-  //
-  // Fem cleanup-lag for å overleve iOS-edge-cases:
-  //   1. focusin/focusout på input/textarea — primær trigger
-  //   2. visualViewport.resize — toveis sjekk basert på keyboard-høyde
-  //   3. pagehide — fyrer ved iOS swipe-back før page unmount
-  //   4. visibilitychange → hidden — når app går i bakgrunnen
-  //   5. Reset ved pathname-endring + 300ms polling KUN når tastaturApent
-  //      er true (slik at vi ikke vekker prosessoren unødvendig)
-  const [tastaturApent, setTastaturApent] = useState(false)
-
   // Portal-mount-flagg. Dokken rendres via createPortal mot document.body
   // for å garantere at INGEN stamfar i React-treet kan etablere ny
   // "containing block" for position:fixed (transform/filter/backdrop-
@@ -68,106 +53,18 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setMontert(true)
   }, [])
 
-  // Reset ved navigasjon — fanger tilfeller der focusout aldri fyrer
-  useEffect(() => {
-    setTastaturApent(false)
-  }, [pathname])
-
-  // Toggle klasse på <html> så CSS kan fjerne pb-24 fra <main> når dock
-  // er skjult. Uten dette blir det 96px dødt mellomrom mellom chat-input
-  // og tastaturet. Single source of truth — driven utelukkende fra denne
-  // statet, ingen risiko for divergens med andre mekanismer.
-  useEffect(() => {
-    const html = document.documentElement
-    if (tastaturApent) html.classList.add('tastatur-oppe')
-    else html.classList.remove('tastatur-oppe')
-    return () => html.classList.remove('tastatur-oppe')
-  }, [tastaturApent])
-
-  // Hovedeffekt: alle event-baserte signaler. Kjører hele tiden.
-  useEffect(() => {
-    function erTekstInput(el: EventTarget | null): boolean {
-      if (!el || !(el instanceof HTMLElement)) return false
-      const tag = el.tagName
-      return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
-    }
-    function onFocusIn(e: FocusEvent) {
-      if (erTekstInput(e.target)) setTastaturApent(true)
-    }
-    function onFocusOut(e: FocusEvent) {
-      if (erTekstInput(e.target)) setTastaturApent(false)
-    }
-    document.addEventListener('focusin', onFocusIn)
-    document.addEventListener('focusout', onFocusOut)
-
-    const vv = window.visualViewport
-    function onVv() {
-      if (!vv) return
-      // Enveis: kun setter til true når tastatur er detektert oppe.
-      // False-tilstanden styres av focusout, pagehide, visibilitychange,
-      // pathname-change og polling-fallback. Toveis VV var problematisk
-      // fordi iOS Safari fyrer VV-resize-events under scroll (URL-bar-
-      // kollaps, momentum, overscroll-bounce) — verdien kan kortvarig
-      // krysse 150-terskelen og flippe state under scroll i chat (#104).
-      if (window.innerHeight - vv.height > 150) setTastaturApent(true)
-    }
-    vv?.addEventListener('resize', onVv)
-
-    function reset() {
-      setTastaturApent(false)
-    }
-    function onVisibility() {
-      if (document.visibilityState === 'hidden') reset()
-    }
-    window.addEventListener('pagehide', reset)
-    document.addEventListener('visibilitychange', onVisibility)
-
-    return () => {
-      document.removeEventListener('focusin', onFocusIn)
-      document.removeEventListener('focusout', onFocusOut)
-      vv?.removeEventListener('resize', onVv)
-      window.removeEventListener('pagehide', reset)
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
-  }, [])
-
-  // Polling-fallback: KUN aktiv når tastaturApent er true. Sjekker fokus
-  // hver 300ms — hvis ingen tekst-input er fokusert, reset state.
-  // Tidligere sjekket vi også VV her, men på iOS PWA/standalone matcher
-  // `window.innerHeight` ofte `visualViewport.height` selv med tastatur
-  // oppe (interactive-widget=resizes-content). Det førte til at polling
-  // feilaktig resettet state og docken dukket opp i bunnen av siden (#104).
-  // Trade-off: hvis bruker tapper iOS «Done» beholder input fokus →
-  // dock forblir skjult til input mister fokus. Akseptabelt.
-  useEffect(() => {
-    if (!tastaturApent) return
-    const id = setInterval(() => {
-      const aktiv = document.activeElement
-      const erInput =
-        !!aktiv &&
-        aktiv instanceof HTMLElement &&
-        (aktiv.tagName === 'INPUT' ||
-          aktiv.tagName === 'TEXTAREA' ||
-          aktiv.isContentEditable)
-      if (!erInput) setTastaturApent(false)
-    }, 300)
-    return () => clearInterval(id)
-  }, [tastaturApent])
-
-  // display: 'none' når tastaturet er oppe — IKKE bare opacity:0.
-  // Grunn: iOS Safari har en quirk der position:fixed-elementer kan ende
-  // opp ankret til dokument-bunn (ikke viewport-bunn) når tastaturet er
-  // oppe. Da blir docken synlig nederst i sideinnholdet (etter "Tidligere"
-  // i agendaen), spesielt på chat-siden der man alltid scroller til bunns.
-  // display:none fjerner elementet fra layout helt — det kan ikke ende opp
-  // i feil posisjon hvis det ikke finnes (#104).
+  // Dock-skjuling ved chat-input-fokus styres av attributtet
+  // `data-chat-input-fokusert` på <html>, satt av hooken
+  // `useSkjulBottomNavVedFokus` i Chat-komponenter. CSS i globals.css
+  // gjør selve skjulingen. BottomNav er passiv her — leser ingenting selv.
+  // Se CLAUDE.md → Policy: Bottom-nav-skjul.
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
     left: 0,
     right: 0,
     zIndex: 30,
-    display: tastaturApent ? 'none' : 'flex',
+    display: 'flex',
     borderRadius: 999,
     padding: 6,
     background: `

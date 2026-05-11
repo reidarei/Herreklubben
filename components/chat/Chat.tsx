@@ -18,6 +18,7 @@ import BildeLightbox from '@/components/ui/BildeLightbox'
 import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
+import { useSkjulBottomNavVedFokus } from '@/lib/hooks/useSkjulBottomNavVedFokus'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -88,6 +89,8 @@ export default function Chat({
   visSeksjonsLabel = true,
   autoScrollTilBunn = false,
 }: Props) {
+  useSkjulBottomNavVedFokus()
+
   // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
   const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
@@ -286,10 +289,7 @@ export default function Chat({
     if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
-  // Dock-skjuling ved tastatur-opp håndteres nå sentralt i BottomNav.tsx
-  // (issue #99). Tidligere hadde vi en parallell mekanisme her som satte
-  // klassen `chat-input-fokus` på <html>; det er fjernet for å unngå
-  // dual-system-konflikten som etterlot dock skjult etter iOS swipe-back.
+  // Dock-skjuling håndteres av useSkjulBottomNavVedFokus().
 
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
@@ -829,6 +829,7 @@ export default function Chat({
                     >
                       <textarea
                         autoFocus
+                        data-chat-input="true"
                         value={editTekst}
                         onChange={e => setEditTekst(e.target.value)}
                         onKeyDown={e => {
