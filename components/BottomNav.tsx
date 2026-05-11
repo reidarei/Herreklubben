@@ -64,6 +64,10 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   // tastaturet er oppe (ikke ved URL-bar-collapse el. l.) takket være
   // `interactive-widget=overlays-content` i layout.tsx — så denne lytteren
   // er pålitelig nå, i motsetning til tidligere VV-baserte forsøk.
+  // Lytter på BÅDE resize og scroll fordi iOS Safari kan slutte å fyre
+  // resize-event etter flere fokus-sykluser, mens scroll fortsatt fyres
+  // ved tastatur-overganger. Pluss focusin/focusout som siste sikkerhetsnett
+  // — sjekker VV-state ~100ms etter eventet (etter at iOS har oppdatert vv.height).
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
@@ -72,10 +76,19 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
       if (vv.height < window.innerHeight - 100) html.setAttribute('data-tastatur-oppe', '')
       else html.removeAttribute('data-tastatur-oppe')
     }
+    const sjekkSenere = () => setTimeout(sjekk, 100)
+
     vv.addEventListener('resize', sjekk)
+    vv.addEventListener('scroll', sjekk)
+    document.addEventListener('focusin', sjekkSenere)
+    document.addEventListener('focusout', sjekkSenere)
     sjekk()
+
     return () => {
       vv.removeEventListener('resize', sjekk)
+      vv.removeEventListener('scroll', sjekk)
+      document.removeEventListener('focusin', sjekkSenere)
+      document.removeEventListener('focusout', sjekkSenere)
       html.removeAttribute('data-tastatur-oppe')
     }
   }, [])
