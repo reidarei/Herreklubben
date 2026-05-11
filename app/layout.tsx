@@ -29,6 +29,11 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   maximumScale: 1,
   userScalable: false,
+  // iOS 16.4+: tastaturet overlapper viewport istedenfor å krympe det.
+  // Effekt: position:fixed-elementer (dock) blir naturlig dekket av tastatur
+  // når det er oppe, kommer tilbake når det går ned — uten JS-deteksjon.
+  // Forsøk på å løse dock-bug-klassen (#99, #104, #147, #151, #153).
+  interactiveWidget: 'overlays-content',
 }
 
 export const metadata: Metadata = {
