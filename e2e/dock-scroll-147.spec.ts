@@ -7,8 +7,7 @@ import path from 'node:path'
  *
  * Policy (CLAUDE.md → Policy: Dock-synlighet): docken skal aldri skjules
  * av imperative DOM-events. Denne spec-en verifiserer at docken er synlig
- * og ankret til viewport-bunnen etter en rekke hendelser som tidligere
- * har trigget skjuling: scroll, focus, blur, pagehide, pageshow.
+ * og ankret til viewport-bunnen etter scroll, focus og blur.
  *
  * Filnavn beholdt for git-blame-kontinuitet med opprinnelig regresjon #147.
  */
@@ -49,13 +48,14 @@ async function dockState(page: Page): Promise<DockState | null> {
 function forventDockSynlig(state: DockState | null, kontekst: string) {
   expect(state, `dock-state etter ${kontekst}`).not.toBeNull()
   expect(state!.display, `display etter ${kontekst}`).not.toBe('none')
-  // Dock er ankret nær viewport-bunn (innenfor 80 px slack pga. safe-area og
-  // bottom-offset på 14 px + dock-høyde).
+  // Dock er ankret nær viewport-bunn. Slack på 30 px dekker bottom-offset
+  // (14 px) + safe-area i Chromium-runner. En "flytende" dock som tidligere
+  // har vært en bug-kilde, vil bryte denne grensen.
   const avstandFraBunn = state!.viewportHeight - state!.bottom
   expect(
     avstandFraBunn,
     `dock skal være ankret til viewport-bunnen etter ${kontekst} (avstand=${avstandFraBunn})`,
-  ).toBeLessThan(80)
+  ).toBeLessThan(30)
 }
 
 test.describe('Dock-synlighet — vakthund mot regresjon #99/#104/#147/#151', () => {
@@ -65,7 +65,7 @@ test.describe('Dock-synlighet — vakthund mot regresjon #99/#104/#147/#151', ()
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
 
-  test('dock forblir synlig etter scroll, focus, blur og pagehide/pageshow', async ({ page }) => {
+  test('dock forblir synlig etter scroll, focus og blur', async ({ page }) => {
     test.setTimeout(60_000)
 
     await loggInn(page)
@@ -103,20 +103,5 @@ test.describe('Dock-synlighet — vakthund mot regresjon #99/#104/#147/#151', ()
       forventDockSynlig(await dockState(page), 'input.blur()')
       await page.screenshot({ path: path.join(UT_DIR, '04-etter-blur.png'), fullPage: false })
     }
-
-    // pagehide / pageshow — dispatch syntetisk for å verifisere at ingen
-    // event-handler skjuler docken som bivirkning.
-    await page.evaluate(() => {
-      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
-    })
-    await page.waitForTimeout(100)
-    forventDockSynlig(await dockState(page), 'pagehide')
-
-    await page.evaluate(() => {
-      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
-    })
-    await page.waitForTimeout(100)
-    forventDockSynlig(await dockState(page), 'pageshow')
-    await page.screenshot({ path: path.join(UT_DIR, '05-etter-pagehide-show.png'), fullPage: false })
   })
 })

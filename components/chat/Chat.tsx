@@ -717,13 +717,16 @@ export default function Chat({
 
       {/* Meldingsliste — padding-bottom belt-and-suspenders sammen med
           sticky-input under, sikrer at siste melding ikke skjules av
-          dock + input-pill. */}
+          dock + input-pill. Konstanten 200px er valgt for å romme worst
+          case: input-pill (~48px) + bilde-preview (120px + margin) +
+          mention-chips. Statisk verdi bevisst — alternativet (dynamisk
+          ResizeObserver) ble ansett som overkill for så liten gevinst. */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           marginBottom: 14,
-          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 60px)',
+          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 200px)',
         }}
       >
         {meldinger.length === 0 && (
@@ -1188,6 +1191,20 @@ export default function Chat({
         <div ref={bunnenRef} />
       </div>
 
+      {/* Sticky-container med mention-chips, bilde-preview, evt. feilmelding
+          og input-pill. Mention-chips ligger inni sticky for å unngå at de
+          skjules bak input-pill eller dock når flere chips wrappes til
+          flere linjer.
+          Dock-synlighet er deklarativ (se CLAUDE.md → Policy: Dock-synlighet) —
+          input forblir synlig over docken via sticky-positionering, ikke ved å
+          skjule docken på fokus. */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))',
+          zIndex: 20,
+        }}
+      >
       {/* @mention-forslag */}
       {mentionForslag.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
@@ -1231,18 +1248,6 @@ export default function Chat({
           })}
         </div>
       )}
-
-      {/* Sticky-container med bilde-preview, evt. feilmelding og input-pill.
-          Dock-synlighet er deklarativ (se CLAUDE.md → Policy: Dock-synlighet) —
-          input forblir synlig over docken via sticky-positionering, ikke ved å
-          skjule docken på fokus. */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))',
-          zIndex: 20,
-        }}
-      >
       {/* Bilde-forhåndsvisning over input når et bilde er valgt */}
       {bildePreview && (
         <div

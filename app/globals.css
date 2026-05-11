@@ -55,10 +55,12 @@
   --blur-nav: blur(40px) saturate(200%) brightness(1.1);
   --blur-glass: blur(16px);
 
-  /* Dock-høyde — referansevariabel for sticky-elementer som vil ligge
-     rett over bottom-nav (f.eks. chat-input). Faktisk høyde inkluderer
-     14px bottom-margin + 6px padding + 32px ikoner + 6px padding ≈ 64px. */
-  --bottom-nav-h: 64px;
+  /* Sticky-offset over bottom-nav — referansevariabel for sticky-elementer
+     (f.eks. chat-input) som skal ligge over docken med litt luft. Dette er
+     IKKE ren dock-høyde: docken er ankret 14px over viewport-bunn, har 6px
+     padding + 32px ikoner + 6px padding (~58px innhold). Vi runder opp til
+     72px slik at sticky-elementer får ~8px klaring til docken under. */
+  --bottom-nav-h: 72px;
 
   /* Bakoverkompatible aliaser — fjernes etter hvert som komponenter skrives om */
   --bg-tertiary: var(--bg-elevated-2);
