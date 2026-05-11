@@ -50,8 +50,14 @@ function forventDockSynlig(state: DockState | null, kontekst: string) {
   expect(state!.display, `display etter ${kontekst}`).not.toBe('none')
   // Dock er ankret nær viewport-bunn. Slack på 30 px dekker bottom-offset
   // (14 px) + safe-area i Chromium-runner. En "flytende" dock som tidligere
-  // har vært en bug-kilde, vil bryte denne grensen.
+  // har vært en bug-kilde, vil bryte denne grensen — i begge retninger:
+  //  - For langt opp (>30 px over bunn) = flytende dock
+  //  - Under viewport (bottom > viewportHeight) = dock skjult under skjerm
   const avstandFraBunn = state!.viewportHeight - state!.bottom
+  expect(
+    state!.bottom,
+    `dock skal ikke være under viewport etter ${kontekst} (bottom=${state!.bottom}, viewportH=${state!.viewportHeight})`,
+  ).toBeLessThanOrEqual(state!.viewportHeight)
   expect(
     avstandFraBunn,
     `dock skal være ankret til viewport-bunnen etter ${kontekst} (avstand=${avstandFraBunn})`,
@@ -84,24 +90,25 @@ test.describe('Dock-synlighet — vakthund mot regresjon #99/#104/#147/#151', ()
     forventDockSynlig(await dockState(page), 'scroll 800 px')
     await page.screenshot({ path: path.join(UT_DIR, '02-etter-scroll.png'), fullPage: false })
 
-    // Fokus på chat-input
+    // Fokus på chat-input. Hard assert — hvis selectoren brytes (placeholder
+    // endret, markup endret) skal vakthund-effekten ikke forsvinne i stillhet.
     const chatInput = page.locator('input[placeholder*="Skriv en melding"]').first()
-    if (await chatInput.count()) {
-      await chatInput.focus()
-      await page.waitForTimeout(200)
-      forventDockSynlig(await dockState(page), 'input.focus()')
-      await page.screenshot({ path: path.join(UT_DIR, '03-etter-focus.png'), fullPage: false })
+    await expect(chatInput, 'chat-input må finnes for å verifisere focus/blur-oppførsel').toBeVisible()
 
-      // Scroll mens input har fokus
-      await page.evaluate(() => window.scrollTo(0, 400))
-      await page.waitForTimeout(200)
-      forventDockSynlig(await dockState(page), 'scroll med input fokusert')
+    await chatInput.focus()
+    await page.waitForTimeout(200)
+    forventDockSynlig(await dockState(page), 'input.focus()')
+    await page.screenshot({ path: path.join(UT_DIR, '03-etter-focus.png'), fullPage: false })
 
-      // Blur
-      await chatInput.evaluate((el: HTMLInputElement) => el.blur())
-      await page.waitForTimeout(200)
-      forventDockSynlig(await dockState(page), 'input.blur()')
-      await page.screenshot({ path: path.join(UT_DIR, '04-etter-blur.png'), fullPage: false })
-    }
+    // Scroll mens input har fokus
+    await page.evaluate(() => window.scrollTo(0, 400))
+    await page.waitForTimeout(200)
+    forventDockSynlig(await dockState(page), 'scroll med input fokusert')
+
+    // Blur
+    await chatInput.evaluate((el: HTMLInputElement) => el.blur())
+    await page.waitForTimeout(200)
+    forventDockSynlig(await dockState(page), 'input.blur()')
+    await page.screenshot({ path: path.join(UT_DIR, '04-etter-blur.png'), fullPage: false })
   })
 })
