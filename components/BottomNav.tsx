@@ -53,8 +53,15 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   // "containing block" for position:fixed (transform/filter/backdrop-
   // filter/perspective/will-change/contain). Dette er defense-in-depth
   // mot regresjoner som #147 der dokken begynte å følge med scroll på iOS
-  // selv om koden i BottomNav var uendret. SSR-safe: portalen monteres
-  // først etter første client-render via useEffect.
+  // selv om koden i BottomNav var uendret.
+  //
+  // SSR-strategi: Ved første render (server + før mount) rendres docken
+  // inline der komponenten sitter i React-treet. Etter mount flyttes den
+  // til document.body via portal. Dette unngår "tomrom" på første paint —
+  // brukeren ser dock med en gang, og portal-flyttingen skjer usynlig
+  // straks etter hydrering. Eventuell containing-block-bug fra en stamfar
+  // vil kun gjelde i det korte vinduet før hydrering, hvor scroll uansett
+  // ikke er aktivt.
   const [montert, setMontert] = useState(false)
   useEffect(() => {
     setMontert(true)
@@ -91,9 +98,7 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     marginInline: 'auto',
   }
 
-  if (!montert) return null
-
-  return createPortal(
+  const innhold = (
     <nav className="fixed" style={containerStyle} aria-label="Hovednavigasjon">
       {/* Top glint overlay */}
       <span
@@ -173,9 +178,12 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
           </NavElementer>
         )
       })}
-    </nav>,
-    document.body,
+    </nav>
   )
+
+  // Server + første client-render: render inline. Etter mount: flytt til portal.
+  if (!montert) return innhold
+  return createPortal(innhold, document.body)
 }
 
 function NavElementer({ children, visSeparator }: { children: ReactNode; visSeparator: boolean }) {
