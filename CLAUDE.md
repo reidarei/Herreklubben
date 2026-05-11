@@ -241,4 +241,16 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 **Når du legger til nye steder som viser profilbilder:** Bruk `<Avatar name={...} src={bilde_url} rolle={rolle} />`. Gul glød for generalsekretær faller da inn av seg selv — sjekker for dette skal ikke duplikeres utenfor komponenten.
 
+## Policy: Bottom-nav-skjul
+
+Bottom-nav-docken skjules automatisk når et input-element med `data-chat-input="true"` har fokus.
+
+**Slik fungerer det:**
+- Hooken `useSkjulBottomNavVedFokus()` mountes ÉN gang globalt fra `BottomNav` (som er mountet i app-layouten). Den lytter på `document` etter focusin/focusout og setter `data-chat-input-fokusert` på `<html>` når et matchende element har fokus.
+- CSS i `globals.css` skjuler docken når attributtet er satt.
+
+**Når du legger til en ny chat-lignende input:** Sett `data-chat-input="true"` på input/textarea-elementet. Det er alt — ingen import, ingen hook-kall lokalt.
+
+Hvorfor global mount: gir én lytter for hele appen, eliminerer race-conditions ved samtidige Chat-instanser, og fjerner kontrakts-risikoen der nye kalls-steder glemmer å kalle hooken.
+
 Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.

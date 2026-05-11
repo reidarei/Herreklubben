@@ -88,6 +88,9 @@ export default function Chat({
   visSeksjonsLabel = true,
   autoScrollTilBunn = false,
 }: Props) {
+  // Dock-skjuling håndteres globalt av useSkjulBottomNavVedFokus i BottomNav.
+  // Alt vi trenger her er data-chat-input="true" på input-elementet.
+
   // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
   const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
@@ -286,10 +289,7 @@ export default function Chat({
     if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
-  // Dock-skjuling ved tastatur-opp håndteres nå sentralt i BottomNav.tsx
-  // (issue #99). Tidligere hadde vi en parallell mekanisme her som satte
-  // klassen `chat-input-fokus` på <html>; det er fjernet for å unngå
-  // dual-system-konflikten som etterlot dock skjult etter iOS swipe-back.
+  // Dock-skjuling håndteres av useSkjulBottomNavVedFokus().
 
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
@@ -829,6 +829,7 @@ export default function Chat({
                     >
                       <textarea
                         autoFocus
+                        data-chat-input="true"
                         value={editTekst}
                         onChange={e => setEditTekst(e.target.value)}
                         onKeyDown={e => {
