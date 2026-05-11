@@ -95,6 +95,12 @@ body {
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
 
+/* Skjul bottom-nav når tastatur er oppe (data-attributt settes av
+   visualViewport-lytter i BottomNav). Se Policy: Dock-synlighet i CLAUDE.md. */
+html[data-tastatur-oppe] nav[aria-label="Hovednavigasjon"] {
+  display: none;
+}
+
 /* Sidetransisjon */
 @keyframes page-fadein {
   from { opacity: 0; transform: translateY(10px); }
