@@ -715,18 +715,18 @@ export default function Chat({
         </div>
       )}
 
-      {/* Meldingsliste — padding-bottom belt-and-suspenders sammen med
-          sticky-input under, sikrer at siste melding ikke skjules av
-          dock + input-pill. Konstanten 200px er valgt for å romme worst
-          case: input-pill (~48px) + bilde-preview (120px + margin) +
-          mention-chips. Statisk verdi bevisst — alternativet (dynamisk
-          ResizeObserver) ble ansett som overkill for så liten gevinst. */}
+      {/* Meldingsliste — padding-bottom = dock + safe-area + plass til input-
+          pillen (~48px) + lite gap. Reduseert fra 200px (som romslig dekket
+          worst-case bilde-preview) — i normal-tilstand uten preview ble det
+          for stor avstand mellom siste melding og input. Hvis brukeren har
+          bilde-preview/mentions aktivt kan siste melding bli litt skjult
+          kortvarig — akseptabel kompromiss. */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           marginBottom: 14,
-          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 200px)',
+          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 60px)',
         }}
       >
         {meldinger.length === 0 && (
