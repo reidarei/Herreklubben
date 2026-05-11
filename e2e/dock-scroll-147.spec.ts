@@ -20,7 +20,12 @@ import path from 'node:path'
 
 const UT_DIR = path.join('.screenshots', 'dock-147')
 const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
-const TEST_PASSORD = process.env.TEST_PASSORD ?? 'test123'
+const TEST_PASSORD = process.env.TEST_PASSORD
+if (!TEST_PASSORD) {
+  throw new Error(
+    'e2e: TEST_PASSORD er ikke satt. Sett env-var før kjøring (ingen fallback).',
+  )
+}
 
 async function loggInn(page: Page) {
   await page.goto('/login')
