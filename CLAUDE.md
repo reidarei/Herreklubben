@@ -72,6 +72,12 @@ Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig sc
 - Datoer via `date-fns` med norsk locale (`nb`)
 - Oslo-østkant-tone / oslo-losen i UI-tekst (a-endelser, f.eks. «gutta»)
 
+## Arbeidsmåter
+
+### Når patch-strategien har gått tom
+
+Tre regresjoner i samme bug-klasse = arkitektonisk reversering, ikke fjerde patch. Skriv heller en CLAUDE.md-policy som lukker problemklassen enn enda en lapp. Gjelder generelt — UI-bugs, DB-bugs, varsel-bugs.
+
 ## Policy: Varsler
 
 All utgående kommunikasjon (push, epost) skal gå gjennom `sendVarsel()` i `lib/varsler.ts`. **Aldri** importer `sendPush` eller `sendEpost` direkte i andre filer — bruk `sendVarsel`.
@@ -241,16 +247,10 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 **Når du legger til nye steder som viser profilbilder:** Bruk `<Avatar name={...} src={bilde_url} rolle={rolle} />`. Gul glød for generalsekretær faller da inn av seg selv — sjekker for dette skal ikke duplikeres utenfor komponenten.
 
-## Policy: Bottom-nav-skjul
+## Policy: Dock-synlighet
 
-Bottom-nav-docken skjules automatisk når et input-element med `data-chat-input="true"` har fokus.
+Dock-synlighet er funksjon av kun deklarativ, idempotent state: rute, eksplisitt brukervalg, eller layout-media-query. **Aldri av imperative DOM-events** (focus, blur, scroll, resize, visibility, pagehide). Dock er en navigasjonsanker, ikke en kontekstuell flate — synlighet skal være forutsigbar for brukeren.
 
-**Slik fungerer det:**
-- Hooken `useSkjulBottomNavVedFokus()` mountes ÉN gang globalt fra `BottomNav` (som er mountet i app-layouten). Den lytter på `document` etter focusin/focusout og setter `data-chat-input-fokusert` på `<html>` når et matchende element har fokus.
-- CSS i `globals.css` skjuler docken når attributtet er satt.
-
-**Når du legger til en ny chat-lignende input:** Sett `data-chat-input="true"` på input/textarea-elementet. Det er alt — ingen import, ingen hook-kall lokalt.
-
-Hvorfor global mount: gir én lytter for hele appen, eliminerer race-conditions ved samtidige Chat-instanser, og fjerner kontrakts-risikoen der nye kalls-steder glemmer å kalle hooken.
+**Policy etablert etter fjerde regresjon i samme bug-klasse (#99, #104, #147, #151).** Hvis du tenker «kan vi ikke bare skjule docken når X?» — svaret er nei. Hvis docken kolliderer med noe på en gitt rute, løs det med layout (sticky-elementer, padding, dvh-units), ikke med event-lyttere.
 
 Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.

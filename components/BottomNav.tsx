@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
-import { useSkjulBottomNavVedFokus } from '@/lib/hooks/useSkjulBottomNavVedFokus'
 
 type Tab = {
   id: 'hjem' | 'klubbinfo' | 'chat' | 'profil'
@@ -42,12 +41,6 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
   const pathname = usePathname()
   const initial = initialAv(brukerNavn ?? undefined)
 
-  // Mount lytteren én gang globalt — BottomNav er mountet for hele app-layouten.
-  // Dette eliminerer race-conditions ved multi-mount og betyr at alle elementer
-  // med data-chat-input="true" automatisk skjuler docken ved fokus, uansett
-  // hvilken komponent de bor i. Se CLAUDE.md → Policy: Bottom-nav-skjul.
-  useSkjulBottomNavVedFokus()
-
   // Portal-mount-flagg. Dokken rendres via createPortal mot document.body
   // for å garantere at INGEN stamfar i React-treet kan etablere ny
   // "containing block" for position:fixed (transform/filter/backdrop-
@@ -67,9 +60,6 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setMontert(true)
   }, [])
 
-  // Dock-skjuling: hooken over setter `data-chat-input-fokusert` på <html>
-  // når et element med data-chat-input="true" har fokus. CSS i globals.css
-  // gjør selve skjulingen.
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',

@@ -3,24 +3,20 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 /**
- * Reproduserer dock-regresjon (#147): bottom-nav følger med scroll på
- * iOS Safari/PWA istedenfor å være ankret til viewport-bunnen.
+ * Vakthund mot dock-skjul-regresjoner (#99, #104, #147, #151).
  *
- * Strategi:
- *  1. Logg inn, naviger til agendaen
- *  2. Mål nav.getBoundingClientRect().bottom før scroll
- *  3. Scroll vinduet 800 px ned
- *  4. Mål bottom igjen
- *  5. Forventning: bottom-verdien er omtrent uendret (ankret til viewport)
+ * Policy (CLAUDE.md → Policy: Dock-synlighet): docken skal aldri skjules
+ * av imperative DOM-events. Denne spec-en verifiserer at docken er synlig
+ * og ankret til viewport-bunnen etter en rekke hendelser som tidligere
+ * har trigget skjuling: scroll, focus, blur, pagehide, pageshow.
  *
- * Logger samtidig ancestor-kjeden for å avdekke hvilken stamfar som
- * etablerer ny "containing block" for position:fixed (transform/filter/
- * backdrop-filter/perspective/will-change/contain).
+ * Filnavn beholdt for git-blame-kontinuitet med opprinnelig regresjon #147.
  */
 
 const UT_DIR = path.join('.screenshots', 'dock-147')
 const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
 const TEST_PASSORD = process.env.TEST_PASSORD ?? ''
+const NAV_SELECTOR = 'nav[aria-label="Hovednavigasjon"]'
 
 async function loggInn(page: Page) {
   await page.goto('/login')
@@ -30,99 +26,97 @@ async function loggInn(page: Page) {
   await page.waitForURL('**/', { timeout: 15_000 })
 }
 
-test.describe('Dock-scroll regresjon #147', () => {
-  // Hopp over hele suiten hvis TEST_PASSORD ikke er satt — i stedet for å
-  // kaste på toppnivå, som ville knust hele Playwright-kjøringen (også
-  // andre spec-er via --grep).
-  test.skip(!TEST_PASSORD, 'TEST_PASSORD ikke satt — hopper over dock-scroll-suiten.')
+type DockState = {
+  display: string
+  bottom: number
+  viewportHeight: number
+}
+
+async function dockState(page: Page): Promise<DockState | null> {
+  return page.evaluate((sel) => {
+    const nav = document.querySelector(sel) as HTMLElement | null
+    if (!nav) return null
+    const cs = window.getComputedStyle(nav)
+    const r = nav.getBoundingClientRect()
+    return {
+      display: cs.display,
+      bottom: r.bottom,
+      viewportHeight: window.innerHeight,
+    }
+  }, NAV_SELECTOR)
+}
+
+function forventDockSynlig(state: DockState | null, kontekst: string) {
+  expect(state, `dock-state etter ${kontekst}`).not.toBeNull()
+  expect(state!.display, `display etter ${kontekst}`).not.toBe('none')
+  // Dock er ankret nær viewport-bunn (innenfor 80 px slack pga. safe-area og
+  // bottom-offset på 14 px + dock-høyde).
+  const avstandFraBunn = state!.viewportHeight - state!.bottom
+  expect(
+    avstandFraBunn,
+    `dock skal være ankret til viewport-bunnen etter ${kontekst} (avstand=${avstandFraBunn})`,
+  ).toBeLessThan(80)
+}
+
+test.describe('Dock-synlighet — vakthund mot regresjon #99/#104/#147/#151', () => {
+  test.skip(!TEST_PASSORD, 'TEST_PASSORD ikke satt — hopper over dock-vakthund-suiten.')
 
   test.beforeAll(() => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
 
-  test('dock skal være ankret til viewport-bunn ved scroll', async ({ page }) => {
+  test('dock forblir synlig etter scroll, focus, blur og pagehide/pageshow', async ({ page }) => {
     test.setTimeout(60_000)
 
     await loggInn(page)
-    await page.goto('/')
+    await page.goto('/chat')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(500)
+    await page.waitForSelector(NAV_SELECTOR)
 
-    const navSelector = 'nav[aria-label="Hovednavigasjon"]'
-    await page.waitForSelector(navSelector)
+    // Etter sideinnlasting
+    forventDockSynlig(await dockState(page), 'sideinnlasting')
+    await page.screenshot({ path: path.join(UT_DIR, '01-init.png'), fullPage: false })
 
-    // Diagnose: Logg containing-block-relevante egenskaper i ancestor-kjeden.
-    const ancestors = await page.evaluate((sel) => {
-      const nav = document.querySelector(sel) as HTMLElement | null
-      if (!nav) return []
-      const out: Array<Record<string, string>> = []
-      let el: HTMLElement | null = nav.parentElement
-      while (el) {
-        const cs = window.getComputedStyle(el)
-        out.push({
-          tag: el.tagName.toLowerCase(),
-          id: el.id || '',
-          className: typeof el.className === 'string' ? el.className.slice(0, 80) : '',
-          transform: cs.transform,
-          filter: cs.filter,
-          backdropFilter: cs.backdropFilter || (cs as unknown as Record<string, string>).webkitBackdropFilter || '',
-          perspective: cs.perspective,
-          willChange: cs.willChange,
-          contain: cs.contain,
-          position: cs.position,
-          backgroundAttachment: cs.backgroundAttachment,
-          overflow: cs.overflow,
-        })
-        el = el.parentElement
-      }
-      return out
-    }, navSelector)
-
-    console.log('--- Ancestor-kjede for nav (#147 diagnose) ---')
-    for (const a of ancestors) {
-      const flagg = []
-      if (a.transform !== 'none') flagg.push(`transform=${a.transform}`)
-      if (a.filter !== 'none') flagg.push(`filter=${a.filter}`)
-      if (a.backdropFilter && a.backdropFilter !== 'none') flagg.push(`backdrop-filter=${a.backdropFilter}`)
-      if (a.perspective !== 'none') flagg.push(`perspective=${a.perspective}`)
-      if (a.willChange !== 'auto') flagg.push(`will-change=${a.willChange}`)
-      if (a.contain !== 'none') flagg.push(`contain=${a.contain}`)
-      if (a.backgroundAttachment === 'fixed') flagg.push(`bg-attachment=fixed`)
-      const tag = `${a.tag}${a.id ? '#' + a.id : ''}${a.className ? '.' + a.className.replace(/\s+/g, '.') : ''}`
-      console.log(`  ${tag} :: pos=${a.position} ${flagg.join(' ') || '(ingen)'}`)
-    }
-
-    const foer = await page.evaluate((sel) => {
-      const nav = document.querySelector(sel) as HTMLElement | null
-      if (!nav) return null
-      const r = nav.getBoundingClientRect()
-      return { bottom: r.bottom, top: r.top, scrollY: window.scrollY }
-    }, navSelector)
-
-    await page.screenshot({ path: path.join(UT_DIR, '01-foer-scroll.png'), fullPage: false })
-
-    // Scroll dokument-roten 800 px ned
+    // Scroll i dokumentet
     await page.evaluate(() => window.scrollTo(0, 800))
-    await page.waitForTimeout(300)
-
-    const etter = await page.evaluate((sel) => {
-      const nav = document.querySelector(sel) as HTMLElement | null
-      if (!nav) return null
-      const r = nav.getBoundingClientRect()
-      return { bottom: r.bottom, top: r.top, scrollY: window.scrollY }
-    }, navSelector)
-
+    await page.waitForTimeout(200)
+    forventDockSynlig(await dockState(page), 'scroll 800 px')
     await page.screenshot({ path: path.join(UT_DIR, '02-etter-scroll.png'), fullPage: false })
 
-    console.log('Foer scroll:', foer)
-    console.log('Etter scroll:', etter)
+    // Fokus på chat-input
+    const chatInput = page.locator('input[placeholder*="Skriv en melding"]').first()
+    if (await chatInput.count()) {
+      await chatInput.focus()
+      await page.waitForTimeout(200)
+      forventDockSynlig(await dockState(page), 'input.focus()')
+      await page.screenshot({ path: path.join(UT_DIR, '03-etter-focus.png'), fullPage: false })
 
-    expect(foer).not.toBeNull()
-    expect(etter).not.toBeNull()
-    // Hvis dock er ankret til viewport, skal bottom være tilnærmet identisk
-    // før og etter scroll (innenfor 2 px slack).
-    const diff = Math.abs((etter!.bottom) - (foer!.bottom))
-    console.log('Diff bottom (px):', diff, 'scrollY:', etter!.scrollY)
-    expect(diff).toBeLessThan(2)
+      // Scroll mens input har fokus
+      await page.evaluate(() => window.scrollTo(0, 400))
+      await page.waitForTimeout(200)
+      forventDockSynlig(await dockState(page), 'scroll med input fokusert')
+
+      // Blur
+      await chatInput.evaluate((el: HTMLInputElement) => el.blur())
+      await page.waitForTimeout(200)
+      forventDockSynlig(await dockState(page), 'input.blur()')
+      await page.screenshot({ path: path.join(UT_DIR, '04-etter-blur.png'), fullPage: false })
+    }
+
+    // pagehide / pageshow — dispatch syntetisk for å verifisere at ingen
+    // event-handler skjuler docken som bivirkning.
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))
+    })
+    await page.waitForTimeout(100)
+    forventDockSynlig(await dockState(page), 'pagehide')
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    })
+    await page.waitForTimeout(100)
+    forventDockSynlig(await dockState(page), 'pageshow')
+    await page.screenshot({ path: path.join(UT_DIR, '05-etter-pagehide-show.png'), fullPage: false })
   })
 })

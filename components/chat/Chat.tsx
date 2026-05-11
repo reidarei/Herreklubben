@@ -88,9 +88,6 @@ export default function Chat({
   visSeksjonsLabel = true,
   autoScrollTilBunn = false,
 }: Props) {
-  // Dock-skjuling håndteres globalt av useSkjulBottomNavVedFokus i BottomNav.
-  // Alt vi trenger her er data-chat-input="true" på input-elementet.
-
   // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
   const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
@@ -288,8 +285,6 @@ export default function Chat({
     // Bare scroll hvis nye meldinger dukker opp i bunnen (positive diff <= 3)
     if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
-
-  // Dock-skjuling håndteres av useSkjulBottomNavVedFokus().
 
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
@@ -720,8 +715,17 @@ export default function Chat({
         </div>
       )}
 
-      {/* Meldingsliste */}
-      <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 14 }}>
+      {/* Meldingsliste — padding-bottom belt-and-suspenders sammen med
+          sticky-input under, sikrer at siste melding ikke skjules av
+          dock + input-pill. */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          marginBottom: 14,
+          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 60px)',
+        }}
+      >
         {meldinger.length === 0 && (
           <div
             style={{
@@ -829,7 +833,6 @@ export default function Chat({
                     >
                       <textarea
                         autoFocus
-                        data-chat-input="true"
                         value={editTekst}
                         onChange={e => setEditTekst(e.target.value)}
                         onKeyDown={e => {
@@ -1229,6 +1232,17 @@ export default function Chat({
         </div>
       )}
 
+      {/* Sticky-container med bilde-preview, evt. feilmelding og input-pill.
+          Dock-synlighet er deklarativ (se CLAUDE.md → Policy: Dock-synlighet) —
+          input forblir synlig over docken via sticky-positionering, ikke ved å
+          skjule docken på fokus. */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))',
+          zIndex: 20,
+        }}
+      >
       {/* Bilde-forhåndsvisning over input når et bilde er valgt */}
       {bildePreview && (
         <div
@@ -1334,7 +1348,6 @@ export default function Chat({
         <input
           ref={inputRef}
           type="text"
-          data-chat-input="true"
           value={tekst}
           onChange={e => {
             setTekst(e.target.value)
@@ -1382,6 +1395,7 @@ export default function Chat({
         >
           <Icon name="arrowRight" size={14} color="#0a0a0a" strokeWidth={2.5} />
         </button>
+      </div>
       </div>
 
       {lightboxSrc && (
