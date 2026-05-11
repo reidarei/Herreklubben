@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 
 /**
- * Brukes av Chat-komponenter for å skjule bottom-nav-docken mens en chat-input
- * har fokus. Lytter globalt etter focusin/focusout på elementer med
- * data-chat-input="true". Se CLAUDE.md → Policy: Bottom-nav-skjul.
+ * Mountes ÉN gang globalt fra BottomNav. Lytter globalt etter focusin/focusout
+ * på elementer med `data-chat-input="true"` og setter `data-chat-input-fokusert`
+ * på <html> mens et slikt element har fokus. CSS i globals.css skjuler docken.
  *
- * Kun Chat-komponenter har lov til å sette data-chat-input-fokusert.
+ * Hookens kontrakt mot kall-stedet er triviell: alt UI som vil skjule docken
+ * setter bare attributtet på input-elementet sitt — ingen import nødvendig.
+ * Se CLAUDE.md → Policy: Bottom-nav-skjul.
  */
 export function useSkjulBottomNavVedFokus() {
   useEffect(() => {

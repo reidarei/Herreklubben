@@ -18,7 +18,6 @@ import BildeLightbox from '@/components/ui/BildeLightbox'
 import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
-import { useSkjulBottomNavVedFokus } from '@/lib/hooks/useSkjulBottomNavVedFokus'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -89,7 +88,8 @@ export default function Chat({
   visSeksjonsLabel = true,
   autoScrollTilBunn = false,
 }: Props) {
-  useSkjulBottomNavVedFokus()
+  // Dock-skjuling håndteres globalt av useSkjulBottomNavVedFokus i BottomNav.
+  // Alt vi trenger her er data-chat-input="true" på input-elementet.
 
   // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)

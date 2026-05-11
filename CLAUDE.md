@@ -243,10 +243,14 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 ## Policy: Bottom-nav-skjul
 
-Bottom-nav-docken skjules automatisk når en chat-input har fokus, via attributtet `data-chat-input-fokusert` på `<html>`. **Kun Chat-komponenter** har lov til å sette dette attributtet — det skjer via hooken `useSkjulBottomNavVedFokus()` i `lib/hooks/`.
+Bottom-nav-docken skjules automatisk når et input-element med `data-chat-input="true"` har fokus.
 
-`BottomNav` er passiv: den leser ingenting selv. CSS i `globals.css` skjuler docken når attributtet er satt.
+**Slik fungerer det:**
+- Hooken `useSkjulBottomNavVedFokus()` mountes ÉN gang globalt fra `BottomNav` (som er mountet i app-layouten). Den lytter på `document` etter focusin/focusout og setter `data-chat-input-fokusert` på `<html>` når et matchende element har fokus.
+- CSS i `globals.css` skjuler docken når attributtet er satt.
 
-Hvis du legger til en ny chat-lignende komponent, kall hooken og sørg for at input-elementene har `data-chat-input="true"`.
+**Når du legger til en ny chat-lignende input:** Sett `data-chat-input="true"` på input/textarea-elementet. Det er alt — ingen import, ingen hook-kall lokalt.
+
+Hvorfor global mount: gir én lytter for hele appen, eliminerer race-conditions ved samtidige Chat-instanser, og fjerner kontrakts-risikoen der nye kalls-steder glemmer å kalle hooken.
 
 Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.
