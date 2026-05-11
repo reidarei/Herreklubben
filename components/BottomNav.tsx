@@ -60,6 +60,26 @@ export default function BottomNav({ brukerNavn, bildeUrl }: Props) {
     setMontert(true)
   }, [])
 
+  // Skjul dock når tastatur er oppe på iOS. visualViewport krymper kun når
+  // tastaturet er oppe (ikke ved URL-bar-collapse el. l.) takket være
+  // `interactive-widget=overlays-content` i layout.tsx — så denne lytteren
+  // er pålitelig nå, i motsetning til tidligere VV-baserte forsøk.
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const html = document.documentElement
+    const sjekk = () => {
+      if (vv.height < window.innerHeight - 100) html.setAttribute('data-tastatur-oppe', '')
+      else html.removeAttribute('data-tastatur-oppe')
+    }
+    vv.addEventListener('resize', sjekk)
+    sjekk()
+    return () => {
+      vv.removeEventListener('resize', sjekk)
+      html.removeAttribute('data-tastatur-oppe')
+    }
+  }, [])
+
   const containerStyle: CSSProperties = {
     position: 'fixed',
     bottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
