@@ -31,6 +31,7 @@ type Props = {
   brukerNavn?: string | null
   bildeUrl?: string | null
   rolle?: string | null
+  versjon?: string
 }
 
 /**
@@ -43,7 +44,7 @@ type Props = {
  * #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Se
  * Policy: Navigasjon i CLAUDE.md.
  */
-export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
+export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Props) {
   const pathname = usePathname()
 
   const headerStyle: CSSProperties = {
@@ -122,6 +123,23 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           })}
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {versjon && (
+            <span
+              aria-hidden="true"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9.5,
+                color: 'var(--text-tertiary)',
+                opacity: 0.55,
+                letterSpacing: '0.5px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {versjon}
+            </span>
+          )}
+
         {/* Profil-snarvei */}
         <Link
           href="/profil"
@@ -142,6 +160,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
             size={36}
           />
         </Link>
+        </div>
       </div>
     </nav>
   )

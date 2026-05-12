@@ -7,6 +7,7 @@ import DeployInfo from '@/components/DeployInfo'
 import InstallVeiledning from '@/components/InstallVeiledning'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
+import versjon from '@/lib/versjon.json'
 
 async function HeaderMedProfil() {
   const profil = await getProfil()
@@ -15,6 +16,7 @@ async function HeaderMedProfil() {
       brukerNavn={profil?.navn}
       bildeUrl={profil?.bilde_url ?? null}
       rolle={profil?.rolle ?? null}
+      versjon={versjon.versjon}
     />
   )
 }
@@ -35,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <ServiceWorkerRegistrering />
       <DraNedForOppdater />
       <InstallVeiledning />
-      <Suspense fallback={<TopHeader />}>
+      <Suspense fallback={<TopHeader versjon={versjon.versjon} />}>
         <HeaderMedProfil />
       </Suspense>
       <main className="flex-1 relative z-10">
