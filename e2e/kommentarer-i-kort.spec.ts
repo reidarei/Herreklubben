@@ -1,6 +1,7 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { loggInn, harTestCreds } from './helpers/auth'
 
 /**
  * Verifiserer at kommentarer vises inline nederst i hvert arrangement/poll-
@@ -9,18 +10,10 @@ import path from 'node:path'
  */
 
 const UT_DIR = path.join('.screenshots', 'kommentarer-i-kort')
-const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
-const TEST_PASSORD = process.env.TEST_PASSORD ?? 'test123'
-
-async function loggInn(page: Page) {
-  await page.goto('/login')
-  await page.fill('input[type="email"]', TEST_EPOST)
-  await page.fill('input[type="password"]', TEST_PASSORD)
-  await page.click('button[type="submit"]')
-  await page.waitForURL('**/', { timeout: 10_000 })
-}
 
 test.describe('Kommentarer inne i kort', () => {
+  test.skip(!harTestCreds(), 'TEST_EPOST/TEST_PASSORD mangler — se e2e/README.md')
+
   test.beforeAll(() => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })

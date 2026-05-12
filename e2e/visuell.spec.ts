@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
+import { loggInn, harTestCreds } from './helpers/auth'
 
 /**
  * Visuell baseline for Obsidian-redesign.
@@ -16,22 +17,12 @@ import path from 'node:path'
 const FASE = process.env.FASE ?? 'baseline'
 const UT_DIR = path.join('.screenshots', FASE)
 const REF_DIR = path.join('Design', 'skjermbilder')
-const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
-const TEST_PASSORD = process.env.TEST_PASSORD ?? 'test123'
 
 type Rute = {
   navn: string
   referanse: string
   besok: (page: Page) => Promise<void>
   fullPage?: boolean
-}
-
-async function loggInn(page: Page) {
-  await page.goto('/login')
-  await page.fill('input[type="email"]', TEST_EPOST)
-  await page.fill('input[type="password"]', TEST_PASSORD)
-  await page.click('button[type="submit"]')
-  await page.waitForURL('**/', { timeout: 10_000 })
 }
 
 async function foersteArrangementLenke(page: Page): Promise<string | null> {
@@ -46,6 +37,8 @@ async function foersteArrangementLenke(page: Page): Promise<string | null> {
 }
 
 test.describe('Visuell baseline', () => {
+  test.skip(!harTestCreds(), 'TEST_EPOST/TEST_PASSORD mangler — se e2e/README.md')
+
   test.beforeAll(() => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })
