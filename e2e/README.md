@@ -4,14 +4,13 @@ Verifiserer at vanlige flyter (innlogging, opprette poll, kommentere, agenda-ren
 
 ## Førstegangs-oppsett
 
-Test-suiten logger inn som en ekte bruker. Du må legge inn creds i `.env.local`:
+Test-suiten logger inn som en ekte bruker. Du må legge inn passord i `.env.local`:
 
 ```
-TEST_EPOST=reidar.haavik@gmail.com
 TEST_PASSORD=<spør Reidar>
 ```
 
-Mangler en av dem, skipper alle spec-er med en tydelig melding. Det betyr ingen «stille feil i første assertion» når en agent uten passord prøver å kjøre suiten.
+`TEST_EPOST` har default `reidar.haavik@gmail.com` og trenger bare settes hvis du vil overstyre. Mangler `TEST_PASSORD`, skipper alle spec-er med en tydelig melding. Det betyr ingen «stille feil i første assertion» når en agent uten passord prøver å kjøre suiten.
 
 ## Kjøre testene
 
