@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 
 /**
  * Felles innloggingshelper for e2e-tester. Tidligere ble samme `loggInn`
- * duplisert i hver spec-fil med en defaultet `TEST_PASSORD = 'test123'`, som
+ * duplisert i hver spec-fil med en hardkodet placeholder-passord-default, som
  * stille feilet ved første assertion. Nå sentralisert: hvis creds mangler,
  * skal spec-en kalle `test.skip(!harTestCreds(), ...)` slik at årsaken er
  * tydelig i rapporten.
