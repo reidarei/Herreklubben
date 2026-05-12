@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import BottomNav from '@/components/BottomNav'
+import TopHeader from '@/components/TopHeader'
 import PageTransition from '@/components/PageTransition'
 import ServiceWorkerRegistrering from '@/components/ServiceWorkerRegistrering'
 import DraNedForOppdater from '@/components/DraNedForOppdater'
@@ -8,12 +8,13 @@ import InstallVeiledning from '@/components/InstallVeiledning'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
 
-async function NavMedRolle() {
+async function HeaderMedProfil() {
   const profil = await getProfil()
   return (
-    <BottomNav
+    <TopHeader
       brukerNavn={profil?.navn}
       bildeUrl={profil?.bilde_url ?? null}
+      rolle={profil?.rolle ?? null}
     />
   )
 }
@@ -34,14 +35,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <ServiceWorkerRegistrering />
       <DraNedForOppdater />
       <InstallVeiledning />
-      <main className="flex-1 pb-24 relative z-10">
-        <div style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
+      <Suspense fallback={<TopHeader />}>
+        <HeaderMedProfil />
+      </Suspense>
+      <main className="flex-1 relative z-10">
         <PageTransition>{children}</PageTransition>
         <DeployInfo />
       </main>
-      <Suspense fallback={<BottomNav />}>
-        <NavMedRolle />
-      </Suspense>
     </div>
   )
 }

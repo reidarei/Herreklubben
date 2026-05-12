@@ -243,14 +243,10 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 **Enkel kjerne — lag lokale wrappere for særtilfeller:** Hvis et sted trenger status-dot, krone-badge, aktiv-ring eller annen dekor rundt avataren, lag en liten wrapper-komponent lokalt (f.eks. `<AvatarMedKrone>`) som bruker Avatar inni. Legg **aldri** til props som `aktiv`, `badge`, `border`, `style` eller `children` på kjerne-komponenten — det gjør den til en konfigmatrise som er vanskelig å resonnere om.
 
-**Én bevisst særstilling:** `ProfilDisk` i `components/BottomNav.tsx` er en nav-tab-indikator (22px med aktiv-ring+shadow), ikke en profil-avatar — den bruker ikke Avatar og skal ikke tvinges gjennom den.
-
 **Når du legger til nye steder som viser profilbilder:** Bruk `<Avatar name={...} src={bilde_url} rolle={rolle} />`. Gul glød for generalsekretær faller da inn av seg selv — sjekker for dette skal ikke duplikeres utenfor komponenten.
 
-## Policy: Dock-synlighet
+## Policy: Navigasjon
 
-Dock-synlighet er funksjon av kun deklarativ, idempotent state: rute, eksplisitt brukervalg, eller layout-media-query. **Aldri av imperative DOM-events** (focus, blur, scroll, resize, visibility, pagehide). Dock er en navigasjonsanker, ikke en kontekstuell flate — synlighet skal være forutsigbar for brukeren.
-
-**Policy etablert etter fjerde regresjon i samme bug-klasse (#99, #104, #147, #151).** Hvis du tenker «kan vi ikke bare skjule docken når X?» — svaret er nei. Hvis docken kolliderer med noe på en gitt rute, løs det med layout (sticky-elementer, padding, dvh-units), ikke med event-lyttere.
+App-navigasjon består av sticky TopHeader (hamburger venstre → tre ikon-knapper for Agenda/Chat/Klubb i horisontal ekspansjon; profil-sirkel høyre som snarvei til /profil) og kontekstuelle FAB-er (NyFAB på agenda for å opprette innhold). **Ingen bottom-nav.** Dette eliminerer hele bug-klassen vi traff i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Hvis du finner deg selv i å legge til en `position: fixed; bottom: 0` UI-flate som ikke er en modal eller toast — løft det til diskusjon først.
 
 Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.

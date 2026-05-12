@@ -129,7 +129,7 @@ export default function InstallVeiledning() {
         position: 'fixed',
         left: 12,
         right: 12,
-        bottom: 'max(96px, calc(env(safe-area-inset-bottom) + 84px))',
+        bottom: 'max(20px, calc(env(safe-area-inset-bottom) + 16px))',
         zIndex: 9998,
         maxWidth: 456,
         margin: '0 auto',
