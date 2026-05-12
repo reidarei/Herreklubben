@@ -137,7 +137,7 @@ export default async function Innstillinger() {
   ])
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Header */}
       <div
         style={{

@@ -89,7 +89,7 @@ export default function NyttMedlem() {
 
   if (opprettet) {
     return (
-      <div style={{ padding: '0 20px 120px' }}>
+      <div style={{ padding: '0 20px 20px' }}>
         <header style={{ marginTop: 12, marginBottom: 24 }}>
           <div
             style={{
@@ -176,7 +176,7 @@ export default function NyttMedlem() {
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar
         overtittel="Nytt"
         tittel="Medlem"

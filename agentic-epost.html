@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<title>Mitt agentiske system</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f1ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f1ec;padding:32px 16px;">
+<tr><td align="center">
+
+<table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,0.06);">
+
+<!-- Header -->
+<tr><td style="padding:36px 40px 24px;background:linear-gradient(135deg,#1a1a1a 0%,#2d2d2d 100%);color:#f4f1ec;">
+  <div style="font-family:'Courier New',monospace;font-size:11px;letter-spacing:2.5px;color:#c9a961;text-transform:uppercase;margin-bottom:10px;">Agentic v0.3.1 · Mortensrud Herreklubb</div>
+  <h1 style="margin:0;font-size:30px;font-weight:500;letter-spacing:-0.6px;line-height:1.15;">Et lite styre, et samlebånd, og én knapp</h1>
+  <p style="margin:14px 0 0;font-size:15px;color:#bdb8a8;font-weight:300;">Hvordan jeg løser GitHub-issues uten å skrive en eneste linje selv</p>
+</td></tr>
+
+<!-- Intro -->
+<tr><td style="padding:32px 40px 16px;">
+  <p style="margin:0 0 12px;font-size:15px;">Jeg sier <strong>«/agentic 144, prioriter enkelhet, auto»</strong>. Tolv minutter senere er issuet løst, koden i prod og databasen migrert. På veien har ni AI-agenter snakket sammen, vurdert hverandres arbeid, og rettet hverandres feil. Slik fungerer det:</p>
+</td></tr>
+
+<!-- Flytdiagram -->
+<tr><td style="padding:8px 40px 24px;">
+  <div style="background:#faf8f3;border:1px solid #e8e3d8;border-radius:10px;padding:24px;">
+    <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;color:#8a8270;text-transform:uppercase;margin-bottom:18px;text-align:center;">Pipeline</div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:13px;">
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">📋 Planlegger</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#c9a961;color:#1a1a1a;padding:9px 18px;border-radius:6px;font-weight:500;">🏛️ Arkitekturstyret <span style="font-weight:400;font-size:11px;">(hvis stor sak)</span></div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">⚙️ Koder</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">🔍 Reviewer</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">🛠️ Integrator</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#1a1a1a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">✅ Tester</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#5a8a4a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">🚀 PR + Copilot-review</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#5a8a4a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">🛠️ Integrator (Copilot-runde)</div>
+    </td></tr>
+    <tr><td align="center" style="color:#8a8270;font-size:18px;line-height:1;">↓</td></tr>
+
+    <tr><td align="center" style="padding:6px 0;">
+      <div style="display:inline-block;background:#5a8a4a;color:#fff;padding:9px 18px;border-radius:6px;font-weight:500;">🎉 Merge + DB-migrering + lukk issue</div>
+    </td></tr>
+
+    </table>
+  </div>
+</td></tr>
+
+<!-- Agentene -->
+<tr><td style="padding:24px 40px 8px;">
+  <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;color:#8a8270;text-transform:uppercase;margin-bottom:14px;">Agentene i samlebåndet</div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;">
+    <tr><td style="padding:8px 0;border-bottom:1px solid #efeae0;"><strong>📋 Planlegger</strong> &nbsp;<span style="color:#8a8270;">leser issue, skriver konkret plan, vurderer om saken trenger styret.</span></td></tr>
+    <tr><td style="padding:8px 0;border-bottom:1px solid #efeae0;"><strong>⚙️ Koder</strong> &nbsp;<span style="color:#8a8270;">implementerer planen i en isolert worktree. Holder seg til mandatet.</span></td></tr>
+    <tr><td style="padding:8px 0;border-bottom:1px solid #efeae0;"><strong>🔍 Reviewer</strong> &nbsp;<span style="color:#8a8270;">kritisk kode-review. Skal være ufin, ikke høflig.</span></td></tr>
+    <tr><td style="padding:8px 0;border-bottom:1px solid #efeae0;"><strong>🛠️ Integrator</strong> &nbsp;<span style="color:#8a8270;">vurderer hvert funn — retter det som er gyldig, forsvarer det som ikke skal endres.</span></td></tr>
+    <tr><td style="padding:8px 0;"><strong>✅ Tester</strong> &nbsp;<span style="color:#8a8270;">lint, build og test-suite. Eneste agenten som kjører på Sonnet — billigere, raskere.</span></td></tr>
+  </table>
+</td></tr>
+
+<!-- Arkitekturstyret -->
+<tr><td style="padding:32px 40px 8px;">
+  <div style="background:#1a1a1a;border-radius:12px;padding:28px;color:#f4f1ec;">
+    <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2.5px;color:#c9a961;text-transform:uppercase;margin-bottom:10px;">🏛️ Arkitekturstyret</div>
+    <h2 style="margin:0 0 10px;font-size:22px;font-weight:500;letter-spacing:-0.3px;">Når en sak er for stor for én hjerne</h2>
+    <p style="margin:0 0 16px;font-size:14px;color:#bdb8a8;">Når planleggeren oppdager et arkitektonisk veiskille (RLS-tradeoff, schema-design, ytelsesvalg), sammenkalles styret. Fire perspektiver, to runder, én syntese.</p>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:13px;color:#e0d9c4;">
+      <tr><td width="50%" valign="top" style="padding:8px 8px 8px 0;"><strong style="color:#c9a961;">🗄️ Database</strong><br><span style="color:#8a8270;font-size:12px;">RLS, schema, migrasjoner, integritet</span></td>
+          <td width="50%" valign="top" style="padding:8px 0 8px 8px;"><strong style="color:#c9a961;">🔌 Backend</strong><br><span style="color:#8a8270;font-size:12px;">Server actions, dataflyt, autorisasjon</span></td></tr>
+      <tr><td width="50%" valign="top" style="padding:8px 8px 8px 0;"><strong style="color:#c9a961;">🎨 Frontend</strong><br><span style="color:#8a8270;font-size:12px;">Komponenter, state, UX-friksjon</span></td>
+          <td width="50%" valign="top" style="padding:8px 0 8px 8px;"><strong style="color:#c9a961;">⚡ Drift</strong><br><span style="color:#8a8270;font-size:12px;">Ytelse, kostnad, rollback, observabilitet</span></td></tr>
+    </table>
+
+    <div style="margin-top:18px;padding:14px 16px;background:#2d2d2d;border-radius:8px;font-size:13px;">
+      <strong style="color:#c9a961;">Runde 1:</strong> hver gir sin uavhengige vurdering.<br>
+      <strong style="color:#c9a961;">Runde 2:</strong> alle leser de andres innspill og reviderer. Sjelden, men herlig, bytter de mening.<br>
+      <strong style="color:#c9a961;">👨‍⚖️ Styrelederen</strong> syntetiserer en endelig uttalelse, postet som issue-kommentar for sporbarhet.
+    </div>
+  </div>
+</td></tr>
+
+<!-- De to panelene -->
+<tr><td style="padding:32px 40px 8px;">
+  <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;color:#8a8270;text-transform:uppercase;margin-bottom:14px;">To paneler holder kvaliteten</div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td width="50%" valign="top" style="padding:0 8px 0 0;">
+        <div style="background:#faf8f3;border:1px solid #e8e3d8;border-radius:10px;padding:18px;height:130px;">
+          <div style="font-size:24px;margin-bottom:6px;">🏛️</div>
+          <strong style="font-size:14px;">Arkitekturstyret</strong><br>
+          <span style="font-size:12px;color:#8a8270;">Tas i bruk <em>før</em> kodingen starter, når planleggeren oppdager en tung beslutning.</span>
+        </div>
+      </td>
+      <td width="50%" valign="top" style="padding:0 0 0 8px;">
+        <div style="background:#faf8f3;border:1px solid #e8e3d8;border-radius:10px;padding:18px;height:130px;">
+          <div style="font-size:24px;margin-bottom:6px;">🔍</div>
+          <strong style="font-size:14px;">Reviewer + Copilot</strong><br>
+          <span style="font-size:12px;color:#8a8270;">To uavhengige kode-reviews <em>etter</em> implementasjon. Begge kan tvinge re-runde med integrator.</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+</td></tr>
+
+<!-- Modellbruk -->
+<tr><td style="padding:32px 40px 8px;">
+  <div style="font-family:'Courier New',monospace;font-size:10px;letter-spacing:2px;color:#8a8270;text-transform:uppercase;margin-bottom:14px;">Modellvalg</div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;">
+    <tr>
+      <td width="50%" valign="top" style="padding:0 8px 0 0;">
+        <div style="background:#fdf8e8;border-left:3px solid #c9a961;padding:14px 16px;border-radius:0 6px 6px 0;">
+          <strong>Claude Opus 4.7</strong> &nbsp;<span style="color:#8a8270;font-size:12px;">9 av 10 agenter</span><br>
+          <span style="font-size:13px;color:#5a5a5a;">Planlegger, koder, reviewer, integrator, alle fire arkitekter, styreleder. Det dyre, det smarte.</span>
+        </div>
+      </td>
+      <td width="50%" valign="top" style="padding:0 0 0 8px;">
+        <div style="background:#eef3ec;border-left:3px solid #5a8a4a;padding:14px 16px;border-radius:0 6px 6px 0;">
+          <strong>Claude Sonnet 4.6</strong> &nbsp;<span style="color:#8a8270;font-size:12px;">tester</span><br>
+          <span style="font-size:13px;color:#5a5a5a;">Lint og build trenger ikke filosofi. Sonnet gjør jobben raskere og billigere.</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div style="margin-top:14px;padding:12px 16px;background:#f4f1ec;border-radius:8px;font-size:12px;color:#5a5a5a;">
+    <strong>Pluss:</strong> GitHub Copilot kjører som ekstern reviewer på alle PR-er — en uavhengig modell som ofte fanger ting den interne reviewer-en bommer på.
+  </div>
+</td></tr>
+
+<!-- Hvorfor det funker -->
+<tr><td style="padding:32px 40px 36px;">
+  <div style="border-top:1px solid #efeae0;padding-top:24px;">
+    <h3 style="margin:0 0 12px;font-size:17px;font-weight:500;">Hvorfor det funker</h3>
+    <p style="margin:0 0 10px;font-size:14px;color:#3a3a3a;">Ingen enkelt agent får for stor makt. Planleggeren foreslår, men styret kan overprøve. Koderen implementerer, men reviewer river det fra hverandre. Integratoren retter, men Copilot oppdager hva alle de andre bommet på.</p>
+    <p style="margin:0;font-size:14px;color:#3a3a3a;">Resultatet: kode jeg kan trygt deploye til 17 venner uten å ha lest en eneste linje selv.</p>
+  </div>
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:20px 40px;background:#faf8f3;border-top:1px solid #e8e3d8;text-align:center;font-size:11px;color:#8a8270;font-family:'Courier New',monospace;letter-spacing:1px;">
+  bygget med claude code · orkestrert av reidar · v0.3.1
+</td></tr>
+
+</table>
+
+</td></tr>
+</table>
+
+</body>
+</html>

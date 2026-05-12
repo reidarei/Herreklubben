@@ -54,7 +54,7 @@ export default function TiebreakSkjema({ pollId, tittel, undertittel, kandidater
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 20, marginBottom: 24 }}>
         <div
           style={{

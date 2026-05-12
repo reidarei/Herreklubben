@@ -206,7 +206,7 @@ function InnstillingerSkjerm({ theme }) {
   ];
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Header */}
       <div style={{
         padding: '8px 4px 20px',

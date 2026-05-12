@@ -98,7 +98,7 @@ export default async function MedlemProfil({ params }: { params: Promise<{ id: s
   const navn = medlem.navn ?? 'Ukjent'
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Breadcrumb + tittel */}
       <div style={{ padding: '12px 4px 22px', marginBottom: 8 }}>
         <div

@@ -53,7 +53,7 @@ export default async function Kaaringer() {
   const harMaler = (maler?.length ?? 0) > 0
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Header */}
       <div style={{ marginBottom: 28, marginTop: 12 }}>
         <div

@@ -4,7 +4,7 @@ import versjon from '@/lib/versjon.json'
 
 export default function OmAppen() {
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 26 }}>
         <div
           style={{

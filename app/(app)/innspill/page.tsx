@@ -40,7 +40,7 @@ export default async function InnspillSide({ searchParams }: Props) {
   const lukkede = filtrerte.filter(i => i.status === 'closed')
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <div
           style={{

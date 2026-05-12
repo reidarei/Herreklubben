@@ -26,7 +26,7 @@ export default async function Statistikk() {
     .slice(0, 5)
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 26 }}>
         <div
           style={{

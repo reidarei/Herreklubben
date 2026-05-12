@@ -73,7 +73,7 @@ export default async function Klubbinfo() {
   const synligeRader = rader.filter(r => !r.kunAdmin || erAdmin)
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Editorial hero */}
       <div
         style={{

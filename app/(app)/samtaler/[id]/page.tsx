@@ -80,7 +80,7 @@ export default async function SamtaleDetalj({
   ].filter(Boolean) as { id: string; navn: string | null; bilde_url: string | null; rolle: string | null }[]
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <Link
           href="/samtaler"

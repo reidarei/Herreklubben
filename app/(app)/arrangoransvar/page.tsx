@@ -73,7 +73,7 @@ export default async function Arrangoransvar() {
   const nesteAar = Math.max(sisteAar + 1, norskAar())
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 26 }}>
         <div
           style={{

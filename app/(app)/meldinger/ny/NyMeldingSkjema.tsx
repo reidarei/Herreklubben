@@ -80,7 +80,7 @@ export default function NyMeldingSkjema() {
   const tegnIgjen = MAX_TEGN - innhold.length
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar
         overtittel="Ny"
         tittel={innhold.slice(0, 40) || 'Melding'}
