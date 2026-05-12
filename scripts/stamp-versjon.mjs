@@ -1,5 +1,7 @@
-// Øker minor-nummeret i lib/versjon.json med 1. Kjøres lokalt før push.
+// Øker patch-nummeret i lib/versjon.json med 1. Kjøres lokalt før push.
 // Filen er committed, så Vercel leser bare resultatet uten git-avhengighet.
+// Format: V{major}.{minor}.{patch} der major+minor kommer fra package.json
+// og patch er det inkrementelle bygg-nummeret. F.eks. V3.0.42.
 // Speiler også versjonen inn i public/sw.js sin CACHE_VERSION-konstant
 // slik at hver deploy automatisk invaliderer service worker-cachen.
 
@@ -15,8 +17,8 @@ const fil = join(rot, 'lib', 'versjon.json')
 const forrige = JSON.parse(readFileSync(fil, 'utf8'))
 
 const neste = (forrige.nummer ?? 0) + 1
-const [major] = pkg.version.split('.')
-const versjon = `V${major}.${String(neste).padStart(3, '0')}`
+const [major, minor] = pkg.version.split('.')
+const versjon = `V${major}.${minor}.${neste}`
 
 writeFileSync(fil, JSON.stringify({ nummer: neste, versjon }, null, 2) + '\n')
 
