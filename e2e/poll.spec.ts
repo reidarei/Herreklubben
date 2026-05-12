@@ -1,7 +1,8 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-poll'
+import { loggInn, harTestCreds } from './helpers/auth'
 
 /**
  * Visuell + funksjonell verifisering av poll-funksjonaliteten (#86).
@@ -14,18 +15,10 @@ import { setTestPollId, ryddTestPoll, pollIdFraUrl } from './helpers/rydd-test-p
  */
 
 const UT_DIR = path.join('.screenshots', 'poll')
-const TEST_EPOST = process.env.TEST_EPOST ?? 'reidar.aasheim@gmail.com'
-const TEST_PASSORD = process.env.TEST_PASSORD ?? 'test123'
-
-async function loggInn(page: Page) {
-  await page.goto('/login')
-  await page.fill('input[type="email"]', TEST_EPOST)
-  await page.fill('input[type="password"]', TEST_PASSORD)
-  await page.click('button[type="submit"]')
-  await page.waitForURL('**/', { timeout: 10_000 })
-}
 
 test.describe('Poll-flyt', () => {
+  test.skip(!harTestCreds(), 'TEST_EPOST/TEST_PASSORD mangler — se e2e/README.md')
+
   test.beforeAll(() => {
     fs.mkdirSync(UT_DIR, { recursive: true })
   })

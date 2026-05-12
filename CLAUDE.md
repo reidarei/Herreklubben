@@ -249,4 +249,10 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 App-navigasjon består av sticky TopHeader (hamburger venstre → tre ikon-knapper for Agenda/Chat/Klubb i horisontal ekspansjon; profil-sirkel høyre som snarvei til /profil) og kontekstuelle FAB-er (NyFAB på agenda for å opprette innhold). **Ingen bottom-nav.** Dette eliminerer hele bug-klassen vi traff i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Hvis du finner deg selv i å legge til en `position: fixed; bottom: 0` UI-flate som ikke er en modal eller toast — løft det til diskusjon først.
 
+## Policy: Visuell verifikasjon
+
+For UI-endringer på vanlig flyt: kjør Playwright lokalt før push (`npx playwright test`). Se `e2e/README.md` for setup.
+
+For iOS-PWA-quirks (visualViewport, safe-area, focus/blur på iOS): Playwright reproduserer ikke. Test manuelt på iPhone og dokumenter i PR-en at automatisk verifikasjon ikke er mulig.
+
 Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.
