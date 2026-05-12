@@ -726,7 +726,7 @@ export default function Chat({
           display: 'flex',
           flexDirection: 'column',
           marginBottom: 14,
-          paddingBottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 60px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
         }}
       >
         {meldinger.length === 0 && (
@@ -1193,15 +1193,11 @@ export default function Chat({
 
       {/* Sticky-container med mention-chips, bilde-preview, evt. feilmelding
           og input-pill. Mention-chips ligger inni sticky for å unngå at de
-          skjules bak input-pill eller dock når flere chips wrappes til
-          flere linjer.
-          Dock-synlighet er deklarativ (se CLAUDE.md → Policy: Dock-synlighet) —
-          input forblir synlig over docken via sticky-positionering, ikke ved å
-          skjule docken på fokus. */}
+          skjules bak input-pill når flere chips wrappes til flere linjer. */}
       <div
         style={{
           position: 'sticky',
-          bottom: 'calc(var(--bottom-nav-h) + env(safe-area-inset-bottom))',
+          bottom: 'env(safe-area-inset-bottom)',
           zIndex: 20,
         }}
       >

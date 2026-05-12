@@ -3,7 +3,7 @@ const bygget = process.env.BUILD_TIMESTAMP ?? 'ukjent'
 const versjon = process.env.APP_VERSION ?? 'v?'
 
 // Negativ marginTop spiser opp mesteparten av sidenes 120px bunnpadding,
-// slik at deploy-info havner rett over BottomNav uten å bryte scrollstoppen.
+// slik at deploy-info havner pent nede uten å bryte scrollstoppen.
 export default function DeployInfo() {
   return (
     <p
