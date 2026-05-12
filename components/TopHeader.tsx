@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import Icon, { type IkonNavn } from '@/components/ui/Icon'
 import Avatar from '@/components/ui/Avatar'
+import { harGulGloed } from '@/lib/roller'
 
 type Tab = {
   href: string
@@ -43,11 +44,24 @@ type Props = {
 export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   const pathname = usePathname()
   const [apen, setApen] = useState(false)
+  const hamburgerRef = useRef<HTMLButtonElement | null>(null)
+  const forsteTabRef = useRef<HTMLAnchorElement | null>(null)
 
   // Lukk når ruten endrer seg (etter navigering)
   useEffect(() => {
     setApen(false)
   }, [pathname])
+
+  // A11y: når menyen åpnes, flytt fokus til første nav-knapp. Ved Escape
+  // setter vi fokus tilbake til hamburger-knappen så tastatur-brukere ikke
+  // mister stedet sitt.
+  useEffect(() => {
+    if (apen) {
+      // Liten timeout for å la animasjonen starte og elementene mountes
+      const t = setTimeout(() => forsteTabRef.current?.focus(), 60)
+      return () => clearTimeout(t)
+    }
+  }, [apen])
 
   // Click-outside + Escape — kun aktivt når menyen er åpen
   useEffect(() => {
@@ -60,14 +74,17 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
       }
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setApen(false)
+      if (e.key === 'Escape') {
+        setApen(false)
+        hamburgerRef.current?.focus()
+      }
     }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('touchstart', handleClick)
+    // pointerdown er én forent event på tvers av mus/touch/pen — unngår
+    // double-toggle på iOS hvor både touchstart og mousedown ville fyrt.
+    document.addEventListener('pointerdown', handleClick)
     document.addEventListener('keydown', handleKey)
     return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('touchstart', handleClick)
+      document.removeEventListener('pointerdown', handleClick)
       document.removeEventListener('keydown', handleKey)
     }
   }, [apen])
@@ -86,14 +103,34 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   }
 
   const innerStyle: CSSProperties = {
-    height: 56,
+    // Høyden speiles av --top-header-h i globals.css så andre sticky-elementer
+    // (f.eks. VinnerBanner) kan stikke seg under headeren.
+    height: 'var(--top-header-h, 56px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 14px',
   }
 
-  const knappBase: CSSProperties = {
+  // 44 px touch-target (Apple HIG) med 38 px visuell skall inni.
+  // Selve <button>-elementet er 44×44 og fanger hele klikkflaten — det indre
+  // ikon-skallet er bare en pent rundet kapsel.
+  const knappYtre: CSSProperties = {
+    width: 44,
+    height: 44,
+    padding: 3,
+    background: 'transparent',
+    border: 'none',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+    color: 'var(--text-primary)',
+  }
+
+  const knappInner: CSSProperties = {
     width: 38,
     height: 38,
     borderRadius: '50%',
@@ -102,15 +139,14 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-    color: 'var(--text-primary)',
-    padding: 0,
-    // 44 px touch-flate via negativ margin + ekstra hit-area
     position: 'relative',
   }
 
   const profilAktiv = pathname === '/profil'
+  // Generalsekretær har allerede gul ring rundt avataren — å legge på en
+  // outline i tillegg gir to overlappende gule ringer. Drop outline her,
+  // gloeden alene markerer at /profil er aktiv siden for ham.
+  const visAktivOutline = profilAktiv && !harGulGloed(rolle ?? null)
 
   return (
     <header id="top-header-root" style={headerStyle} aria-label="Hovednavigasjon">
@@ -118,51 +154,40 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Hamburger / × */}
           <button
+            ref={hamburgerRef}
             type="button"
             onClick={() => setApen(v => !v)}
             aria-label={apen ? 'Lukk meny' : 'Åpne meny'}
             aria-expanded={apen}
-            style={{
-              ...knappBase,
-              // Utvid hit-area med padding via et innenfor-element holder.
-              // Selve knappen er 38 px visuelt; touch-flaten utvides ved at
-              // vi gir et usynlig "klikk-skall" rundt.
-            }}
+            style={knappYtre}
           >
-            {/* Usynlig touch-utvider — gir 44 px hit-area uten å endre størrelse */}
-            <span
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                inset: -3,
-                borderRadius: '50%',
-              }}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: apen ? 0 : 1,
-                transition: 'opacity 180ms ease',
-              }}
-            >
-              <Icon name="menu" size={18} strokeWidth={2} />
-            </span>
-            <span
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: apen ? 1 : 0,
-                transition: 'opacity 180ms ease',
-              }}
-            >
-              <Icon name="x" size={18} strokeWidth={2} />
+            <span style={knappInner}>
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: apen ? 0 : 1,
+                  transition: 'opacity 180ms ease',
+                }}
+              >
+                <Icon name="menu" size={18} strokeWidth={2} />
+              </span>
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: apen ? 1 : 0,
+                  transition: 'opacity 180ms ease',
+                }}
+              >
+                <Icon name="x" size={18} strokeWidth={2} />
+              </span>
             </span>
           </button>
 
@@ -192,6 +217,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
               return (
                 <Link
                   key={tab.href}
+                  ref={idx === 0 ? forsteTabRef : undefined}
                   href={tab.href}
                   aria-label={tab.label}
                   aria-current={aktiv ? 'page' : undefined}
@@ -217,8 +243,9 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           style={{
             display: 'block',
             borderRadius: '50%',
-            // Gull-ring når på /profil-siden
-            outline: profilAktiv ? '1.5px solid var(--accent)' : 'none',
+            // Gull-ring når på /profil-siden (skippes for generalsekretær —
+            // han har allerede gul gloed rundt avataren).
+            outline: visAktivOutline ? '1.5px solid var(--accent)' : 'none',
             outlineOffset: 2,
             flexShrink: 0,
           }}

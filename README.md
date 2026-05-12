@@ -187,7 +187,7 @@ app/
 components/
   agenda/, arrangement/, album/, chat/, poll/   # Per-domene-komponenter
   ui/                                            # Avatar, Card, Pill, Icon, Lightbox
-  BottomNav.tsx                                  # Dock med 4 faner
+  TopHeader.tsx                                  # Sticky topp-header med hamburger + profil
 
 lib/
   actions/         # Server actions — én fil per domene

@@ -2,8 +2,9 @@ const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'lokal'
 const bygget = process.env.BUILD_TIMESTAMP ?? 'ukjent'
 const versjon = process.env.APP_VERSION ?? 'v?'
 
-// Negativ marginTop spiser opp mesteparten av sidenes 120px bunnpadding,
-// slik at deploy-info havner pent nede uten å bryte scrollstoppen.
+// Liten luft over deploy-info så den ikke klistrer seg på sideinnholdet,
+// uten å skape ekstra scrollhøyde. (Tidligere -96px var kompensasjon for
+// pb-24 på <main>, som ble fjernet da bottom-dock-en gikk ut.)
 export default function DeployInfo() {
   return (
     <p
@@ -11,7 +12,7 @@ export default function DeployInfo() {
       style={{
         color: 'var(--text-tertiary)',
         opacity: 0.5,
-        marginTop: -96,
+        marginTop: 24,
         paddingBottom: 4,
       }}
     >

@@ -44,6 +44,11 @@
   --font-body: var(--font-inter), -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
+  /* Layout — sticky topp-header-høyde (uten safe-area). Eksponert som
+   * CSS-variabel så andre sticky-elementer (f.eks. VinnerBanner) kan
+   * stikke seg riktig under headeren i stedet for å havne bak. */
+  --top-header-h: 56px;
+
   /* Form */
   --radius: 18px;
   --radius-card: 14px;

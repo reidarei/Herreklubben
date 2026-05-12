@@ -14,7 +14,8 @@ export default function VinnerBanner({ navn, bildeUrl, rolle, variant, undertitt
     <div
       style={{
         position: 'sticky',
-        top: 0,
+        // Stikk under sticky TopHeader (z-30) — uten dette havner banneret bak headeren.
+        top: 'calc(var(--top-header-h, 56px) + env(safe-area-inset-top))',
         zIndex: 5,
         margin: '0 -20px 24px',
         padding: '18px 20px',
