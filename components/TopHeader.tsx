@@ -2,26 +2,29 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import Icon, { type IkonNavn } from '@/components/ui/Icon'
+import { type CSSProperties } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import { harGulGloed } from '@/lib/roller'
 
 type Tab = {
   href: string
-  ikon: IkonNavn
   label: string
+  /** Path-prefikser som markerer denne tab-en som aktiv. */
+  prefikser: string[]
 }
 
 const TABS: Tab[] = [
-  { href: '/', ikon: 'calendar', label: 'Agenda' },
-  { href: '/chat', ikon: 'message', label: 'Chat' },
-  { href: '/klubbinfo', ikon: 'building', label: 'Klubb' },
+  { href: '/', label: 'Agenda', prefikser: ['/poll', '/arrangementer', '/meldinger'] },
+  { href: '/chat', label: 'Chat', prefikser: ['/chat', '/samtaler'] },
+  { href: '/klubbinfo', label: 'Klubb', prefikser: ['/klubbinfo', '/kaaringer', '/album'] },
 ]
 
-function erAktiv(href: string, pathname: string): boolean {
-  if (href === '/') return pathname === '/'
-  return pathname.startsWith(href)
+function erAktiv(tab: Tab, pathname: string): boolean {
+  if (tab.href === '/') {
+    if (pathname === '/') return true
+    return tab.prefikser.some(p => pathname.startsWith(p))
+  }
+  return tab.prefikser.some(p => pathname.startsWith(p))
 }
 
 type Props = {
@@ -31,63 +34,17 @@ type Props = {
 }
 
 /**
- * Sticky topp-header med hamburger til venstre og profil-snarvei til høyre.
+ * Sticky topp-header med tre alltid-synlige tabs (Agenda / Chat / Klubb) og
+ * profil-snarvei høyre. Aktiv tab markert med gull underline. Path-prefikser
+ * styrer hvilken tab som er aktiv på undersider (f.eks. `/arrangementer/123`
+ * → Agenda aktiv).
  *
- * Når brukeren trykker hamburgeren morpher den til ×, og tre nav-knapper
- * (Agenda / Chat / Klubb) glir ut til høyre med en kort kaskade-animasjon.
- * Klikk utenfor, Escape, valg av tab eller pathname-endring lukker menyen.
- *
- * Erstattet tidligere fixed bottom-dock for å eliminere bug-klassen vi traff
- * i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed
- * bottom-elementer. Se Policy: Navigasjon i CLAUDE.md.
+ * Erstattet bottom-nav for å eliminere bug-klassen vi traff i #99, #104, #147,
+ * #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Se
+ * Policy: Navigasjon i CLAUDE.md.
  */
 export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   const pathname = usePathname()
-  const [apen, setApen] = useState(false)
-  const hamburgerRef = useRef<HTMLButtonElement | null>(null)
-  const forsteTabRef = useRef<HTMLAnchorElement | null>(null)
-
-  // Lukk når ruten endrer seg (etter navigering)
-  useEffect(() => {
-    setApen(false)
-  }, [pathname])
-
-  // A11y: når menyen åpnes, flytt fokus til første nav-knapp. Ved Escape
-  // setter vi fokus tilbake til hamburger-knappen så tastatur-brukere ikke
-  // mister stedet sitt.
-  useEffect(() => {
-    if (apen) {
-      // Liten timeout for å la animasjonen starte og elementene mountes
-      const t = setTimeout(() => forsteTabRef.current?.focus(), 60)
-      return () => clearTimeout(t)
-    }
-  }, [apen])
-
-  // Click-outside + Escape — kun aktivt når menyen er åpen
-  useEffect(() => {
-    if (!apen) return
-    function handleClick(e: Event) {
-      const target = e.target as Node | null
-      const root = document.getElementById('top-header-root')
-      if (root && target && !root.contains(target)) {
-        setApen(false)
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setApen(false)
-        hamburgerRef.current?.focus()
-      }
-    }
-    // pointerdown er én forent event på tvers av mus/touch/pen — unngår
-    // double-toggle på iOS hvor både touchstart og mousedown ville fyrt.
-    document.addEventListener('pointerdown', handleClick)
-    document.addEventListener('keydown', handleKey)
-    return () => {
-      document.removeEventListener('pointerdown', handleClick)
-      document.removeEventListener('keydown', handleKey)
-    }
-  }, [apen])
 
   const headerStyle: CSSProperties = {
     position: 'sticky',
@@ -110,36 +67,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 14px',
-  }
-
-  // 44 px touch-target (Apple HIG) med 38 px visuell skall inni.
-  // Selve <button>-elementet er 44×44 og fanger hele klikkflaten — det indre
-  // ikon-skallet er bare en pent rundet kapsel.
-  const knappYtre: CSSProperties = {
-    width: 44,
-    height: 44,
-    padding: 3,
-    background: 'transparent',
-    border: 'none',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    flexShrink: 0,
-    color: 'var(--text-primary)',
-  }
-
-  const knappInner: CSSProperties = {
-    width: 38,
-    height: 38,
-    borderRadius: '50%',
-    background: 'rgba(255,255,255,0.06)',
-    border: '0.5px solid rgba(255,255,255,0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    gap: 8,
   }
 
   const profilAktiv = pathname === '/profil'
@@ -149,90 +77,49 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   const visAktivOutline = profilAktiv && !harGulGloed(rolle ?? null)
 
   return (
-    <nav id="top-header-root" style={headerStyle} aria-label="Hovednavigasjon">
+    <nav style={headerStyle} aria-label="Hovednavigasjon">
       <div style={innerStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* Hamburger / × */}
-          <button
-            ref={hamburgerRef}
-            type="button"
-            onClick={() => setApen(v => !v)}
-            aria-label={apen ? 'Lukk meny' : 'Åpne meny'}
-            aria-expanded={apen}
-            style={knappYtre}
-          >
-            <span style={knappInner}>
-              <span
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: apen ? 0 : 1,
-                  transition: 'opacity 180ms ease',
-                }}
+        {/* Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {TABS.map(tab => {
+            const aktiv = erAktiv(tab, pathname)
+            const tabStil: CSSProperties = {
+              position: 'relative',
+              padding: '8px 10px',
+              fontFamily: 'var(--font-display)',
+              fontSize: 15,
+              fontWeight: 500,
+              color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
+              textDecoration: 'none',
+              transition: 'color 180ms ease',
+              letterSpacing: '-0.2px',
+            }
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={aktiv ? 'page' : undefined}
+                style={tabStil}
+                prefetch
               >
-                <Icon name="menu" size={18} strokeWidth={2} />
-              </span>
-              <span
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: apen ? 1 : 0,
-                  transition: 'opacity 180ms ease',
-                }}
-              >
-                <Icon name="x" size={18} strokeWidth={2} />
-              </span>
-            </span>
-          </button>
-
-          {/* Ekspanderte nav-knapper */}
-          {apen &&
-            TABS.map((tab, idx) => {
-              const aktiv = erAktiv(tab.href, pathname)
-              const stil: CSSProperties = {
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: aktiv ? 'var(--accent-soft)' : 'rgba(255,255,255,0.06)',
-                border: aktiv
-                  ? '1.5px solid var(--accent)'
-                  : '0.5px solid rgba(255,255,255,0.1)',
-                boxShadow: aktiv ? '0 0 0 2px rgba(232,217,181,0.15)' : 'none',
-                color: aktiv ? 'var(--accent)' : 'var(--text-primary)',
-                textDecoration: 'none',
-                flexShrink: 0,
-                animation: `top-header-glid 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both`,
-                animationDelay: `${idx * 40}ms`,
-                transformOrigin: 'left center',
-              }
-              return (
-                <Link
-                  key={tab.href}
-                  ref={idx === 0 ? forsteTabRef : undefined}
-                  href={tab.href}
-                  aria-label={tab.label}
-                  aria-current={aktiv ? 'page' : undefined}
-                  style={stil}
-                  prefetch
-                >
-                  <Icon
-                    name={tab.ikon}
-                    size={22}
-                    strokeWidth={aktiv ? 1.8 : 1.5}
-                    color="currentColor"
+                {tab.label}
+                {aktiv && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      left: 10,
+                      right: 10,
+                      bottom: 2,
+                      height: 1.5,
+                      background: 'var(--accent)',
+                      borderRadius: 1,
+                    }}
                   />
-                </Link>
-              )
-            })}
+                )}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Profil-snarvei */}
@@ -243,8 +130,6 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           style={{
             display: 'block',
             borderRadius: '50%',
-            // Gull-ring når på /profil-siden (skippes for generalsekretær —
-            // han har allerede gul gloed rundt avataren).
             outline: visAktivOutline ? '1.5px solid var(--accent)' : 'none',
             outlineOffset: 2,
             flexShrink: 0,
@@ -258,13 +143,6 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           />
         </Link>
       </div>
-
-      <style>{`
-        @keyframes top-header-glid {
-          from { opacity: 0; transform: translateX(-8px) scale(0.85); }
-          to   { opacity: 1; transform: translateX(0) scale(1); }
-        }
-      `}</style>
     </nav>
   )
 }
