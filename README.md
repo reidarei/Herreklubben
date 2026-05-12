@@ -166,12 +166,12 @@ Fem chat-scopes (arrangement, klubb, poll, melding, privat) deler tabell-mønste
 ```
 app/
   (auth)/login/                    # Offentlig login-side
-  (app)/                           # Auth-beskyttede sider med bottom-nav
+  (app)/                           # Auth-beskyttede sider med sticky TopHeader
     page.tsx                       # Forsiden = agenda
     arrangementer/[id]/            # Arrangement-detalj + edit
     poll/[id]/, /ny/
     meldinger/[id]/, /ny/
-    chat/                          # Klubbchat (dock-fane)
+    chat/                          # Klubbchat (egen side, åpnes fra hamburger-meny)
     samtaler/, samtaler/[id]/      # Privat-meldinger
     album/, album/[id]/            # Bildealbum
     klubbinfo/                     # Vedtekter, medlemmer, statistikk

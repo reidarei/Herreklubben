@@ -149,7 +149,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   const visAktivOutline = profilAktiv && !harGulGloed(rolle ?? null)
 
   return (
-    <header id="top-header-root" style={headerStyle} aria-label="Hovednavigasjon">
+    <nav id="top-header-root" style={headerStyle} aria-label="Hovednavigasjon">
       <div style={innerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* Hamburger / × */}
@@ -265,6 +265,6 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           to   { opacity: 1; transform: translateX(0) scale(1); }
         }
       `}</style>
-    </header>
+    </nav>
   )
 }
