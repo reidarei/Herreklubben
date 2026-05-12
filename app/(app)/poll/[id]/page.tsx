@@ -153,7 +153,7 @@ export default async function PollDetalj({
 
   // ─── Vanlig poll: uendret oppførsel ────────────────────────────────────
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {!erAvsluttet && <PollRealtime pollId={poll.id} />}
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <div
@@ -343,7 +343,7 @@ function KaaringVisning({
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {!erAvsluttet && <PollRealtime pollId={poll.id} />}
 
       {erAvgjort && vinner && (

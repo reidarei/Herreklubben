@@ -22,7 +22,7 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <div style={{ marginTop: 12, marginBottom: 20 }}>
         <Link
           href="/profil"

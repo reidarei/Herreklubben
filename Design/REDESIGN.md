@@ -469,7 +469,7 @@ Title + sub + toggle høyre. Body 13/500 tittel, body 11 sub. Toggle 38×22 (se 
 
 ## 8. Skjermer (ruter + innhold)
 
-Alle skjermer har `padding: '0 20px 120px'`. Ingen `<main>`-card-wrapper — enkel vertikal stabel.
+Alle skjermer har `padding: '0 20px 20px'`. Ingen `<main>`-card-wrapper — enkel vertikal stabel.
 
 Hver seksjon under følger mønsteret: **struktur → data-binding → akseptkriterier (Playwright)**.
 

@@ -48,7 +48,7 @@ export default async function AlbumOversikt() {
   })
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <div style={{ padding: '12px 4px 22px' }}>
         <div
           style={{

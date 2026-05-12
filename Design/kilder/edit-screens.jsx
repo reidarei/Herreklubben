@@ -143,7 +143,7 @@ function SkjemaBar({ theme, overtittel, tittel, primary = 'Lagre' }) {
 // ────────── ARRANGEMENT-REDIGERING ──────────
 function RedigerArrangementSkjerm({ theme }) {
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar theme={theme} overtittel="Rediger" tittel="Sommerturen" />
 
       {/* Hero-bilde med bytt-knapp */}
@@ -262,7 +262,7 @@ function RedigerArrangementSkjerm({ theme }) {
 // ────────── PROFIL-REDIGERING ──────────
 function RedigerProfilSkjerm({ theme }) {
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar theme={theme} overtittel="Rediger" tittel="Profil" />
 
       {/* Avatar-editor — mer diskret enn før */}

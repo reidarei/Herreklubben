@@ -56,7 +56,7 @@ export default async function Medlemmer() {
   const antallAktive = medlemmer.filter(m => m.aktiv).length
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Header — editorial */}
       <div
         style={{

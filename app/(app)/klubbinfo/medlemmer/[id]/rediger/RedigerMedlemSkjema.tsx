@@ -103,7 +103,7 @@ export default function RedigerMedlemSkjema({ medlem }: { medlem: Medlem }) {
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar
         overtittel="Rediger"
         tittel={medlem.navn}

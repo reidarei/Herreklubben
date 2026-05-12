@@ -725,8 +725,8 @@ export default function Chat({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          marginBottom: 14,
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+          marginBottom: 4,
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         {meldinger.length === 0 && (

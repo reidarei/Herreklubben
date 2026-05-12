@@ -94,7 +94,7 @@ const TIDLIGERE = [
 // ──────────── HJEM ────────────
 function HjemSkjerm({ theme }) {
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Hero — eksklusiv klubb-innledning */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -446,7 +446,7 @@ function KlubbinfoSkjerm({ theme }) {
     { nr: '06', icon: 'cog', title: 'Innstillinger', sub: 'Varsler og admin' },
   ];
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Typografisk hero — klubbnavn som statement */}
       <div style={{
         position: 'relative',
@@ -560,7 +560,7 @@ function KaaringerSkjerm({ theme }) {
     { navn: 'Årets nykommer', vinner: null },
   ];
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <div style={{ marginBottom: 28 }}>
         <div style={{
           fontFamily: theme.fontMono, fontSize: 10,
@@ -652,7 +652,7 @@ function KaaringerSkjerm({ theme }) {
 // ──────────── PROFIL ────────────
 function ProfilSkjerm({ theme }) {
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
         <div style={{

@@ -37,7 +37,7 @@ export default async function PassGodkjenningerSide() {
   const ventende = (data ?? []) as unknown as ForespørselRad[]
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <h1
           style={{

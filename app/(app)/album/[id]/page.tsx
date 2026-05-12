@@ -45,7 +45,7 @@ export default async function AlbumSide({ params }: { params: Promise<{ id: stri
   const kanRedigere = erEier || erAdmin
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <TillatLandskap />
       <div style={{ paddingTop: 20, marginBottom: 16 }}>
         {arrangement ? (

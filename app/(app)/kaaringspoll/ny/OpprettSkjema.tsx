@@ -138,7 +138,7 @@ export default function OpprettSkjema({
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar
         overtittel="Ny"
         tittel={valgtMal ? `${valgtMal.navn} ${aar}` : 'Kåring'}

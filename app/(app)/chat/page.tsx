@@ -37,7 +37,7 @@ export default async function KlubbChatSide() {
   const ulest = ulestPrivat ?? 0
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Breadcrumb + tittel */}
       <div style={{ padding: '12px 4px 22px' }}>
         <div

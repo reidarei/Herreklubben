@@ -198,7 +198,7 @@ export default function RedigerProfilForm({
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {cropFil && (
         <BildeCropper
           fil={cropFil}

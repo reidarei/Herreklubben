@@ -54,7 +54,7 @@ export default function BliUtvikler() {
 
   if (sendt) {
     return (
-      <div style={{ padding: '0 20px 120px' }}>
+      <div style={{ padding: '0 20px 20px' }}>
         <div
           style={{
             marginTop: 40,
@@ -144,7 +144,7 @@ export default function BliUtvikler() {
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <SkjemaBar
         overtittel="Innspill"
         tittel="Til appen"

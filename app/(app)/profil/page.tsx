@@ -67,7 +67,7 @@ export default async function Profil() {
   const rolle = tittelFor(profil?.rolle)
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       {/* Header */}
       <header
         style={{

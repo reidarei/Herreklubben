@@ -48,7 +48,7 @@ export default async function SamtalerInbox() {
 
   if (samtaleListe.length === 0) {
     return (
-      <div style={{ padding: '0 20px 120px' }}>
+      <div style={{ padding: '0 20px 20px' }}>
         <header style={{ marginTop: 12, marginBottom: 22 }}>
           <h1
             style={{
@@ -114,7 +114,7 @@ export default async function SamtalerInbox() {
   }
 
   return (
-    <div style={{ padding: '0 20px 120px' }}>
+    <div style={{ padding: '0 20px 20px' }}>
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <h1
           style={{
