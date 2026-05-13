@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 import { KOMMENTARER_KOLLAPS_DAGER } from '@/lib/konstanter'
+import type { ChatProfil } from '@/lib/mention'
 
 export type ArrangementKortData = {
   id: string
@@ -56,9 +57,13 @@ type Props = {
   kommentarer?: KommentarKortData[]
   /** Totalt antall kommentarer (overskrift kan ellers vise maks 3). */
   totaltKommentarer?: number
+  /** Aktive profiler for @mention-forslag i inline kommentar-felt. */
+  profiler?: ChatProfil[]
+  /** Innlogget brukers id — ekskluderes fra mention-forslag. */
+  brukerId?: string
 }
 
-export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer }: Props) {
+export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId }: Props) {
   const iso = arr.start_tidspunkt
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
@@ -259,6 +264,8 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
             scope={{ type: 'arrangement', id: arr.id }}
             startKollapset={skalKollapse}
             totaltAntall={totaltKommentarer}
+            profiler={profiler}
+            brukerId={brukerId}
           />
         )}
       </Card>

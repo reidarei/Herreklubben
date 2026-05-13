@@ -60,6 +60,7 @@ export default async function Forside() {
     { data: albumMedArrangement },
     { data: arrKommTotalt },
     { data: pollKommTotalt },
+    { data: aktiveProfiler },
   ] = await Promise.all([
     supabase
       .from('arrangementer')
@@ -159,6 +160,12 @@ export default async function Forside() {
     supabase
       .from('poll_chat')
       .select('poll_id'),
+    // Aktive profiler — sendes til kortene for @mention-forslag i inline
+    // kommentar-felt. Samme select-form som /chat-siden bruker.
+    supabase
+      .from('profiles')
+      .select('id, navn, bilde_url, rolle')
+      .eq('aktiv', true),
   ])
 
   // Kåringspoll-aggregater hentes via RPC (mig. 079), fordi RLS skjuler
@@ -383,6 +390,7 @@ export default async function Forside() {
   })
 
   const antallGutta = aktiveMedlemmer ?? 0
+  const chatProfiler = aktiveProfiler ?? []
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
@@ -443,6 +451,7 @@ export default async function Forside() {
                   melding={i.data}
                   brukerId={user!.id}
                   kommentarer={kommentarerPerMelding.get(i.data.id) ?? []}
+                  profiler={chatProfiler}
                 />
               )
             })}
@@ -463,9 +472,9 @@ export default async function Forside() {
               if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
               if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
               if (i.kind === 'poll')
-                return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} />
+                return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} profiler={chatProfiler} brukerId={user!.id} />
               if (i.kind === 'arrangement')
-                return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} />
+                return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} profiler={chatProfiler} brukerId={user!.id} />
               // Meldinger plasseres kun i toppseksjonen (eller Tidligere) — ikke her
               return null
             })}
@@ -479,12 +488,12 @@ export default async function Forside() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {kommende.map(i => {
             if (i.kind === 'arrangement')
-              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} />
+              return <ArrangementKort key={i.data.id} arr={i.data} kommentarer={kommentarerPerArr.get(i.data.id) ?? []} totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0} profiler={chatProfiler} brukerId={user!.id} />
             if (i.kind === 'bursdag') return <BursdagKort key={i.data.id} bursdag={i.data} />
             if (i.kind === 'klubbjubileum') return <KlubbJubileumKort key={i.data.id} jubileum={i.data} />
             if (i.kind === 'utkast') return <UtkastKort key={i.data.id} utkast={i.data} meg={user!.id} />
             if (i.kind === 'poll')
-              return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} />
+              return <PollKort key={i.data.id} poll={i.data} kommentarer={kommentarerPerPoll.get(i.data.id) ?? []} totaltKommentarer={totaltPerPoll.get(i.data.id) ?? 0} profiler={chatProfiler} brukerId={user!.id} />
             if (i.kind === 'highlight') return <HighlightKort key={i.data.id} arr={i.data} />
             // Meldinger plasseres kun i toppseksjonen eller Tidligere
             return null

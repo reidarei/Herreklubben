@@ -7,6 +7,7 @@ import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import MeldingReaksjoner, { type ReaksjonGruppe } from '@/components/agenda/MeldingReaksjoner'
+import type { ChatProfil } from '@/lib/mention'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -40,6 +41,8 @@ type Props = {
   melding: MeldingKortData
   brukerId: string
   kommentarer?: KommentarKortData[]
+  /** Aktive profiler for @mention-forslag i inline kommentar-felt. */
+  profiler?: ChatProfil[]
 }
 
 /**
@@ -51,7 +54,7 @@ type Props = {
  * Long-press på selve innlegget åpner reaksjons-picker — samme mønster
  * som chat-bobler bruker. Vanlig click navigerer til detaljsiden.
  */
-export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Props) {
+export default function MeldingKort({ melding, brukerId, kommentarer = [], profiler }: Props) {
   const [pickerApen, setPickerApen] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
@@ -224,6 +227,8 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [] }: Pro
             kommentarer={kommentarer}
             scope={{ type: 'melding', id: melding.id }}
             totaltAntall={melding.antallKommentarer}
+            profiler={profiler}
+            brukerId={brukerId}
           />
         )}
       </Card>

@@ -18,6 +18,13 @@ import BildeLightbox from '@/components/ui/BildeLightbox'
 import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
+import {
+  beregnMentionSøk,
+  velgMentionTekst,
+  lagMentionForslag,
+  type ChatProfil,
+} from '@/lib/mention'
+import MentionVelger from '@/components/agenda/MentionVelger'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -36,12 +43,7 @@ export type ChatMelding = {
   fra_facebook?: boolean
 }
 
-export type ChatProfil = {
-  id: string
-  navn: string | null
-  bilde_url: string | null
-  rolle?: string | null
-}
+// ChatProfil-typen ligger i lib/mention.ts — importer derfra direkte.
 
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
 const SIDE_STORRELSE = 30
@@ -211,42 +213,13 @@ export default function Chat({
     setBildeFeil('')
   }
 
-  // @alle er et spesialvalg som trigger varsel til alle aktive profiler.
-  // Server-siden matcher strengen «alle» direkte og sender varsler bredt.
-  const ALLE_VALG: ChatProfil = {
-    id: '__alle__',
-    navn: 'alle',
-    bilde_url: null,
-    rolle: null,
-  }
-  const mentionForslag =
-    mentionSøk !== null
-      ? [
-          ...('alle'.startsWith(mentionSøk.toLowerCase()) ? [ALLE_VALG] : []),
-          ...andreProfiler
-            .filter(p => p.navn!.toLowerCase().includes(mentionSøk.toLowerCase()))
-            .slice(0, 5),
-        ]
-      : []
-
-  function oppdaterMentionSøk(verdi: string) {
-    const sisteAt = verdi.lastIndexOf('@')
-    if (sisteAt === -1) {
-      setMentionSøk(null)
-      return
-    }
-    const etterAt = verdi.slice(sisteAt + 1)
-    if (etterAt.endsWith('  ') || etterAt.includes('\n')) {
-      setMentionSøk(null)
-      return
-    }
-    setMentionSøk(etterAt)
-  }
+  // Mention-state og -forslag styres av hjelperne i lib/mention.ts.
+  // andreProfiler-filteret over ekskluderer allerede innlogget bruker, men vi
+  // sender brukerId likevel som ekskluder for å gjøre kontrakten eksplisitt.
+  const mentionForslag = lagMentionForslag(mentionSøk, andreProfiler, brukerId)
 
   function velgMention(navn: string) {
-    const sisteAt = tekst.lastIndexOf('@')
-    if (sisteAt === -1) return
-    const nyTekst = tekst.slice(0, sisteAt) + '@' + navn + ' '
+    const nyTekst = velgMentionTekst(tekst, navn)
     setTekst(nyTekst)
     setMentionSøk(null)
     inputRef.current?.focus()
@@ -1202,48 +1175,7 @@ export default function Chat({
         }}
       >
       {/* @mention-forslag */}
-      {mentionForslag.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {mentionForslag.map(p => {
-            const erAlle = p.id === '__alle__'
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => velgMention(p.navn!)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 999,
-                  background: erAlle ? 'var(--accent-soft)' : 'var(--bg-elevated)',
-                  border: `0.5px solid ${erAlle ? 'var(--accent)' : 'var(--border)'}`,
-                  color: 'var(--accent)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 12,
-                  fontWeight: erAlle ? 600 : 500,
-                  cursor: 'pointer',
-                }}
-              >
-                @{p.navn}
-                {erAlle && (
-                  <span
-                    style={{
-                      marginLeft: 6,
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 9,
-                      letterSpacing: '1.2px',
-                      textTransform: 'uppercase',
-                      color: 'var(--text-tertiary)',
-                    }}
-                  >
-                    varsler hele klubben
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      <MentionVelger forslag={mentionForslag} onVelg={velgMention} />
       {/* Bilde-forhåndsvisning over input når et bilde er valgt */}
       {bildePreview && (
         <div
@@ -1352,7 +1284,7 @@ export default function Chat({
           value={tekst}
           onChange={e => {
             setTekst(e.target.value)
-            oppdaterMentionSøk(e.target.value)
+            setMentionSøk(beregnMentionSøk(e.target.value))
           }}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey) {
