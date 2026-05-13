@@ -151,7 +151,7 @@ export default function KommentarerPaaKort({
           >
             <path d="M9 6l6 6-6 6" />
           </svg>
-          {apen && visTall > kommentarer.length
+          {apen && kommentarer.length > 0 && visTall > kommentarer.length
             ? `Siste ${kommentarer.length} av ${visTall} kommentarer`
             : `${visTall} ${visTall === 1 ? 'kommentar' : 'kommentarer'}`}
         </span>
