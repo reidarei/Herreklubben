@@ -31,7 +31,7 @@ export const ALLE_VALG: ChatProfil = {
  * Avbryter mention-modus dersom det er to mellomrom på rad eller en linjeskift
  * etter `@` (typisk når brukeren har gått videre uten å velge noen).
  */
-export function oppdaterMentionSøk(verdi: string): string | null {
+export function beregnMentionSøk(verdi: string): string | null {
   const sisteAt = verdi.lastIndexOf('@')
   if (sisteAt === -1) return null
   const etterAt = verdi.slice(sisteAt + 1)

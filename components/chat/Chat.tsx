@@ -19,7 +19,7 @@ import MessengerBadge from '@/components/ui/MessengerBadge'
 import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
 import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 import {
-  oppdaterMentionSøk as beregnMentionSøk,
+  beregnMentionSøk,
   velgMentionTekst,
   lagMentionForslag,
   type ChatProfil,
@@ -43,10 +43,7 @@ export type ChatMelding = {
   fra_facebook?: boolean
 }
 
-// ChatProfil-typen ligger nå i lib/mention.ts (sentralisert siden flere
-// flater bruker mention-velgeren). Re-eksporteres her for å bevare
-// eksisterende imports.
-export type { ChatProfil } from '@/lib/mention'
+// ChatProfil-typen ligger i lib/mention.ts — importer derfra direkte.
 
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
 const SIDE_STORRELSE = 30

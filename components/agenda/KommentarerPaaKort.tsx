@@ -10,7 +10,7 @@ import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 import { CHAT_MAKS_LENGDE } from '@/lib/konstanter'
 import {
-  oppdaterMentionSøk as beregnMentionSøk,
+  beregnMentionSøk,
   velgMentionTekst,
   lagMentionForslag,
   type ChatProfil,
@@ -252,7 +252,7 @@ export default function KommentarerPaaKort({
       {/* Inline kommentar-input — alltid synlig når seksjonen er åpen (eller
           når det ikke er kommentarer ennå) */}
       {(apen || kommentarer.length === 0) && (
-        <div style={{ marginTop: kommentarer.length > 0 ? 10 : 0 }}>
+        <div style={{ marginTop: kommentarer.length > 0 ? 10 : 0 }} onClick={stopp}>
         {/* Mention-velger ligger over selve input-pillen så chips ikke krysser
             den runde rammen. Komponenten returnerer null når det ikke er
             forslag, så ingen tom margin. */}
