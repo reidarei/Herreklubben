@@ -110,7 +110,7 @@ describe('lagMentionForslag', () => {
   it('utelater ALLE_VALG når søket er substring (ikke prefiks) av "alle"', () => {
     // 'lle' finnes inne i 'alle', men er ikke prefiks → skal IKKE matche.
     // Sikrer at logikken er startsWith, ikke includes.
-    const resultat = lagMentionForslag('lle', [], null)
+    const resultat = lagMentionForslag('lle', [], undefined)
     expect(resultat).not.toContain(ALLE_VALG)
     expect(resultat).toEqual([])
   })
