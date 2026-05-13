@@ -26,6 +26,14 @@ describe('beregnMentionSøk', () => {
     expect(beregnMentionSøk('hei @')).toBe('')
   })
 
+  it('returnerer tom streng når @ står på posisjon 0', () => {
+    expect(beregnMentionSøk('@')).toBe('')
+  })
+
+  it('returnerer søkeord når @ står på posisjon 0 med tekst', () => {
+    expect(beregnMentionSøk('@rei')).toBe('rei')
+  })
+
   it('siste @ vinner ved flere', () => {
     expect(beregnMentionSøk('@reidar og @mic')).toBe('mic')
   })
@@ -55,6 +63,10 @@ describe('velgMentionTekst', () => {
 
   it('bevarer tekst foran siste @', () => {
     expect(velgMentionTekst('@reidar og @mic', 'Michael')).toBe('@reidar og @Michael ')
+  })
+
+  it('håndterer flerords-navn (delvis skrevet)', () => {
+    expect(velgMentionTekst('hei @Reidar Eik', 'Reidar Eik Haavik')).toBe('hei @Reidar Eik Haavik ')
   })
 })
 
@@ -95,6 +107,14 @@ describe('lagMentionForslag', () => {
     expect(resultat).not.toContain(ALLE_VALG)
   })
 
+  it('utelater ALLE_VALG når søket er substring (ikke prefiks) av "alle"', () => {
+    // 'lle' finnes inne i 'alle', men er ikke prefiks → skal IKKE matche.
+    // Sikrer at logikken er startsWith, ikke includes.
+    const resultat = lagMentionForslag('lle', [], null)
+    expect(resultat).not.toContain(ALLE_VALG)
+    expect(resultat).toEqual([])
+  })
+
   it('filtrerer profiler case-insensitive på navn-substring', () => {
     const resultat = lagMentionForslag('REI', profiler)
     expect(resultat.map(p => p.id)).toEqual(['1'])
@@ -113,8 +133,8 @@ describe('lagMentionForslag', () => {
     expect(resultat.map(p => p.id)).not.toContain('4')
   })
 
-  it('5-treff-cap: slice(0,5) skjer FØR ALLE_VALG prependes', () => {
-    // 7 profiler som alle matcher tomt søk. Forventning: cap på 5 treff
+  it('hard cap er 5 ekte profiler — ALLE_VALG kommer i tillegg (ikke inkludert i cap)', () => {
+    // 7 profiler som alle matcher tomt søk. Forventning: cap på 5 ekte profiler
     // pluss ALLE_VALG = 6 elementer totalt. Hvis ALLE_VALG telles inn i
     // cap-en før slicen, ville vi sett 5. Denne testen låser dagens
     // adferd.
