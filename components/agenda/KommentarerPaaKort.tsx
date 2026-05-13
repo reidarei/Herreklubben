@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, type MouseEvent, type KeyboardEvent } from 'react'
+import { useRef, useState, useTransition, type MouseEvent, type KeyboardEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
@@ -8,6 +8,14 @@ import { sendChatMelding } from '@/lib/actions/chat'
 import type { ChatScope } from '@/lib/chat-konfig'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
+import { CHAT_MAKS_LENGDE } from '@/lib/konstanter'
+import {
+  oppdaterMentionSøk as beregnMentionSøk,
+  velgMentionTekst,
+  lagMentionForslag,
+  type ChatProfil,
+} from '@/lib/mention'
+import MentionVelger from '@/components/agenda/MentionVelger'
 
 export type KommentarKortData = {
   id: string
@@ -48,18 +56,35 @@ export default function KommentarerPaaKort({
   scope,
   startKollapset = false,
   totaltAntall,
+  profiler = [],
+  brukerId,
 }: {
   kommentarer: KommentarKortData[]
   scope: KommentarScope
   startKollapset?: boolean
   /** Totalt antall kommentarer (for korrekt overskrift når listen er begrenset til 3). */
   totaltAntall?: number
+  /** Aktive profiler — brukes til @mention-forslag. Kan utelates (tomt) hvis kalleren ikke trenger mentions. */
+  profiler?: ChatProfil[]
+  /** Innlogget brukers id — ekskluderes fra mention-forslag (han nevner ikke seg selv). */
+  brukerId?: string
 }) {
   const visTall = totaltAntall ?? kommentarer.length
   const [apen, setApen] = useState(!startKollapset)
   const [tekst, setTekst] = useState('')
+  const [mentionSøk, setMentionSøk] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [sender, startTransition] = useTransition()
   const router = useRouter()
+
+  const mentionForslag = lagMentionForslag(mentionSøk, profiler, brukerId)
+
+  function velgMention(navn: string) {
+    const ny = velgMentionTekst(tekst, navn)
+    setTekst(ny)
+    setMentionSøk(null)
+    inputRef.current?.focus()
+  }
 
   function toggle(e: MouseEvent<HTMLSpanElement> | KeyboardEvent<HTMLSpanElement>) {
     e.preventDefault()
@@ -80,6 +105,7 @@ export default function KommentarerPaaKort({
     const melding = tekst.trim()
     if (!melding || sender) return
     setTekst('')
+    setMentionSøk(null)
 
     // Map fra det lokale KommentarScope til CHAT_KONFIG-scopet.
     const chatScope: ChatScope =
@@ -226,12 +252,16 @@ export default function KommentarerPaaKort({
       {/* Inline kommentar-input — alltid synlig når seksjonen er åpen (eller
           når det ikke er kommentarer ennå) */}
       {(apen || kommentarer.length === 0) && (
+        <div style={{ marginTop: kommentarer.length > 0 ? 10 : 0 }}>
+        {/* Mention-velger ligger over selve input-pillen så chips ikke krysser
+            den runde rammen. Komponenten returnerer null når det ikke er
+            forslag, så ingen tom margin. */}
+        <MentionVelger forslag={mentionForslag} onVelg={velgMention} />
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            marginTop: kommentarer.length > 0 ? 10 : 0,
             padding: '6px 6px 6px 12px',
             border: '0.5px solid var(--border)',
             borderRadius: 999,
@@ -240,9 +270,13 @@ export default function KommentarerPaaKort({
           onClick={stopp}
         >
           <input
+            ref={inputRef}
             type="text"
             value={tekst}
-            onChange={e => setTekst(e.target.value)}
+            onChange={e => {
+              setTekst(e.target.value)
+              setMentionSøk(beregnMentionSøk(e.target.value))
+            }}
             onClick={stopp}
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -250,7 +284,7 @@ export default function KommentarerPaaKort({
               }
             }}
             placeholder="Skriv en kommentar…"
-            maxLength={500}
+            maxLength={CHAT_MAKS_LENGDE}
             enterKeyHint="send"
             autoComplete="off"
             disabled={sender}
@@ -286,6 +320,7 @@ export default function KommentarerPaaKort({
           >
             <Icon name="arrowRight" size={12} color="#0a0a0a" strokeWidth={2.5} />
           </button>
+        </div>
         </div>
       )}
     </div>

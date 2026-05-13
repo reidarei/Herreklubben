@@ -4,6 +4,7 @@ import Card from '@/components/ui/Card'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import { formaterDato, aarHvisAvvik } from '@/lib/dato'
 import PollInlineStemme from '@/components/poll/PollInlineStemme'
+import type { ChatProfil } from '@/lib/mention'
 
 // Terskel for når alternativene vises som inline stemmeknapper på agenda-
 // kortet. Justeres fritt — 2 gir et rent Ja/Nei-oppsett som ligner RSVP-
@@ -31,6 +32,10 @@ type Props = {
   kommentarer?: KommentarKortData[]
   /** Totalt antall kommentarer (overskrift kan ellers vise maks 3). */
   totaltKommentarer?: number
+  /** Aktive profiler for @mention-forslag i inline kommentar-felt. */
+  profiler?: ChatProfil[]
+  /** Innlogget brukers id — ekskluderes fra mention-forslag. */
+  brukerId?: string
 }
 
 function fristLabel(avsluttet: boolean, iso: string): string {
@@ -42,7 +47,7 @@ function fristLabel(avsluttet: boolean, iso: string): string {
   return `frist ${dag}. ${mnd}${aar ? ` ${aar}` : ''} ${tid}`
 }
 
-export default function PollKort({ poll, tidligere = false, kommentarer = [], totaltKommentarer }: Props) {
+export default function PollKort({ poll, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId }: Props) {
   const erInline = !poll.avsluttet && !tidligere && poll.valg.length <= MAKS_INLINE_VALG
 
   // Felles topp-innhold (label + spørsmål). Både inline og kompakt bruker
@@ -146,6 +151,8 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [], to
             kommentarer={kommentarer}
             scope={{ type: 'poll', id: poll.id }}
             totaltAntall={totaltKommentarer}
+            profiler={profiler}
+            brukerId={brukerId}
           />
         </Card>
       </Link>
@@ -227,6 +234,8 @@ export default function PollKort({ poll, tidligere = false, kommentarer = [], to
             kommentarer={kommentarer}
             scope={{ type: 'poll', id: poll.id }}
             totaltAntall={totaltKommentarer}
+            profiler={profiler}
+            brukerId={brukerId}
           />
         )}
       </Card>
