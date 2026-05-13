@@ -28,7 +28,7 @@ export const ALLE_VALG: ChatProfil = {
  * Tolk hva brukeren har skrevet i input-feltet og returner aktivt mention-søk
  * — strengen etter siste `@` — eller `null` hvis ingen mention er aktiv.
  *
- * Avbryter mention-modus dersom det er to mellomrom på rad eller en linjeskift
+ * Avbryter mention-modus dersom det er to mellomrom på rad eller et linjeskift
  * etter `@` (typisk når brukeren har gått videre uten å velge noen).
  */
 export function beregnMentionSøk(verdi: string): string | null {

@@ -64,7 +64,7 @@ export default function KommentarerPaaKort({
   startKollapset?: boolean
   /** Totalt antall kommentarer (for korrekt overskrift når listen er begrenset til 3). */
   totaltAntall?: number
-  /** Aktive profiler — brukes til @mention-forslag. Kan utelates (tomt) hvis kalleren ikke trenger mentions. */
+  /** Aktive profiler — brukes til @mention-forslag på navn. `@alle` er alltid tilgjengelig uansett, siden den ikke krever profil-data. */
   profiler?: ChatProfil[]
   /** Innlogget brukers id — ekskluderes fra mention-forslag (han nevner ikke seg selv). */
   brukerId?: string

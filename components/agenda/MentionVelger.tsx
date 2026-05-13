@@ -17,7 +17,7 @@ type Props = {
  *
  * 1. `onMouseDown preventDefault` — uten dette mister input-feltet fokus
  *    i det øyeblikket brukeren klikker på chipen. Det fjerner mention-søket
- *    før `onClick` rekker å trigge, og chipen blir effektivt udelelig.
+ *    før `onClick` rekker å trigge, og chipen blir effektivt uklikkbar.
  *    `preventDefault` på mousedown holder fokus på input gjennom klikket.
  *
  * 2. `onClick stopPropagation` — agenda-kortene wrapper innholdet i en
