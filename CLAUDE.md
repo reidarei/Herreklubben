@@ -52,6 +52,8 @@ Auth-guard via `middleware.ts` (`@supabase/ssr`). Bruk `createServerClient` (fra
 
 **Bildelagring:** Nye bilder lagres i Cloudflare R2 via `lib/r2.ts` + server actions i `lib/actions/bilde-opplasting.ts`. Klient-side komprimering først (1600 px / q0.85). Eldre profilbilder ligger fortsatt i Supabase Storage. Se **Policy: Bildelagring** nedenfor.
 
+**Migrasjoner:** Nye tabeller i `public`-schema må ha eksplisitte `GRANT`-statements til `anon`/`authenticated`/`service_role` — Supabase fjerner default-grants 30. mai 2026 for nye prosjekter og 30. oktober 2026 for eksisterende. Se **Policy: Migrasjoner** nedenfor.
+
 **PWA:** Installerbar via Safari/Chrome. Manifest i `app/manifest.ts`.
 
 **Produksjon:** Appen kjører på [mortensrudherreklubb.no](https://mortensrudherreklubb.no) (Vercel, Dublin-region). Domenet er kjøpt via Domeneshop og DNS peker til Vercel.
@@ -77,6 +79,17 @@ Se [HK-app_kravspesifikasjon.md](HK-app_kravspesifikasjon.md) for fullstendig sc
 ### Når patch-strategien har gått tom
 
 Tre regresjoner i samme bug-klasse = arkitektonisk reversering, ikke fjerde patch. Skriv heller en CLAUDE.md-policy som lukker problemklassen enn enda en lapp. Gjelder generelt — UI-bugs, DB-bugs, varsel-bugs.
+
+### Kommentarer i kode
+
+**Overstyrer global default.** I dette prosjektet er kommentarer velkomne — også når WHY-en ikke er strengt ikke-åpenbar. Reidar bruker kodebasen som læringsprosjekt og setter pris på at subtile betingelser, edge-cases og «hvorfor akkurat sånn»-valg står forklart i koden, ikke bare i PR-historikk eller git blame.
+
+- Skriv en kort kommentar når en betingelse, regex, off-by-one-justering eller tilsynelatende redundans har en grunn som ikke leses rett ut av variabelnavnene.
+- Det er greit å referere til issue-nummer (f.eks. `// se #165 for bakgrunn`) når det hjelper en fremtidig leser å finne kontekst.
+- Hold dem korte (én linje, maks to). Ikke skriv flerlinjede docstrings eller essays.
+- Fortsatt nei: kommentarer som kun gjengir hva koden gjør (`// loop over array`), eller TODO-er uten eier/dato.
+
+Når reviewer foreslår en forklarende kommentar — default er nå å legge den inn, ikke avvise den.
 
 ## Policy: Varsler
 
@@ -248,6 +261,34 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 ## Policy: Navigasjon
 
 App-navigasjon består av sticky TopHeader (hamburger venstre → tre ikon-knapper for Agenda/Chat/Klubb i horisontal ekspansjon; profil-sirkel høyre som snarvei til /profil) og kontekstuelle FAB-er (NyFAB på agenda for å opprette innhold). **Ingen bottom-nav.** Dette eliminerer hele bug-klassen vi traff i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Hvis du finner deg selv i å legge til en `position: fixed; bottom: 0` UI-flate som ikke er en modal eller toast — løft det til diskusjon først.
+
+## Policy: Migrasjoner
+
+Nye tabeller i `public`-schema må eksplisitt gi tilgang til Data API-rollene. Supabase fjerner de implisitte default-grants på `public`-schema: **30. mai 2026** for nye prosjekter, **30. oktober 2026** håndhevet på alle eksisterende prosjekter (inkludert vårt). Uten `GRANT` returnerer PostgREST `42501` selv om RLS-policyen tillater raden — `supabase-js` ser ikke at tabellen finnes.
+
+**Mal for nye tabeller i migrasjon:**
+
+```sql
+create table public.<tabell> (
+  ...
+);
+
+alter table public.<tabell> enable row level security;
+
+-- Data API-tilgang (kreves fra 2026-10-30 på vårt prosjekt)
+grant select                          on public.<tabell> to anon;
+grant select, insert, update, delete  on public.<tabell> to authenticated;
+grant select, insert, update, delete  on public.<tabell> to service_role;
+
+-- Policies (tilpass per tabell)
+create policy "..." on public.<tabell> ...;
+```
+
+**Justér scope per tabell:** Mange tabeller skal ikke gi `anon` SELECT (vi har ingen offentlige flater). Tilpass grants til hva som faktisk brukes — minste privilegium. `service_role` bypasses RLS uansett, men trenger fortsatt grants for å se tabellen via PostgREST.
+
+**Sekvenser:** Hvis tabellen har en `serial`/`identity`-kolonne brukt fra klient, husk `grant usage, select on sequence public.<tabell>_<kol>_seq to authenticated;`.
+
+**Eksisterende tabeller:** Beholder grants automatisk frem til 30. oktober 2026. Audit + opprydding tracket i eget issue.
 
 ## Policy: Visuell verifikasjon
 
