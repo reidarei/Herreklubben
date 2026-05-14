@@ -9,6 +9,7 @@ import { TIDLIGERE_SIDESTOERRELSE } from '@/lib/konstanter'
 import { dekodeCursor, enkodeCursor } from '@/lib/tidligere-cursor'
 import { tilKort, tilMeldingKort, tilPollKort } from '@/lib/agenda-sortering'
 import type { TidligereItem, MeldingRaad } from '@/lib/agenda-sortering'
+import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
 import { naa } from '@/lib/dato'
 import ArrangementKort from '@/components/agenda/ArrangementKort'
 import PollKort from '@/components/agenda/PollKort'
@@ -67,10 +68,14 @@ export default async function TidligereSide({
   }
 
   // === Polls ===
+  // kaaring_mal_id må med for å skille kåringspoller (hvor RLS skjuler andres
+  // stemmer) fra vanlige polls — samme mønster som forsiden bruker. Uten dette
+  // blir antallStemmer/stemmerPerValg feil på kåringspoller for vanlige
+  // medlemmer fordi `poll_stemme`-rader er filtrert av RLS (mig. 076).
   let pollQuery = supabase
     .from('poll')
     .select(
-      'id, spoersmaal, svarfrist, flervalg, opprettet_av, poll_valg (id, tekst, rekkefoelge), poll_stemme (profil_id, valg_id)',
+      'id, spoersmaal, svarfrist, flervalg, opprettet_av, kaaring_mal_id, poll_valg (id, tekst, rekkefoelge), poll_stemme (profil_id, valg_id)',
     )
     .lt('svarfrist', naa()) // kun avsluttede polls (.lt utelukker null implisitt)
     .order('svarfrist', { ascending: false })
@@ -164,16 +169,44 @@ export default async function TidligereSide({
     svarfrist: string
     flervalg: boolean
     opprettet_av: string
+    kaaring_mal_id: string | null
     poll_valg: { id: string; tekst: string; rekkefoelge: number }[] | null
     poll_stemme: { profil_id: string; valg_id: string }[] | null
   }
+  // Kåringspoller på denne siden er alltid avsluttede (svarfrist < nå), så i
+  // praksis er stemmene i ferd med å åpnes — men RLS-policyen (mig. 076)
+  // skiller ikke på avsluttet-status, den filtrerer alltid bort andres
+  // stemmer for vanlige medlemmer. Vi bruker derfor RPC-aggregat (samme som
+  // forsiden) for å få totaler.
+  const kaaringspollIder = (pollSide as RawPoll[])
+    .filter(p => p.kaaring_mal_id !== null)
+    .map(p => p.id)
+  const kaaringAggregater = await hentPollStemmerAggregatBatch(supabase, kaaringspollIder)
+
   const pollItems: TidligereItem[] = (pollSide as RawPoll[]).map(p => {
     const stemmer = p.poll_stemme ?? []
     const unike = new Set(stemmer.map(s => s.profil_id))
     const mine = stemmer.filter(s => s.profil_id === user.id).map(s => s.valg_id)
     const valg = [...(p.poll_valg ?? [])].sort((a, b) => a.rekkefoelge - b.rekkefoelge).map(v => ({ id: v.id, tekst: v.tekst }))
+
+    const erKaaring = p.kaaring_mal_id !== null
     const stemmerPerValg: Record<string, number> = {}
-    for (const s of stemmer) stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+    let antallStemmer = 0
+
+    if (erKaaring) {
+      // Aggregat fra RPC — totalen er sannheten siden RLS skjuler andres
+      // stemmer. harStemt utledes fortsatt fra poll_stemme: egne stemmer
+      // er synlige for kalleren.
+      const agg = kaaringAggregater.get(p.id) ?? new Map<string, number>()
+      for (const [valgId, antall] of agg) {
+        stemmerPerValg[valgId] = antall
+        antallStemmer += antall
+      }
+    } else {
+      for (const s of stemmer) stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+      antallStemmer = unike.size
+    }
+
     return {
       kind: 'poll' as const,
       sortIso: p.svarfrist,
@@ -184,7 +217,7 @@ export default async function TidligereSide({
           svarfrist: p.svarfrist,
           flervalg: p.flervalg,
           opprettet_av: p.opprettet_av,
-          antallStemmer: unike.size,
+          antallStemmer,
           harStemt: unike.has(user.id),
           valg,
           mineStemmer: mine,
