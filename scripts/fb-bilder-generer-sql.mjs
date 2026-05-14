@@ -115,11 +115,11 @@ for (const meta of [...METADATA].sort((a, b) => a.screenshot_nr - b.screenshot_n
       const url = `${R2_PUBLIC_URL}/meldinger/${p.bilde}`
       return `  ((select id from melding_id_cte), ${sql(url)}, ${i + 1}, ${sql(opprettet)})`
     }).join(',\n')
-    // ingen unique constraint på melding_bilder — vi unngår dupliseringer ved
-    // at hele transaksjonen bare opprettes en gang (meldingens kilde_ekstern_id
-    // forhindrer dobbel insert), og ekstrabildene henger på den nye meldingen.
+    // Idempotens via unique constraint (melding_id, rekkefoelge) lagt til i
+    // migrasjon 082. Re-import skipper duplikat-rader uten å feile.
     linjer.push('insert into melding_bilder (melding_id, bilde_url, rekkefoelge, opprettet) values')
-    linjer.push(ekstraInserts + ';')
+    linjer.push(ekstraInserts)
+    linjer.push('on conflict (melding_id, rekkefoelge) do nothing;')
     antallBilder += sortertePar.length - 1
   } else {
     linjer.push('select 1;')  // dummy så CTE ikke skal være "unused"

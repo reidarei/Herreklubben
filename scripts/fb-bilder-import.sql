@@ -271,7 +271,8 @@ melding_id_cte as (
 )
 insert into melding_bilder (melding_id, bilde_url, rekkefoelge, opprettet) values
   ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/472027737_10170527134715464_7921074026912311111_n.jpg', 1, '2017-12-09T12:34:56+01:00'),
-  ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/468741380_10170003415625464_4945086347616410337_n.jpg', 2, '2017-12-09T12:34:56+01:00');
+  ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/468741380_10170003415625464_4945086347616410337_n.jpg', 2, '2017-12-09T12:34:56+01:00')
+on conflict (melding_id, rekkefoelge) do nothing;
 
 -- screenshot 11: Øyvind Verket, 10. november 2017 (1 bilde, 0 kommentarer)
 with melding_insert as (
@@ -378,7 +379,8 @@ melding_id_cte as (
 )
 insert into melding_bilder (melding_id, bilde_url, rekkefoelge, opprettet) values
   ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/468496612_10161817008691368_2383094503811365159_n.jpg', 1, '2017-06-24T12:34:56+01:00'),
-  ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/468459837_10161817008656368_7271076194809599240_n.jpg', 2, '2017-06-24T12:34:56+01:00');
+  ((select id from melding_id_cte), 'https://pub-31771477f82844bfb7ecc20cdb45a5ab.r2.dev/meldinger/468459837_10161817008656368_7271076194809599240_n.jpg', 2, '2017-06-24T12:34:56+01:00')
+on conflict (melding_id, rekkefoelge) do nothing;
 
 -- screenshot 17: Øyvind Rekve, 28. mars 2017 (1 bilde, 1 kommentar)
 with melding_insert as (

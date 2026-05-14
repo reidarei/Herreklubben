@@ -12,7 +12,7 @@ import { nb } from 'date-fns/locale'
 
 type MeldingRad = {
   id: string
-  innhold: string
+  innhold: string | null
   opprettet: string
   bilde_url: string | null
   fra_facebook: boolean | null
@@ -74,7 +74,9 @@ export default async function MeldingDetalj({
   if (!melding) notFound()
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const kanSlette = melding.profil_id === user!.id || erAdmin
+  // FB-importerte meldinger er fryst i RLS (mig 081 speiler 067 fra klubb_chat).
+  // Skjul slette-knappen så brukeren ikke møter en kryptisk RLS-feil ved klikk.
+  const kanSlette = (melding.profil_id === user!.id || erAdmin) && !melding.fra_facebook
 
   // Aggreger reaksjoner per emoji
   const grupper = new Map<string, string[]>()
