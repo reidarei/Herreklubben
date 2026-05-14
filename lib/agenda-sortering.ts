@@ -172,8 +172,8 @@ export type Agenda = {
   tidligere: TidligereItem[]
 }
 
-// Polls med svarfrist passert vises i «tidligere» i 30 dager før de skjules.
-const POLL_TIDLIGERE_VINDU_DAGER = 30
+// Polls med svarfrist passert vises alltid i «tidligere» på forsiden
+// (innenfor det generelle AGENDA_VINDU_MND-vinduet fra spørringen i page.tsx).
 
 // === Helpers (eksportert for test og gjenbruk) ====================
 
@@ -429,13 +429,11 @@ export function byggAgenda(input: {
       data: tilKort(a, meg),
     }))
 
-  // Avsluttede polls vises i tidligere-seksjonen i 30 dager etter svarfrist.
-  // Filtrer bort eldre, deretter merge inn i tidligere sortert synkende.
-  const tidligstePollFrist = new Date(
-    Date.now() - POLL_TIDLIGERE_VINDU_DAGER * 24 * 60 * 60 * 1000,
-  ).toISOString()
+  // Avsluttede polls (svarfrist passert) vises i tidligere-seksjonen.
+  // Nedre grense styres nå av AGENDA_VINDU_MND-filteret i page.tsx —
+  // ingen lokal 30-dagers grense her lenger (se issue #176).
   const tidligerePoll: TidligereItem[] = poller
-    .filter(p => p.svarfrist < nowIso && p.svarfrist >= tidligstePollFrist)
+    .filter(p => p.svarfrist < nowIso)
     .map(p => ({
       kind: 'poll' as const,
       sortIso: p.svarfrist,

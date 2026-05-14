@@ -1,0 +1,321 @@
+// Hele historikken — alt eldre enn AGENDA_VINDU_MND vises her, paginert med
+// keyset-cursor. De tre typene (arrangementer, meldinger, polls) pagineres
+// uavhengig og merges sortert synkende på (sortIso, id). Issue #176.
+
+import { ensureInnlogget } from '@/lib/auth'
+import { createServerClient } from '@/lib/supabase/server'
+import { TIDLIGERE_SIDESTOERRELSE } from '@/lib/konstanter'
+import { dekodeCursor, enkodeCursor } from '@/lib/tidligere-cursor'
+import { tilKort, tilMeldingKort, tilPollKort } from '@/lib/agenda-sortering'
+import type { TidligereItem, MeldingRaad } from '@/lib/agenda-sortering'
+import ArrangementKort from '@/components/agenda/ArrangementKort'
+import PollKort from '@/components/agenda/PollKort'
+import MeldingKort from '@/components/agenda/MeldingKort'
+import SectionLabel from '@/components/ui/SectionLabel'
+import Link from 'next/link'
+import { ChevronLeftIcon } from '@heroicons/react/24/outline'
+
+export const dynamic = 'force-dynamic'
+
+// Hjelper: bygg keyset-OR-filter for synkende paginering på to kolonner.
+// Mønsteret «sorteringskolonne < cursor ELLER (sorteringskolonne = cursor OG id < cursorId)»
+// sikrer stabil paginering selv når to rader har lik sorteringsverdi.
+// PostgREST støtter nested AND via `.or()`-syntaksen `and(a,b)`.
+function keysetFilter(
+  query: ReturnType<ReturnType<typeof import('@supabase/supabase-js').createClient>['from']>['select'],
+  kolonne: string,
+  iso: string,
+  id: string,
+) {
+  // Supabase .or() aksepterer PostgREST-syntaks. `and(...)` er nested AND.
+  return query.or(`${kolonne}.lt.${iso},and(${kolonne}.eq.${iso},id.lt.${id})`)
+}
+
+export default async function TidligereSide({
+  searchParams,
+}: {
+  searchParams: Promise<{ cursor?: string }>
+}) {
+  const { user } = await ensureInnlogget()
+  const supabase = await createServerClient()
+  const { cursor: cursorStr } = await searchParams
+  const cursor = dekodeCursor(cursorStr)
+
+  const grense = TIDLIGERE_SIDESTOERRELSE + 1 // hent én ekstra for å sjekke om det er mer
+
+  // === Arrangementer ===
+  let arrQuery = supabase
+    .from('arrangementer')
+    .select(
+      'id, type, tittel, start_tidspunkt, oppmoetested, bilde_url, paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))',
+    )
+    .lt('start_tidspunkt', new Date().toISOString())
+    .order('start_tidspunkt', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(grense)
+
+  if (cursor.a) {
+    // Keyset: vis kun rader eldre enn cursoren (synkende på start_tidspunkt, id)
+    arrQuery = arrQuery.or(
+      `start_tidspunkt.lt.${cursor.a[0]},and(start_tidspunkt.eq.${cursor.a[0]},id.lt.${cursor.a[1]})`,
+    )
+  }
+
+  // === Meldinger ===
+  let meldQuery = supabase
+    .from('meldinger')
+    .select(
+      'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
+    )
+    .order('sist_aktivitet', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(grense)
+
+  if (cursor.m) {
+    // Keyset: vis kun rader med eldre sist_aktivitet enn cursoren
+    meldQuery = meldQuery.or(
+      `sist_aktivitet.lt.${cursor.m[0]},and(sist_aktivitet.eq.${cursor.m[0]},id.lt.${cursor.m[1]})`,
+    )
+  }
+
+  // === Polls ===
+  let pollQuery = supabase
+    .from('poll')
+    .select(
+      'id, spoersmaal, svarfrist, flervalg, opprettet_av, poll_valg (id, tekst, rekkefoelge), poll_stemme (profil_id, valg_id)',
+    )
+    .lt('svarfrist', new Date().toISOString()) // kun avsluttede polls
+    .not('svarfrist', 'is', null)
+    .order('svarfrist', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(grense)
+
+  if (cursor.p) {
+    // Keyset: vis kun polls med eldre svarfrist enn cursoren
+    pollQuery = pollQuery.or(
+      `svarfrist.lt.${cursor.p[0]},and(svarfrist.eq.${cursor.p[0]},id.lt.${cursor.p[1]})`,
+    )
+  }
+
+  const [{ data: arrRaad }, { data: meldRaad }, { data: pollRaad }] = await Promise.all([
+    arrQuery,
+    meldQuery,
+    pollQuery,
+  ])
+
+  // Sjekk om det finnes mer (vi hentet grense = 30+1 rader)
+  const harMerArr = (arrRaad?.length ?? 0) > TIDLIGERE_SIDESTOERRELSE
+  const harMerMeld = (meldRaad?.length ?? 0) > TIDLIGERE_SIDESTOERRELSE
+  const harMerPoll = (pollRaad?.length ?? 0) > TIDLIGERE_SIDESTOERRELSE
+
+  // Klipp til TIDLIGERE_SIDESTOERRELSE (fjern den ekstra raden)
+  const arrSide = (arrRaad ?? []).slice(0, TIDLIGERE_SIDESTOERRELSE)
+  const meldSide = (meldRaad ?? []).slice(0, TIDLIGERE_SIDESTOERRELSE)
+  const pollSide = (pollRaad ?? []).slice(0, TIDLIGERE_SIDESTOERRELSE)
+
+  // Bygg TidligereItem-lister fra rådataene
+  type RawMelding = {
+    id: string
+    innhold: string | null
+    opprettet: string
+    sist_aktivitet: string
+    bilde_url: string | null
+    fra_facebook: boolean | null
+    profil_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
+    melding_chat: { count: number }[] | null
+  }
+
+  const meldinger: MeldingRaad[] = (meldSide as RawMelding[]).map(m => ({
+    id: m.id,
+    innhold: m.innhold,
+    opprettet: m.opprettet,
+    sist_aktivitet: m.sist_aktivitet,
+    bilde_url: m.bilde_url,
+    tilleggsbilder: [...(m.melding_bilder ?? [])]
+      .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
+      .map(b => b.bilde_url),
+    fraFacebook: m.fra_facebook === true,
+    forfatter: {
+      id: m.profil_id,
+      navn: m.profiles?.navn ?? 'Ukjent',
+      bilde_url: m.profiles?.bilde_url ?? null,
+      rolle: m.profiles?.rolle ?? null,
+    },
+    reaksjoner: [], // reaksjoner hentes ikke på /tidligere for å holde siden rask
+    antallKommentarer: (m.melding_chat?.[0] as { count: number } | undefined)?.count ?? 0,
+  }))
+
+  // Bygg items for arrangmenter
+  const arrItems: TidligereItem[] = arrSide.map(a => ({
+    kind: 'arrangement' as const,
+    sortIso: a.start_tidspunkt,
+    data: tilKort(
+      {
+        ...a,
+        paameldinger: (a.paameldinger ?? []).map(p => ({
+          ...p,
+          profiles: p.profiles as { visningsnavn: string | null; bilde_url: string | null; rolle?: string | null } | null,
+        })),
+      },
+      user.id,
+    ),
+  }))
+
+  // Bygg items for meldinger — alle i «tidligere»-stil (dempet visning)
+  const meldItems: TidligereItem[] = meldinger.map(m => ({
+    kind: 'melding' as const,
+    sortIso: m.sist_aktivitet,
+    data: tilMeldingKort(m, true),
+  }))
+
+  // Bygg items for polls
+  type RawPoll = {
+    id: string
+    spoersmaal: string
+    svarfrist: string
+    flervalg: boolean
+    opprettet_av: string
+    poll_valg: { id: string; tekst: string; rekkefoelge: number }[] | null
+    poll_stemme: { profil_id: string; valg_id: string }[] | null
+  }
+  const pollItems: TidligereItem[] = (pollSide as RawPoll[]).map(p => {
+    const stemmer = p.poll_stemme ?? []
+    const unike = new Set(stemmer.map(s => s.profil_id))
+    const mine = stemmer.filter(s => s.profil_id === user.id).map(s => s.valg_id)
+    const valg = [...(p.poll_valg ?? [])].sort((a, b) => a.rekkefoelge - b.rekkefoelge).map(v => ({ id: v.id, tekst: v.tekst }))
+    const stemmerPerValg: Record<string, number> = {}
+    for (const s of stemmer) stemmerPerValg[s.valg_id] = (stemmerPerValg[s.valg_id] ?? 0) + 1
+    return {
+      kind: 'poll' as const,
+      sortIso: p.svarfrist,
+      data: tilPollKort(
+        {
+          id: p.id,
+          spoersmaal: p.spoersmaal,
+          svarfrist: p.svarfrist,
+          flervalg: p.flervalg,
+          opprettet_av: p.opprettet_av,
+          antallStemmer: unike.size,
+          harStemt: unike.has(user.id),
+          valg,
+          mineStemmer: mine,
+          stemmerPerValg,
+        },
+        true, // avsluttet
+      ),
+    }
+  })
+
+  // Merge og sorter alle items synkende på (sortIso, id).
+  // Vi bruker id som tiebreaker for deterministisk rekkefølge.
+  const alleItems: TidligereItem[] = [...arrItems, ...meldItems, ...pollItems].sort((a, b) => {
+    const isoDiff = b.sortIso.localeCompare(a.sortIso)
+    if (isoDiff !== 0) return isoDiff
+    return b.data.id.localeCompare(a.data.id)
+  })
+
+  // Klipp til sidestørrelse etter merge (kan ha fått inntil 3*30 = 90 items)
+  const side = alleItems.slice(0, TIDLIGERE_SIDESTOERRELSE)
+
+  // Bygg neste cursor: finn siste viste rad per type og sett cursor hvis det
+  // finnes flere. Siden vi allerede klipper side til TIDLIGERE_SIDESTOERRELSE,
+  // sjekker vi harMer*-flaggene mot de faktiske typene som fortsatt er synlige.
+  const sisteArr = side.filter(i => i.kind === 'arrangement').at(-1)
+  const sisteMeld = side.filter(i => i.kind === 'melding').at(-1)
+  const sistePoll = side.filter(i => i.kind === 'poll').at(-1)
+
+  const nesteCursor =
+    (harMerArr && sisteArr) || (harMerMeld && sisteMeld) || (harMerPoll && sistePoll)
+      ? enkodeCursor({
+          // Cursor settes kun for typen hvis den har mer data — ellers null
+          a: harMerArr && sisteArr ? [sisteArr.sortIso, sisteArr.data.id] : null,
+          m: harMerMeld && sisteMeld ? [sisteMeld.sortIso, sisteMeld.data.id] : null,
+          p: harMerPoll && sistePoll ? [sistePoll.sortIso, sistePoll.data.id] : null,
+        })
+      : null
+
+  return (
+    <div style={{ padding: '0 20px 40px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, marginBottom: 20 }}>
+        <Link
+          href="/"
+          style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)', textDecoration: 'none', fontSize: 14 }}
+        >
+          <ChevronLeftIcon style={{ width: 16, height: 16 }} /> Tilbake
+        </Link>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 22,
+            fontWeight: 500,
+            letterSpacing: '-0.3px',
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
+          Hele historikken
+        </h1>
+      </div>
+
+      {side.length === 0 ? (
+        <p
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 12,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '0.5px',
+            marginTop: 48,
+            textAlign: 'center',
+          }}
+        >
+          Her stopper løypa, gutta.
+        </p>
+      ) : (
+        <section>
+          <SectionLabel>Tidligere</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {side.map(t => {
+              if (t.kind === 'arrangement')
+                return <ArrangementKort key={t.data.id} arr={t.data} tidligere />
+              if (t.kind === 'poll')
+                return <PollKort key={t.data.id} poll={t.data} tidligere />
+              return (
+                <MeldingKort
+                  key={t.data.id}
+                  melding={t.data}
+                  brukerId={user.id}
+                />
+              )
+            })}
+          </div>
+
+          {nesteCursor && (
+            <Link
+              href={`/tidligere?cursor=${nesteCursor}`}
+              style={{
+                display: 'block',
+                marginTop: 20,
+                padding: '10px 14px',
+                textAlign: 'center',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '1.4px',
+                textTransform: 'uppercase',
+                color: 'var(--accent)',
+                border: '0.5px solid var(--border)',
+                borderRadius: 999,
+                textDecoration: 'none',
+              }}
+            >
+              Last mer →
+            </Link>
+          )}
+        </section>
+      )}
+    </div>
+  )
+}
