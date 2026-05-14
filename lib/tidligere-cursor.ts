@@ -21,11 +21,16 @@ export function dekodeCursor(s: string | undefined): TidligereCursor {
   if (!s) return { a: null, m: null, p: null }
   try {
     const obj = JSON.parse(Buffer.from(s, 'base64url').toString('utf8'))
-    // Valider at hver verdi enten er null eller et par av to strenger
+    // Valider at hver verdi enten er null eller et par av to strenger.
+    // Sjekker typeof === 'string' for å hindre at f.eks. tall, objekter eller
+    // null-elementer i array-en slipper gjennom og lager rar SQL-injeksjon-flate
+    // eller knekker keyset-filteret nedstrøms.
+    const erParAvStrenger = (v: unknown): v is [string, string] =>
+      Array.isArray(v) && v.length === 2 && typeof v[0] === 'string' && typeof v[1] === 'string'
     return {
-      a: Array.isArray(obj.a) && obj.a.length === 2 ? obj.a : null,
-      m: Array.isArray(obj.m) && obj.m.length === 2 ? obj.m : null,
-      p: Array.isArray(obj.p) && obj.p.length === 2 ? obj.p : null,
+      a: erParAvStrenger(obj.a) ? obj.a : null,
+      m: erParAvStrenger(obj.m) ? obj.m : null,
+      p: erParAvStrenger(obj.p) ? obj.p : null,
     }
   } catch {
     // Ugyldig cursor — behandle som tom (start fra toppen)

@@ -1,6 +1,7 @@
-// Hele historikken — alt eldre enn AGENDA_VINDU_MND vises her, paginert med
-// keyset-cursor. De tre typene (arrangementer, meldinger, polls) pagineres
-// uavhengig og merges sortert synkende på (sortIso, id). Issue #176.
+// Full historikk — alle arrangementer/meldinger/polls i fortid, paginert med
+// opaque cursor. Overlapper bevisst med agenda-vinduet på forsiden. De tre
+// typene pagineres uavhengig med keyset og merges sortert synkende på
+// (sortIso, id). Issue #176.
 
 import { ensureInnlogget } from '@/lib/auth'
 import { createServerClient } from '@/lib/supabase/server'
@@ -8,6 +9,7 @@ import { TIDLIGERE_SIDESTOERRELSE } from '@/lib/konstanter'
 import { dekodeCursor, enkodeCursor } from '@/lib/tidligere-cursor'
 import { tilKort, tilMeldingKort, tilPollKort } from '@/lib/agenda-sortering'
 import type { TidligereItem, MeldingRaad } from '@/lib/agenda-sortering'
+import { naa } from '@/lib/dato'
 import ArrangementKort from '@/components/agenda/ArrangementKort'
 import PollKort from '@/components/agenda/PollKort'
 import MeldingKort from '@/components/agenda/MeldingKort'
@@ -16,20 +18,6 @@ import Link from 'next/link'
 import { ChevronLeftIcon } from '@heroicons/react/24/outline'
 
 export const dynamic = 'force-dynamic'
-
-// Hjelper: bygg keyset-OR-filter for synkende paginering på to kolonner.
-// Mønsteret «sorteringskolonne < cursor ELLER (sorteringskolonne = cursor OG id < cursorId)»
-// sikrer stabil paginering selv når to rader har lik sorteringsverdi.
-// PostgREST støtter nested AND via `.or()`-syntaksen `and(a,b)`.
-function keysetFilter(
-  query: ReturnType<ReturnType<typeof import('@supabase/supabase-js').createClient>['from']>['select'],
-  kolonne: string,
-  iso: string,
-  id: string,
-) {
-  // Supabase .or() aksepterer PostgREST-syntaks. `and(...)` er nested AND.
-  return query.or(`${kolonne}.lt.${iso},and(${kolonne}.eq.${iso},id.lt.${id})`)
-}
 
 export default async function TidligereSide({
   searchParams,
@@ -49,7 +37,7 @@ export default async function TidligereSide({
     .select(
       'id, type, tittel, start_tidspunkt, oppmoetested, bilde_url, paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))',
     )
-    .lt('start_tidspunkt', new Date().toISOString())
+    .lt('start_tidspunkt', naa())
     .order('start_tidspunkt', { ascending: false })
     .order('id', { ascending: false })
     .limit(grense)
@@ -84,8 +72,7 @@ export default async function TidligereSide({
     .select(
       'id, spoersmaal, svarfrist, flervalg, opprettet_av, poll_valg (id, tekst, rekkefoelge), poll_stemme (profil_id, valg_id)',
     )
-    .lt('svarfrist', new Date().toISOString()) // kun avsluttede polls
-    .not('svarfrist', 'is', null)
+    .lt('svarfrist', naa()) // kun avsluttede polls (.lt utelukker null implisitt)
     .order('svarfrist', { ascending: false })
     .order('id', { ascending: false })
     .limit(grense)
@@ -219,21 +206,38 @@ export default async function TidligereSide({
   // Klipp til sidestørrelse etter merge (kan ha fått inntil 3*30 = 90 items)
   const side = alleItems.slice(0, TIDLIGERE_SIDESTOERRELSE)
 
-  // Bygg neste cursor: finn siste viste rad per type og sett cursor hvis det
-  // finnes flere. Siden vi allerede klipper side til TIDLIGERE_SIDESTOERRELSE,
-  // sjekker vi harMer*-flaggene mot de faktiske typene som fortsatt er synlige.
+  // Bygg neste cursor: per type avgjør vi posisjonen etter denne regelen:
+  //   1. Hvis typen ble emittert i `side` → cursor = siste emitterte (iso, id)
+  //   2. Hvis typen IKKE ble emittert, men `harMer{Type}` = true → behold input-cursor
+  //      (vi har lest 31 rader uten å vise noen — neste side må fortsette der vi slapp)
+  //   3. Hvis typen IKKE ble emittert OG `harMer{Type}` = false → null (uttømt)
+  // Regel 2 er kritisk: tidligere satte vi cursor til null her, som ville
+  // restarte typen fra toppen og gi duplikater på neste sidevisning.
   const sisteArr = side.filter(i => i.kind === 'arrangement').at(-1)
   const sisteMeld = side.filter(i => i.kind === 'melding').at(-1)
   const sistePoll = side.filter(i => i.kind === 'poll').at(-1)
 
+  type Pos = [string, string] | null
+  const nyArrCursor: Pos = sisteArr
+    ? [sisteArr.sortIso, sisteArr.data.id]
+    : harMerArr
+      ? cursor.a // ikke emittert i denne siden — behold input-posisjon
+      : null
+  const nyMeldCursor: Pos = sisteMeld
+    ? [sisteMeld.sortIso, sisteMeld.data.id]
+    : harMerMeld
+      ? cursor.m
+      : null
+  const nyPollCursor: Pos = sistePoll
+    ? [sistePoll.sortIso, sistePoll.data.id]
+    : harMerPoll
+      ? cursor.p
+      : null
+
+  // Bare bygg cursor hvis minst én type fortsatt har mer å hente.
   const nesteCursor =
-    (harMerArr && sisteArr) || (harMerMeld && sisteMeld) || (harMerPoll && sistePoll)
-      ? enkodeCursor({
-          // Cursor settes kun for typen hvis den har mer data — ellers null
-          a: harMerArr && sisteArr ? [sisteArr.sortIso, sisteArr.data.id] : null,
-          m: harMerMeld && sisteMeld ? [sisteMeld.sortIso, sisteMeld.data.id] : null,
-          p: harMerPoll && sistePoll ? [sistePoll.sortIso, sistePoll.data.id] : null,
-        })
+    nyArrCursor || nyMeldCursor || nyPollCursor
+      ? enkodeCursor({ a: nyArrCursor, m: nyMeldCursor, p: nyPollCursor })
       : null
 
   return (

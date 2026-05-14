@@ -557,7 +557,7 @@ export default async function Forside() {
               textDecoration: 'none',
             }}
           >
-            Se mer →
+            Se hele historikken →
           </Link>
         </section>
       )}
