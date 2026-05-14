@@ -7,6 +7,7 @@ import Avatar from '@/components/ui/Avatar'
 import Chat from '@/components/chat/Chat'
 import MeldingReaksjoner from '@/components/agenda/MeldingReaksjoner'
 import SlettMeldingKnapp from './SlettMeldingKnapp'
+import SlettBildeKnapp from './SlettBildeKnapp'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -14,7 +15,6 @@ type MeldingRad = {
   id: string
   innhold: string | null
   opprettet: string
-  bilde_url: string | null
   fra_facebook: boolean | null
   profil_id: string
   profiles: {
@@ -22,7 +22,8 @@ type MeldingRad = {
     bilde_url: string | null
     rolle: string | null
   } | null
-  melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
+  // Sorteres på rekkefoelge her — flat liste av bilder
+  melding_bilder: { id: string; bilde_url: string; rekkefoelge: number }[] | null
 }
 
 type ReaksjonRad = {
@@ -51,7 +52,7 @@ export default async function MeldingDetalj({
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle), melding_bilder(bilde_url, rekkefoelge)',
+        'id, innhold, opprettet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle), melding_bilder(id, bilde_url, rekkefoelge)',
       )
       .eq('id', id)
       .single<MeldingRad>(),
@@ -77,6 +78,8 @@ export default async function MeldingDetalj({
   // FB-importerte meldinger er fryst i RLS (mig 081 speiler 067 fra klubb_chat).
   // Skjul slette-knappen så brukeren ikke møter en kryptisk RLS-feil ved klikk.
   const kanSlette = (melding.profil_id === user!.id || erAdmin) && !melding.fra_facebook
+  // Bilder kan slettes av forfatter (om ikke FB-post) eller admin
+  const kanSletteBilder = (melding.profil_id === user!.id || erAdmin) && !melding.fra_facebook
 
   // Aggreger reaksjoner per emoji
   const grupper = new Map<string, string[]>()
@@ -89,6 +92,11 @@ export default async function MeldingDetalj({
     emoji,
     profilIder,
   }))
+
+  // Sorter bilder stigende på rekkefoelge — DB returnerer usortert
+  const bilder = [...(melding.melding_bilder ?? [])].sort(
+    (a, b) => a.rekkefoelge - b.rekkefoelge,
+  )
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
@@ -165,57 +173,44 @@ export default async function MeldingDetalj({
           {melding.innhold}
         </div>
 
-        {melding.bilde_url && (() => {
-          const ekstra = [...(melding.melding_bilder ?? [])]
-            .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
-            .map(b => b.bilde_url)
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  aspectRatio: '4/3',
-                  borderRadius: 'var(--radius-card)',
-                  overflow: 'hidden',
-                }}
-              >
-                <Image
-                  src={melding.bilde_url}
-                  alt=""
-                  fill
-                  sizes="(max-width: 512px) 100vw, 512px"
-                  style={{ objectFit: 'cover' }}
-                  priority
-                />
-              </div>
-              {ekstra.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ekstra.length}, 1fr)`, gap: 4 }}>
-                  {ekstra.map((url, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '1/1',
-                        borderRadius: 'var(--radius-card)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Image
-                        src={url}
-                        alt=""
-                        fill
-                        sizes="(max-width: 512px) 33vw, 170px"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
-                  ))}
+        {/* Bilder sortert på rekkefoelge. Hvert bilde har slett-knapp for
+            eier/admin (ikke for FB-importerte innlegg). */}
+        {bilder.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            {bilder.map(b => (
+              <div key={b.id} style={{ position: 'relative' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4/3',
+                    borderRadius: 'var(--radius-card)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Image
+                    src={b.bilde_url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    style={{ objectFit: 'cover' }}
+                    priority
+                  />
                 </div>
-              )}
-            </div>
-          )
-        })()}
+                {kanSletteBilder && (
+                  <SlettBildeKnapp bildeId={b.id} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <MeldingReaksjoner
           meldingId={melding.id}

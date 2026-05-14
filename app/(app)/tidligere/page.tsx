@@ -54,7 +54,7 @@ export default async function TidligereSide({
   let meldQuery = supabase
     .from('meldinger')
     .select(
-      'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
+      'id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
     )
     .order('sist_aktivitet', { ascending: false })
     .order('id', { ascending: false })
@@ -111,7 +111,6 @@ export default async function TidligereSide({
     innhold: string | null
     opprettet: string
     sist_aktivitet: string
-    bilde_url: string | null
     fra_facebook: boolean | null
     profil_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
@@ -119,13 +118,13 @@ export default async function TidligereSide({
     melding_chat: { count: number }[] | null
   }
 
+  // Alle bilder er nå i melding_bilder — bilde_url-kolonnen er droppet (#174)
   const meldinger: MeldingRaad[] = (meldSide as RawMelding[]).map(m => ({
     id: m.id,
     innhold: m.innhold,
     opprettet: m.opprettet,
     sist_aktivitet: m.sist_aktivitet,
-    bilde_url: m.bilde_url,
-    tilleggsbilder: [...(m.melding_bilder ?? [])]
+    bilder: [...(m.melding_bilder ?? [])]
       .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
       .map(b => b.bilde_url),
     fraFacebook: m.fra_facebook === true,

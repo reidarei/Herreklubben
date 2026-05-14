@@ -119,7 +119,7 @@ export default async function Forside() {
         // melding_chat(count) returnerer aggregert antall kommentarer per
         // melding via PostgREST — billig og uavhengig av om den enkelte
         // kommentaren faller innenfor melding_chat-limit-vinduet under.
-        'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
+        'id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
       )
       .gte('sist_aktivitet', cutoffIso)
       .order('sist_aktivitet', { ascending: false }),
@@ -326,7 +326,6 @@ export default async function Forside() {
     innhold: string | null
     opprettet: string
     sist_aktivitet: string
-    bilde_url: string | null
     fra_facebook: boolean | null
     profil_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
@@ -340,7 +339,8 @@ export default async function Forside() {
       emoji,
       profilIder,
     }))
-    const tilleggsbilder = [...(m.melding_bilder ?? [])]
+    // Alle bilder er nå i melding_bilder — bilde_url-kolonnen er droppet (#174)
+    const bilder = [...(m.melding_bilder ?? [])]
       .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
       .map(b => b.bilde_url)
     return {
@@ -348,8 +348,7 @@ export default async function Forside() {
       innhold: m.innhold,
       opprettet: m.opprettet,
       sist_aktivitet: m.sist_aktivitet,
-      bilde_url: m.bilde_url,
-      tilleggsbilder,
+      bilder,
       fraFacebook: m.fra_facebook === true,
       forfatter: {
         id: m.profil_id,

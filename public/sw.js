@@ -2,7 +2,7 @@
 // CACHE_VERSION speiler app-versjonen fra lib/versjon.json og oppdateres
 // automatisk av scripts/stamp-versjon.mjs ved hver deploy. Slik invalideres
 // gammel cache uten manuell bumping.
-const CACHE_VERSION = 'V3.0.14'
+const CACHE_VERSION = 'V3.0.15'
 const STATIC_CACHE = `herreklubben-static-${CACHE_VERSION}`
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 

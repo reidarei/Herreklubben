@@ -16,10 +16,9 @@ export type MeldingKortData = {
   innhold: string | null
   opprettet: string
   sist_aktivitet: string
-  bilde_url: string | null
-  // Tilleggsbilder utover bilde_url. Når satt vises grid (cover + ekstra).
-  // Brukes av FB-importerte poster — issue #174 sporer multi-upload fra UI.
-  tilleggsbilder?: string[]
+  // Flat liste over bilde-URL-er, sortert på rekkefoelge fra DB.
+  // Erstatter bilde_url + tilleggsbilder (issue #174).
+  bilder: string[]
   fraFacebook?: boolean
   forfatter: {
     id: string
@@ -91,6 +90,17 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
       longPressFired.current = false
     }
   }
+
+  // Bilde-grid-logikk:
+  //   0 bilder → ingenting
+  //   1 bilde  → full bredde, 4:3
+  //   2–4      → 2×2-grid (kvadratiske celler)
+  //   5+       → de 4 første i 2×2 med «+N»-overlay på 4. celle
+  const wrapperBunn =
+    !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0
+  const antallBilder = melding.bilder.length
+  const visOverlay = antallBilder > 4
+  const bildeGrid = melding.bilder.slice(0, 4) // maks 4 vises
 
   // iOS sin link-preview trigges på selve <a>-tagen — touch-callout
   // settes derfor på Link. Vi unngår user-select: none på Link siden
@@ -197,7 +207,7 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
               lineHeight: 1.4,
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
-              marginBottom: melding.bilde_url
+              marginBottom: antallBilder > 0
                 ? 10
                 : !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen)
                   ? 8
@@ -207,81 +217,82 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
             {melding.innhold}
           </div>
 
-          {/* Bilde(r). Cover (bilde_url) først; ev. tilleggsbilder etter i grid.
-              Issue #174 vil utvide til multi-upload fra UI senere. */}
-          {melding.bilde_url && (() => {
-            const ekstra = melding.tilleggsbilder ?? []
-            const alle = [melding.bilde_url, ...ekstra]
-            const wrapperBunn =
-              !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0
-            // Ett bilde: behold full-bredde 4:3-render. Flere bilder: vis cover
-            // i full bredde og resten i en horisontal grid under.
-            if (alle.length === 1) {
-              return (
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    aspectRatio: '4/3',
-                    borderRadius: 'var(--radius-card)',
-                    overflow: 'hidden',
-                    marginBottom: wrapperBunn,
-                  }}
-                >
-                  <Image
-                    src={melding.bilde_url}
-                    alt=""
-                    fill
-                    sizes="(max-width: 512px) 100vw, 512px"
-                    style={{ objectFit: 'cover' }}
-                  />
-                </div>
-              )
-            }
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: wrapperBunn }}>
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    aspectRatio: '4/3',
-                    borderRadius: 'var(--radius-card)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Image
-                    src={melding.bilde_url}
-                    alt=""
-                    fill
-                    sizes="(max-width: 512px) 100vw, 512px"
-                    style={{ objectFit: 'cover' }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ekstra.length}, 1fr)`, gap: 4 }}>
-                  {ekstra.map((url, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '1/1',
-                        borderRadius: 'var(--radius-card)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <Image
-                        src={url}
-                        alt=""
-                        fill
-                        sizes="(max-width: 512px) 33vw, 170px"
-                        style={{ objectFit: 'cover' }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
+          {/* Bilde-grid. 1 bilde: full bredde 4:3. 2-4: 2×2-grid.
+              5+: 4 første i grid med «+N»-overlay på siste celle. */}
+          {antallBilder === 1 && (
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '4/3',
+                borderRadius: 'var(--radius-card)',
+                overflow: 'hidden',
+                marginBottom: wrapperBunn,
+              }}
+            >
+              <Image
+                src={melding.bilder[0]}
+                alt=""
+                fill
+                sizes="(max-width: 512px) 100vw, 512px"
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
+          )}
+
+          {antallBilder >= 2 && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 4,
+                marginBottom: wrapperBunn,
+              }}
+            >
+              {bildeGrid.map((url, i) => {
+                const erSiste = i === 3
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      aspectRatio: '1/1',
+                      borderRadius: 'var(--radius-card)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Image
+                      src={url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 512px) 50vw, 256px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                    {/* Overlay på 4. celle når det finnes flere enn 4 bilder */}
+                    {visOverlay && erSiste && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(0,0,0,0.5)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 22,
+                          fontWeight: 500,
+                        }}
+                      >
+                        +{antallBilder - 3}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Reaksjons-rad — vises kun hvis det finnes reaksjoner eller
               picker er åpen. Picker styres av long-press over. */}

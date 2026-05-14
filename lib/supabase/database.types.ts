@@ -589,7 +589,6 @@ export type Database = {
       }
       meldinger: {
         Row: {
-          bilde_url: string | null
           fra_facebook: boolean
           id: string
           innhold: string | null
@@ -599,7 +598,6 @@ export type Database = {
           sist_aktivitet: string
         }
         Insert: {
-          bilde_url?: string | null
           fra_facebook?: boolean
           id?: string
           innhold?: string | null
@@ -609,7 +607,6 @@ export type Database = {
           sist_aktivitet?: string
         }
         Update: {
-          bilde_url?: string | null
           fra_facebook?: boolean
           id?: string
           innhold?: string | null
