@@ -40,18 +40,25 @@ export default function NyMeldingSkjema() {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Sentralt register over aktive blob-URL-er. Bruker ref + Set fordi
+  // cleanup-funksjonen i useEffect ellers lukker over et tomt snapshot
+  // av `bilder` (deps=[]). Settet holder seg "levende" mellom rendere.
+  const blobUrlerRef = useRef<Set<string>>(new Set())
 
-  // Revokér blob-URL-er når bildene fjernes for å unngå minnelekkasje
+  // Revokér alle gjenværende blob-URL-er ved unmount
   useEffect(() => {
+    const settet = blobUrlerRef.current
     return () => {
-      bilder.forEach(b => URL.revokeObjectURL(b.previewUrl))
+      settet.forEach(url => URL.revokeObjectURL(url))
+      settet.clear()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function fjernBilde(idx: number) {
     setBilder(prev => {
-      URL.revokeObjectURL(prev[idx].previewUrl)
+      const url = prev[idx].previewUrl
+      URL.revokeObjectURL(url)
+      blobUrlerRef.current.delete(url)
       return prev.filter((_, i) => i !== idx)
     })
   }
@@ -60,11 +67,15 @@ export default function NyMeldingSkjema() {
     const valgte = Array.from(e.target.files ?? [])
     // Ta kun så mange som gjenstår til cap
     const maks = MELDING_MAKS_BILDER - bilder.length
-    const nye = valgte.slice(0, maks).map(fil => ({
-      fil,
-      previewUrl: URL.createObjectURL(fil),
-      status: 'klar' as BildeStatus,
-    }))
+    const nye = valgte.slice(0, maks).map(fil => {
+      const previewUrl = URL.createObjectURL(fil)
+      blobUrlerRef.current.add(previewUrl)
+      return {
+        fil,
+        previewUrl,
+        status: 'klar' as BildeStatus,
+      }
+    })
     setBilder(prev => [...prev, ...nye])
     // Nullstill input så samme fil kan legges til på nytt etter fjerning
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -80,14 +91,17 @@ export default function NyMeldingSkjema() {
       return
     }
 
+    // Heves ut av try-blokken slik at catch faktisk når URL-ene som
+    // allerede er lastet opp før feilen oppstod.
+    const opplastede: string[] = []
+
     startTransition(async () => {
       try {
         // Last opp bilder SEKVENSIELT for å spare iOS-minne (Canvas API er
         // single-threaded og multiple parallelle kanvasoperasjoner kan krasje
         // på eldre iPhones med lite RAM).
-        const opplastede: string[] = []
         for (const bilde of bilder) {
-          setBilder(prev => prev.map((b, i) =>
+          setBilder(prev => prev.map(b =>
             b.previewUrl === bilde.previewUrl ? { ...b, status: 'laster' } : b,
           ))
           const komprimert = await komprimer(bilde.fil)
@@ -114,9 +128,11 @@ export default function NyMeldingSkjema() {
 
         // Compensating delete: slett allerede opplastede bilder fra R2 slik at
         // vi ikke etterlater orphan-objekter hvis opprettMelding kaster. Feil
-        // her ignores — orphan-rydding er best-effort.
-        // (Vi kan ikke lenger nå `opplastede` etter catch, så vi leser fra bilder-state.
-        //  I praksis er feilen vanligvis i opprettMelding, ikke i upload-løkka.)
+        // her ignores — orphan-rydding er best-effort. allSettled gjør at én
+        // mislykket slett ikke avbryter resten.
+        if (opplastede.length > 0) {
+          await Promise.allSettled(opplastede.map(url => slettBilde(url)))
+        }
         setFeil(err instanceof Error ? err.message : 'Noe gikk galt. Prøv igjen.')
         setBilder(prev => prev.map(b => ({ ...b, status: 'klar' })))
       }
