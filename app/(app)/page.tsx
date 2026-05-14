@@ -123,10 +123,12 @@ export default async function Forside() {
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, sist_aktivitet, bilde_url, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle)',
+        'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge)',
       )
-      .order('sist_aktivitet', { ascending: false })
-      .limit(60),
+      .order('sist_aktivitet', { ascending: false }),
+      // Tidligere hadde vi limit(60) her, men det skvisa ut historiske
+      // FB-importerte meldinger (75 stk fra 2010-2022). Issue #176 sporer
+      // sentralisert agenda-cutoff + paginering på tvers av typer.
     supabase
       .from('melding_reaksjon')
       .select('melding_id, profil_id, emoji'),
@@ -321,12 +323,14 @@ export default async function Forside() {
 
   type RawMelding = {
     id: string
-    innhold: string
+    innhold: string | null
     opprettet: string
     sist_aktivitet: string
     bilde_url: string | null
+    fra_facebook: boolean | null
     profil_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
   }
 
   const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
@@ -335,12 +339,17 @@ export default async function Forside() {
       emoji,
       profilIder,
     }))
+    const tilleggsbilder = [...(m.melding_bilder ?? [])]
+      .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
+      .map(b => b.bilde_url)
     return {
       id: m.id,
       innhold: m.innhold,
       opprettet: m.opprettet,
       sist_aktivitet: m.sist_aktivitet,
       bilde_url: m.bilde_url,
+      tilleggsbilder,
+      fraFacebook: m.fra_facebook === true,
       forfatter: {
         id: m.profil_id,
         navn: m.profiles?.navn ?? 'Ukjent',

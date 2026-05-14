@@ -1,0 +1,80 @@
+{
+  "Alexander Svensen": {
+    "profil_id": "8f64ed4a-d907-424f-82ae-d6220c7fb02c",
+    "profil_navn": "Alexander Svensen",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "André Heede": {
+    "profil_id": "f3d71e5a-367a-461e-ba13-a6c4de144e32",
+    "profil_navn": "André Heede",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Chris Reitan": {
+    "profil_id": "ae1834e3-2e82-4619-8372-76e2d04b65d4",
+    "profil_navn": "Christopher Reitan",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Espen Sørum Hagen": {
+    "profil_id": "4409273c-47f3-49e9-89be-9a7018ebac5c",
+    "profil_navn": "Espen Hagen",
+    "aktiv": true,
+    "match": "manuelt"
+  },
+  "Espen Waldem": {
+    "profil_id": "b2398344-4259-460c-a1b0-53d8a44643b3",
+    "profil_navn": "Espen Waldem",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Jon Erik Dahl": {
+    "profil_id": "6673601b-c7f4-4c09-929a-3dfaa4d6fdc6",
+    "profil_navn": "Jon Erik Dahl",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Kenneth Lunde": {
+    "profil_id": "97f2a53f-a386-45d0-b53e-bde46a995767",
+    "profil_navn": "Kenneth Lunde",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Klas Kristoffer Liland": {
+    "profil_id": "4093f488-8c3c-4daf-a743-c087c74adc6d",
+    "profil_navn": "Klas Kristoffer Liland",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Kristoffer Benco Arntzen": {
+    "profil_id": "8bf2a096-1807-417f-8fe0-c33ec99d7178",
+    "profil_navn": "Kristoffer Benco Arntzen",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Michael Johansen": {
+    "profil_id": "82093eaa-0a43-4191-b483-669569745b33",
+    "profil_navn": "Michael Johansen",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Reidar Haavik": {
+    "profil_id": "ad597350-53e3-47aa-95a5-d207f383ef39",
+    "profil_navn": "Reidar Eik Haavik",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Øyvind Rekve": {
+    "profil_id": "76801c77-b2db-41cd-ba30-6f55d10729ba",
+    "profil_navn": "Øyvind Rekve",
+    "aktiv": true,
+    "match": "auto"
+  },
+  "Øyvind Verket": {
+    "profil_id": "4accc876-7906-4a48-b73c-a88d0f6d114b",
+    "profil_navn": "Øyvind Verket",
+    "aktiv": true,
+    "match": "auto"
+  }
+}

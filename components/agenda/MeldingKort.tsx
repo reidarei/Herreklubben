@@ -13,10 +13,14 @@ import { nb } from 'date-fns/locale'
 
 export type MeldingKortData = {
   id: string
-  innhold: string
+  innhold: string | null
   opprettet: string
   sist_aktivitet: string
   bilde_url: string | null
+  // Tilleggsbilder utover bilde_url. Når satt vises grid (cover + ekstra).
+  // Brukes av FB-importerte poster — issue #174 sporer multi-upload fra UI.
+  tilleggsbilder?: string[]
+  fraFacebook?: boolean
   forfatter: {
     id: string
     navn: string
@@ -163,6 +167,24 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
               >
                 {relativTid(melding.opprettet)}
               </span>
+              {melding.fraFacebook && (
+                <span
+                  title="Importert fra Facebook"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 9,
+                    color: 'var(--text-tertiary)',
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 3,
+                    padding: '1px 5px',
+                    opacity: 0.7,
+                  }}
+                >
+                  Facebook
+                </span>
+              )}
             </div>
           </div>
 
@@ -185,28 +207,81 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
             {melding.innhold}
           </div>
 
-          {/* Bilde (valgfritt) */}
-          {melding.bilde_url && (
-            <div
-              style={{
-                position: 'relative',
-                width: '100%',
-                aspectRatio: '4/3',
-                borderRadius: 'var(--radius-card)',
-                overflow: 'hidden',
-                marginBottom:
-                  !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0,
-              }}
-            >
-              <Image
-                src={melding.bilde_url}
-                alt=""
-                fill
-                sizes="(max-width: 512px) 100vw, 512px"
-                style={{ objectFit: 'cover' }}
-              />
-            </div>
-          )}
+          {/* Bilde(r). Cover (bilde_url) først; ev. tilleggsbilder etter i grid.
+              Issue #174 vil utvide til multi-upload fra UI senere. */}
+          {melding.bilde_url && (() => {
+            const ekstra = melding.tilleggsbilder ?? []
+            const alle = [melding.bilde_url, ...ekstra]
+            const wrapperBunn =
+              !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0
+            // Ett bilde: behold full-bredde 4:3-render. Flere bilder: vis cover
+            // i full bredde og resten i en horisontal grid under.
+            if (alle.length === 1) {
+              return (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4/3',
+                    borderRadius: 'var(--radius-card)',
+                    overflow: 'hidden',
+                    marginBottom: wrapperBunn,
+                  }}
+                >
+                  <Image
+                    src={melding.bilde_url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                </div>
+              )
+            }
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: wrapperBunn }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4/3',
+                    borderRadius: 'var(--radius-card)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Image
+                    src={melding.bilde_url}
+                    alt=""
+                    fill
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ekstra.length}, 1fr)`, gap: 4 }}>
+                  {ekstra.map((url, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        borderRadius: 'var(--radius-card)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Image
+                        src={url}
+                        alt=""
+                        fill
+                        sizes="(max-width: 512px) 33vw, 170px"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Reaksjons-rad — vises kun hvis det finnes reaksjoner eller
               picker er åpen. Picker styres av long-press over. */}
