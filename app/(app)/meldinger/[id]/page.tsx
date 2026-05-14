@@ -12,15 +12,17 @@ import { nb } from 'date-fns/locale'
 
 type MeldingRad = {
   id: string
-  innhold: string
+  innhold: string | null
   opprettet: string
   bilde_url: string | null
+  fra_facebook: boolean | null
   profil_id: string
   profiles: {
     navn: string | null
     bilde_url: string | null
     rolle: string | null
   } | null
+  melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
 }
 
 type ReaksjonRad = {
@@ -49,7 +51,7 @@ export default async function MeldingDetalj({
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, bilde_url, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle)',
+        'id, innhold, opprettet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle), melding_bilder(bilde_url, rekkefoelge)',
       )
       .eq('id', id)
       .single<MeldingRad>(),
@@ -72,7 +74,9 @@ export default async function MeldingDetalj({
   if (!melding) notFound()
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const kanSlette = melding.profil_id === user!.id || erAdmin
+  // FB-importerte meldinger er fryst i RLS (mig 081 speiler 067 fra klubb_chat).
+  // Skjul slette-knappen så brukeren ikke møter en kryptisk RLS-feil ved klikk.
+  const kanSlette = (melding.profil_id === user!.id || erAdmin) && !melding.fra_facebook
 
   // Aggreger reaksjoner per emoji
   const grupper = new Map<string, string[]>()
@@ -128,6 +132,21 @@ export default async function MeldingDetalj({
                 locale: nb,
                 addSuffix: true,
               })}
+              {melding.fra_facebook && (
+                <span
+                  title="Importert fra Facebook"
+                  style={{
+                    marginLeft: 8,
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 3,
+                    padding: '1px 5px',
+                    fontSize: 9,
+                    opacity: 0.7,
+                  }}
+                >
+                  Facebook
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -146,27 +165,57 @@ export default async function MeldingDetalj({
           {melding.innhold}
         </div>
 
-        {melding.bilde_url && (
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              aspectRatio: '4/3',
-              borderRadius: 'var(--radius-card)',
-              overflow: 'hidden',
-              marginBottom: 16,
-            }}
-          >
-            <Image
-              src={melding.bilde_url}
-              alt=""
-              fill
-              sizes="(max-width: 512px) 100vw, 512px"
-              style={{ objectFit: 'cover' }}
-              priority
-            />
-          </div>
-        )}
+        {melding.bilde_url && (() => {
+          const ekstra = [...(melding.melding_bilder ?? [])]
+            .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
+            .map(b => b.bilde_url)
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '4/3',
+                  borderRadius: 'var(--radius-card)',
+                  overflow: 'hidden',
+                }}
+              >
+                <Image
+                  src={melding.bilde_url}
+                  alt=""
+                  fill
+                  sizes="(max-width: 512px) 100vw, 512px"
+                  style={{ objectFit: 'cover' }}
+                  priority
+                />
+              </div>
+              {ekstra.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ekstra.length}, 1fr)`, gap: 4 }}>
+                  {ekstra.map((url, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '1/1',
+                        borderRadius: 'var(--radius-card)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <Image
+                        src={url}
+                        alt=""
+                        fill
+                        sizes="(max-width: 512px) 33vw, 170px"
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         <MeldingReaksjoner
           meldingId={melding.id}

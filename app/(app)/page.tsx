@@ -123,10 +123,15 @@ export default async function Forside() {
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, sist_aktivitet, bilde_url, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle)',
+        // melding_chat(count) returnerer aggregert antall kommentarer per
+        // melding via PostgREST — billig og uavhengig av om den enkelte
+        // kommentaren faller innenfor melding_chat-limit-vinduet under.
+        'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
       )
-      .order('sist_aktivitet', { ascending: false })
-      .limit(60),
+      .order('sist_aktivitet', { ascending: false }),
+      // Tidligere hadde vi limit(60) her, men det skvisa ut historiske
+      // FB-importerte meldinger (75 stk fra 2010-2022). Issue #176 sporer
+      // sentralisert agenda-cutoff + paginering på tvers av typer.
     supabase
       .from('melding_reaksjon')
       .select('melding_id, profil_id, emoji'),
@@ -152,8 +157,8 @@ export default async function Forside() {
     // Totalt antall kommentarer per arrangement og poll — ren id-spørring
     // uten join, limit eller dato-filter. Brukes til overskriften «X kommentarer»
     // på agenda-kort så tallet er den faktiske totalen, ikke begrenset av
-    // visningsvinduet eller topp-3-uttrekket. For meldinger holder vi oss til
-    // limit(60)-uttrekket i meldingKommentarer over.
+    // visningsvinduet eller topp-3-uttrekket. For meldinger gjør vi tilsvarende
+    // via melding_chat(count)-embed direkte på meldinger-spørringen.
     supabase
       .from('arrangement_chat')
       .select('arrangement_id'),
@@ -303,9 +308,15 @@ export default async function Forside() {
   for (const r of (pollKommTotalt ?? []) as { poll_id: string }[]) {
     totaltPerPoll.set(r.poll_id, (totaltPerPoll.get(r.poll_id) ?? 0) + 1)
   }
+  // antallKommentarer per melding kommer nå fra count-aggregatet på selve
+  // meldinger-spørringen (melding_chat(count)), ikke fra meldingKommentarer
+  // (limit 60). Det fixer regresjonen som oppsto da vi fjernet limit(60) på
+  // meldinger: før hadde vi praktisk talt total dekning fordi begge limit'ene
+  // var 60, men med 75 historiske FB-meldinger holdt det ikke. count-aggregat
+  // er pålitelig uansett vindu.
   const antallKommPerMelding = new Map<string, number>()
-  for (const r of (meldingKommentarer ?? []) as unknown as RawMeldKomm[]) {
-    antallKommPerMelding.set(r.melding_id, (antallKommPerMelding.get(r.melding_id) ?? 0) + 1)
+  for (const m of (meldingerRaad ?? []) as unknown as RawMelding[]) {
+    antallKommPerMelding.set(m.id, m.melding_chat?.[0]?.count ?? 0)
   }
 
   // Aggreger reaksjoner per melding+emoji
@@ -321,12 +332,15 @@ export default async function Forside() {
 
   type RawMelding = {
     id: string
-    innhold: string
+    innhold: string | null
     opprettet: string
     sist_aktivitet: string
     bilde_url: string | null
+    fra_facebook: boolean | null
     profil_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
+    melding_chat: { count: number }[] | null
   }
 
   const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
@@ -335,12 +349,17 @@ export default async function Forside() {
       emoji,
       profilIder,
     }))
+    const tilleggsbilder = [...(m.melding_bilder ?? [])]
+      .sort((a, b) => a.rekkefoelge - b.rekkefoelge)
+      .map(b => b.bilde_url)
     return {
       id: m.id,
       innhold: m.innhold,
       opprettet: m.opprettet,
       sist_aktivitet: m.sist_aktivitet,
       bilde_url: m.bilde_url,
+      tilleggsbilder,
+      fraFacebook: m.fra_facebook === true,
       forfatter: {
         id: m.profil_id,
         navn: m.profiles?.navn ?? 'Ukjent',

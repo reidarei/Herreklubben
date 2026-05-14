@@ -468,11 +468,45 @@ export type Database = {
           },
         ]
       }
+      melding_bilder: {
+        Row: {
+          bilde_url: string
+          id: string
+          melding_id: string
+          opprettet: string
+          rekkefoelge: number
+        }
+        Insert: {
+          bilde_url: string
+          id?: string
+          melding_id: string
+          opprettet?: string
+          rekkefoelge?: number
+        }
+        Update: {
+          bilde_url?: string
+          id?: string
+          melding_id?: string
+          opprettet?: string
+          rekkefoelge?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melding_bilder_melding_id_fkey"
+            columns: ["melding_id"]
+            isOneToOne: false
+            referencedRelation: "meldinger"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       melding_chat: {
         Row: {
           bilde_url: string | null
+          fra_facebook: boolean
           id: string
           innhold: string | null
+          kilde_ekstern_id: string | null
           melding_id: string
           opprettet: string
           profil_id: string
@@ -480,8 +514,10 @@ export type Database = {
         }
         Insert: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
           innhold?: string | null
+          kilde_ekstern_id?: string | null
           melding_id: string
           opprettet?: string
           profil_id: string
@@ -489,8 +525,10 @@ export type Database = {
         }
         Update: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
           innhold?: string | null
+          kilde_ekstern_id?: string | null
           melding_id?: string
           opprettet?: string
           profil_id?: string
@@ -552,24 +590,30 @@ export type Database = {
       meldinger: {
         Row: {
           bilde_url: string | null
+          fra_facebook: boolean
           id: string
-          innhold: string
+          innhold: string | null
+          kilde_ekstern_id: string | null
           opprettet: string
           profil_id: string
           sist_aktivitet: string
         }
         Insert: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
-          innhold: string
+          innhold?: string | null
+          kilde_ekstern_id?: string | null
           opprettet?: string
           profil_id: string
           sist_aktivitet?: string
         }
         Update: {
           bilde_url?: string | null
+          fra_facebook?: boolean
           id?: string
-          innhold?: string
+          innhold?: string | null
+          kilde_ekstern_id?: string | null
           opprettet?: string
           profil_id?: string
           sist_aktivitet?: string

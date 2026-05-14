@@ -1,0 +1,723 @@
+{
+  "par": [
+    {
+      "screenshot_nr": 1,
+      "screenshot": "Skjermbilde 2026-05-14 063627.png",
+      "screenshot_mtime": "2026-05-14T04:36:27.988Z",
+      "bilde_nr": 1,
+      "bilde": "513936824_10171634064405317_8149852453545435986_n.jpg",
+      "bilde_mtime": "2026-05-14T04:35:07.204Z",
+      "diff_sek": 81
+    },
+    {
+      "screenshot_nr": 2,
+      "screenshot": "Skjermbilde 2026-05-14 063652.png",
+      "screenshot_mtime": "2026-05-14T04:36:52.534Z",
+      "bilde_nr": 2,
+      "bilde": "470583759_10170510363820626_6868328802286053130_n.jpg",
+      "bilde_mtime": "2026-05-14T04:35:16.499Z",
+      "diff_sek": 96
+    },
+    {
+      "screenshot_nr": 3,
+      "screenshot": "Skjermbilde 2026-05-14 111120.png",
+      "screenshot_mtime": "2026-05-14T09:11:20.350Z",
+      "bilde_nr": 3,
+      "bilde": "207616084_10165715082540226_1267054822432793292_n.jpg",
+      "bilde_mtime": "2026-05-14T04:37:05.800Z",
+      "diff_sek": 12
+    },
+    {
+      "screenshot_nr": 4,
+      "screenshot": "Skjermbilde 2026-05-14 063736.png",
+      "screenshot_mtime": "2026-05-14T04:37:36.840Z",
+      "bilde_nr": 4,
+      "bilde": "472995892_10170480587275317_8169909547483092892_n.jpg",
+      "bilde_mtime": "2026-05-14T04:37:25.289Z",
+      "diff_sek": 12
+    },
+    {
+      "screenshot_nr": 5,
+      "screenshot": "Skjermbilde 2026-05-14 063754.png",
+      "screenshot_mtime": "2026-05-14T04:37:55.034Z",
+      "bilde_nr": 26,
+      "bilde": "472833938_10170714749640096_7825765805359401361_n.jpg",
+      "bilde_mtime": "2026-05-14T06:37:38.304Z",
+      "diff_sek": -7183
+    },
+    {
+      "screenshot_nr": 6,
+      "screenshot": "Skjermbilde 2026-05-14 063833.png",
+      "screenshot_mtime": "2026-05-14T04:38:33.570Z",
+      "bilde_nr": 5,
+      "bilde": "75392732_10162535023635626_4447293589667446784_n.jpg",
+      "bilde_mtime": "2026-05-14T04:38:20.965Z",
+      "diff_sek": 13
+    },
+    {
+      "screenshot_nr": 7,
+      "screenshot": "Skjermbilde 2026-05-14 063855.png",
+      "screenshot_mtime": "2026-05-14T04:38:55.371Z",
+      "bilde_nr": 6,
+      "bilde": "40133598_10160786366215113_239708481341358080_n.jpg",
+      "bilde_mtime": "2026-05-14T04:38:43.126Z",
+      "diff_sek": 12
+    },
+    {
+      "screenshot_nr": 8,
+      "screenshot": "Skjermbilde 2026-05-14 063908.png",
+      "screenshot_mtime": "2026-05-14T04:39:09.001Z",
+      "bilde_nr": 7,
+      "bilde": "472170357_10170738984755626_2351219374440861825_n.jpg",
+      "bilde_mtime": "2026-05-14T04:39:12.943Z",
+      "diff_sek": -4
+    },
+    {
+      "screenshot_nr": 9,
+      "screenshot": "Skjermbilde 2026-05-14 063926.png",
+      "screenshot_mtime": "2026-05-14T04:39:26.333Z",
+      "bilde_nr": 8,
+      "bilde": "469614292_10169801486285696_1735001105317423278_n.jpg",
+      "bilde_mtime": "2026-05-14T04:39:22.282Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 10,
+      "screenshot": "Skjermbilde 2026-05-14 063945.png",
+      "screenshot_mtime": "2026-05-14T04:39:45.924Z",
+      "bilde_nr": 9,
+      "bilde": "468841672_10170003415665464_4444310879893950981_n.jpg",
+      "bilde_mtime": "2026-05-14T04:39:35.344Z",
+      "diff_sek": 11
+    },
+    {
+      "screenshot_nr": 10,
+      "screenshot": "Skjermbilde 2026-05-14 063945.png",
+      "screenshot_mtime": "2026-05-14T04:39:45.924Z",
+      "bilde_nr": 10,
+      "bilde": "472027737_10170527134715464_7921074026912311111_n.jpg",
+      "bilde_mtime": "2026-05-14T04:39:58.060Z",
+      "diff_sek": -12
+    },
+    {
+      "screenshot_nr": 10,
+      "screenshot": "Skjermbilde 2026-05-14 063945.png",
+      "screenshot_mtime": "2026-05-14T04:39:45.924Z",
+      "bilde_nr": 11,
+      "bilde": "468741380_10170003415625464_4945086347616410337_n.jpg",
+      "bilde_mtime": "2026-05-14T04:40:03.305Z",
+      "diff_sek": -17
+    },
+    {
+      "screenshot_nr": 11,
+      "screenshot": "Skjermbilde 2026-05-14 064019.png",
+      "screenshot_mtime": "2026-05-14T04:40:19.822Z",
+      "bilde_nr": 12,
+      "bilde": "468665243_10169825823750113_5067670262409442372_n.jpg",
+      "bilde_mtime": "2026-05-14T04:40:12.033Z",
+      "diff_sek": 8
+    },
+    {
+      "screenshot_nr": 12,
+      "screenshot": "Skjermbilde 2026-05-14 064033.png",
+      "screenshot_mtime": "2026-05-14T04:40:33.269Z",
+      "bilde_nr": 13,
+      "bilde": "468964054_10169845255245370_1708449074339552897_n.jpg",
+      "bilde_mtime": "2026-05-14T04:40:27.031Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 14,
+      "screenshot": "Skjermbilde 2026-05-14 064054.png",
+      "screenshot_mtime": "2026-05-14T04:40:54.931Z",
+      "bilde_nr": 14,
+      "bilde": "468963745_10169845254575370_6869727369567777523_n.jpg",
+      "bilde_mtime": "2026-05-14T04:40:43.267Z",
+      "diff_sek": 12
+    },
+    {
+      "screenshot_nr": 15,
+      "screenshot": "Skjermbilde 2026-05-14 064112.png",
+      "screenshot_mtime": "2026-05-14T04:41:12.218Z",
+      "bilde_nr": 15,
+      "bilde": "468526434_10161817010036368_8282172887727775070_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:02.698Z",
+      "diff_sek": 10
+    },
+    {
+      "screenshot_nr": 16,
+      "screenshot": "Skjermbilde 2026-05-14 064121.png",
+      "screenshot_mtime": "2026-05-14T04:41:22.090Z",
+      "bilde_nr": 16,
+      "bilde": "468568689_10161817008696368_8839644318772214941_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:17.447Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 16,
+      "screenshot": "Skjermbilde 2026-05-14 064121.png",
+      "screenshot_mtime": "2026-05-14T04:41:22.090Z",
+      "bilde_nr": 17,
+      "bilde": "468496612_10161817008691368_2383094503811365159_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:27.812Z",
+      "diff_sek": -6
+    },
+    {
+      "screenshot_nr": 16,
+      "screenshot": "Skjermbilde 2026-05-14 064121.png",
+      "screenshot_mtime": "2026-05-14T04:41:22.090Z",
+      "bilde_nr": 18,
+      "bilde": "468459837_10161817008656368_7271076194809599240_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:31.998Z",
+      "diff_sek": -10
+    },
+    {
+      "screenshot_nr": 17,
+      "screenshot": "Skjermbilde 2026-05-14 064144.png",
+      "screenshot_mtime": "2026-05-14T04:41:44.558Z",
+      "bilde_nr": 19,
+      "bilde": "473019028_10170293689990696_8627677788363977487_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:47.780Z",
+      "diff_sek": -3
+    },
+    {
+      "screenshot_nr": 18,
+      "screenshot": "Skjermbilde 2026-05-14 064157.png",
+      "screenshot_mtime": "2026-05-14T04:41:58.076Z",
+      "bilde_nr": 20,
+      "bilde": "470207513_10169851916900696_3070902161453074898_n.jpg",
+      "bilde_mtime": "2026-05-14T04:41:54.679Z",
+      "diff_sek": 3
+    },
+    {
+      "screenshot_nr": 19,
+      "screenshot": "Skjermbilde 2026-05-14 064212.png",
+      "screenshot_mtime": "2026-05-14T04:42:12.434Z",
+      "bilde_nr": 21,
+      "bilde": "472327830_10170716182060626_7975648651640544702_n.jpg",
+      "bilde_mtime": "2026-05-14T04:42:04.878Z",
+      "diff_sek": 8
+    },
+    {
+      "screenshot_nr": 20,
+      "screenshot": "Skjermbilde 2026-05-14 064241.png",
+      "screenshot_mtime": "2026-05-14T04:42:41.935Z",
+      "bilde_nr": 22,
+      "bilde": "472848654_10170272300575696_8956102802779641044_n.jpg",
+      "bilde_mtime": "2026-05-14T04:42:36.161Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 21,
+      "screenshot": "Skjermbilde 2026-05-14 064305.png",
+      "screenshot_mtime": "2026-05-14T04:43:05.437Z",
+      "bilde_nr": 23,
+      "bilde": "468399174_10170275252275226_7190338394014570128_n.jpg",
+      "bilde_mtime": "2026-05-14T04:42:58.094Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 22,
+      "screenshot": "Skjermbilde 2026-05-14 064351.png",
+      "screenshot_mtime": "2026-05-14T04:43:51.439Z",
+      "bilde_nr": 24,
+      "bilde": "468284967_10170274620315226_7717431427819465511_n.jpg",
+      "bilde_mtime": "2026-05-14T04:43:43.954Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 23,
+      "screenshot": "Skjermbilde 2026-05-14 064415.png",
+      "screenshot_mtime": "2026-05-14T04:44:15.290Z",
+      "bilde_nr": 25,
+      "bilde": "468205228_10170274616800226_5387154595722121418_n.jpg",
+      "bilde_mtime": "2026-05-14T04:43:59.374Z",
+      "diff_sek": 16
+    },
+    {
+      "screenshot_nr": 24,
+      "screenshot": "Skjermbilde 2026-05-14 085008.png",
+      "screenshot_mtime": "2026-05-14T06:50:08.374Z",
+      "bilde_nr": 27,
+      "bilde": "468546912_10170023961465626_1974895974601579098_n.jpg",
+      "bilde_mtime": "2026-05-14T06:49:59.008Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 25,
+      "screenshot": "Skjermbilde 2026-05-14 085023.png",
+      "screenshot_mtime": "2026-05-14T06:50:23.617Z",
+      "bilde_nr": 28,
+      "bilde": "468042786_10169904888265626_7424129223818364482_n.jpg",
+      "bilde_mtime": "2026-05-14T06:50:14.971Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 26,
+      "screenshot": "Skjermbilde 2026-05-14 085043.png",
+      "screenshot_mtime": "2026-05-14T06:50:43.855Z",
+      "bilde_nr": 29,
+      "bilde": "473657432_10170911564250626_3357151237299040991_n.jpg",
+      "bilde_mtime": "2026-05-14T06:50:36.739Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 27,
+      "screenshot": "Skjermbilde 2026-05-14 085059.png",
+      "screenshot_mtime": "2026-05-14T06:51:00.013Z",
+      "bilde_nr": 30,
+      "bilde": "468597536_10169840290925370_5685652838756870002_n.jpg",
+      "bilde_mtime": "2026-05-14T06:50:52.831Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 28,
+      "screenshot": "Skjermbilde 2026-05-14 085116.png",
+      "screenshot_mtime": "2026-05-14T06:51:16.470Z",
+      "bilde_nr": 31,
+      "bilde": "472989729_10170549701280317_1398779810565515323_n.jpg",
+      "bilde_mtime": "2026-05-14T06:51:11.107Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 29,
+      "screenshot": "Skjermbilde 2026-05-14 085126.png",
+      "screenshot_mtime": "2026-05-14T06:51:26.497Z",
+      "bilde_nr": 32,
+      "bilde": "470204415_10170130107390297_9200493019667618799_n.jpg",
+      "bilde_mtime": "2026-05-14T06:51:20.393Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 30,
+      "screenshot": "Skjermbilde 2026-05-14 085154.png",
+      "screenshot_mtime": "2026-05-14T06:51:54.828Z",
+      "bilde_nr": 33,
+      "bilde": "470214464_10170106745765297_6900551415671284136_n.jpg",
+      "bilde_mtime": "2026-05-14T06:51:47.923Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 31,
+      "screenshot": "Skjermbilde 2026-05-14 085203.png",
+      "screenshot_mtime": "2026-05-14T06:52:03.906Z",
+      "bilde_nr": 34,
+      "bilde": "472744758_10170498287515317_7373605628117300606_n.jpg",
+      "bilde_mtime": "2026-05-14T06:51:59.588Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 32,
+      "screenshot": "Skjermbilde 2026-05-14 085215.png",
+      "screenshot_mtime": "2026-05-14T06:52:15.871Z",
+      "bilde_nr": 35,
+      "bilde": "473165819_10170504444200297_2545909050171481490_n.jpg",
+      "bilde_mtime": "2026-05-14T06:52:09.005Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 33,
+      "screenshot": "Skjermbilde 2026-05-14 085231.png",
+      "screenshot_mtime": "2026-05-14T06:52:31.162Z",
+      "bilde_nr": 36,
+      "bilde": "472913576_10170497559555317_582184138924698425_n.jpg",
+      "bilde_mtime": "2026-05-14T06:52:24.738Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 34,
+      "screenshot": "Skjermbilde 2026-05-14 085241.png",
+      "screenshot_mtime": "2026-05-14T06:52:41.443Z",
+      "bilde_nr": 37,
+      "bilde": "472876311_10170497623190317_6387856711755553460_n.jpg",
+      "bilde_mtime": "2026-05-14T06:52:35.977Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 35,
+      "screenshot": "Skjermbilde 2026-05-14 085303.png",
+      "screenshot_mtime": "2026-05-14T06:53:03.688Z",
+      "bilde_nr": 38,
+      "bilde": "469811742_10170082468525297_4498419575386491419_n.jpg",
+      "bilde_mtime": "2026-05-14T06:52:55.587Z",
+      "diff_sek": 8
+    },
+    {
+      "screenshot_nr": 36,
+      "screenshot": "Skjermbilde 2026-05-14 085317.png",
+      "screenshot_mtime": "2026-05-14T06:53:17.527Z",
+      "bilde_nr": 39,
+      "bilde": "472098467_10170439595315113_7842281758487874526_n.jpg",
+      "bilde_mtime": "2026-05-14T06:53:08.848Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 37,
+      "screenshot": "Skjermbilde 2026-05-14 085331.png",
+      "screenshot_mtime": "2026-05-14T06:53:31.582Z",
+      "bilde_nr": 40,
+      "bilde": "468311580_10170275955440226_7492536933205911086_n.jpg",
+      "bilde_mtime": "2026-05-14T06:53:22.898Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 38,
+      "screenshot": "Skjermbilde 2026-05-14 085350.png",
+      "screenshot_mtime": "2026-05-14T06:53:50.239Z",
+      "bilde_nr": 41,
+      "bilde": "469156381_10169951257645370_2240540405814531238_n.jpg",
+      "bilde_mtime": "2026-05-14T06:53:42.762Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 39,
+      "screenshot": "Skjermbilde 2026-05-14 085401.png",
+      "screenshot_mtime": "2026-05-14T06:54:01.616Z",
+      "bilde_nr": 42,
+      "bilde": "474037233_10170580987495297_7964515424150398530_n.jpg",
+      "bilde_mtime": "2026-05-14T06:53:55.716Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 40,
+      "screenshot": "Skjermbilde 2026-05-14 085422.png",
+      "screenshot_mtime": "2026-05-14T06:54:22.738Z",
+      "bilde_nr": 43,
+      "bilde": "518658037_10162919427611368_3847170441472136023_n.jpg",
+      "bilde_mtime": "2026-05-14T06:54:13.422Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 41,
+      "screenshot": "Skjermbilde 2026-05-14 085436.png",
+      "screenshot_mtime": "2026-05-14T06:54:36.930Z",
+      "bilde_nr": 44,
+      "bilde": "520476255_10162919427886368_8804124244684399291_n.jpg",
+      "bilde_mtime": "2026-05-14T06:54:28.629Z",
+      "diff_sek": 8
+    },
+    {
+      "screenshot_nr": 42,
+      "screenshot": "Skjermbilde 2026-05-14 085447.png",
+      "screenshot_mtime": "2026-05-14T06:54:47.890Z",
+      "bilde_nr": 45,
+      "bilde": "519395762_10162919427986368_2365358503468583542_n.jpg",
+      "bilde_mtime": "2026-05-14T06:54:41.997Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 43,
+      "screenshot": "Skjermbilde 2026-05-14 085458.png",
+      "screenshot_mtime": "2026-05-14T06:54:58.750Z",
+      "bilde_nr": 46,
+      "bilde": "518314111_10162919428076368_2472337784645710054_n.jpg",
+      "bilde_mtime": "2026-05-14T06:54:52.368Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 44,
+      "screenshot": "Skjermbilde 2026-05-14 085508.png",
+      "screenshot_mtime": "2026-05-14T06:55:08.262Z",
+      "bilde_nr": 47,
+      "bilde": "518314818_10162919427936368_8239745519008611795_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:03.200Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 45,
+      "screenshot": "Skjermbilde 2026-05-14 085518.png",
+      "screenshot_mtime": "2026-05-14T06:55:19.135Z",
+      "bilde_nr": 48,
+      "bilde": "518435350_10162919427616368_5558791084309264020_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:13.258Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 46,
+      "screenshot": "Skjermbilde 2026-05-14 085528.png",
+      "screenshot_mtime": "2026-05-14T06:55:29.116Z",
+      "bilde_nr": 49,
+      "bilde": "519004626_10162919427606368_216200332465866816_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:23.854Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 47,
+      "screenshot": "Skjermbilde 2026-05-14 085541.png",
+      "screenshot_mtime": "2026-05-14T06:55:41.776Z",
+      "bilde_nr": 50,
+      "bilde": "518320949_10162918875406368_5800396639740064618_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:36.829Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 48,
+      "screenshot": "Skjermbilde 2026-05-14 085551.png",
+      "screenshot_mtime": "2026-05-14T06:55:51.968Z",
+      "bilde_nr": 51,
+      "bilde": "520836923_10162918874856368_485771287725791650_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:46.499Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 49,
+      "screenshot": "Skjermbilde 2026-05-14 085603.png",
+      "screenshot_mtime": "2026-05-14T06:56:03.756Z",
+      "bilde_nr": 52,
+      "bilde": "519723443_10162918875146368_935026746537238667_n.jpg",
+      "bilde_mtime": "2026-05-14T06:55:58.051Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 50,
+      "screenshot": "Skjermbilde 2026-05-14 085613.png",
+      "screenshot_mtime": "2026-05-14T06:56:13.563Z",
+      "bilde_nr": 53,
+      "bilde": "518578916_10162918875371368_821995706893352632_n.jpg",
+      "bilde_mtime": "2026-05-14T06:56:08.606Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 51,
+      "screenshot": "Skjermbilde 2026-05-14 085622.png",
+      "screenshot_mtime": "2026-05-14T06:56:23.185Z",
+      "bilde_nr": 54,
+      "bilde": "518147005_10162918875061368_1477369775922750608_n.jpg",
+      "bilde_mtime": "2026-05-14T06:56:18.321Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 52,
+      "screenshot": "Skjermbilde 2026-05-14 085631.png",
+      "screenshot_mtime": "2026-05-14T06:56:32.152Z",
+      "bilde_nr": 55,
+      "bilde": "518313093_10162918875456368_1348643235867528697_n.jpg",
+      "bilde_mtime": "2026-05-14T06:56:27.551Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 53,
+      "screenshot": "Skjermbilde 2026-05-14 085642.png",
+      "screenshot_mtime": "2026-05-14T06:56:42.727Z",
+      "bilde_nr": 56,
+      "bilde": "518803319_10162918875046368_350116659518989438_n.jpg",
+      "bilde_mtime": "2026-05-14T06:56:36.558Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 54,
+      "screenshot": "Skjermbilde 2026-05-14 085656.png",
+      "screenshot_mtime": "2026-05-14T06:56:57.105Z",
+      "bilde_nr": 57,
+      "bilde": "518582873_10162918875026368_610420821859682360_n.jpg",
+      "bilde_mtime": "2026-05-14T06:56:51.428Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 55,
+      "screenshot": "Skjermbilde 2026-05-14 085707.png",
+      "screenshot_mtime": "2026-05-14T06:57:07.545Z",
+      "bilde_nr": 58,
+      "bilde": "518591262_10162918875286368_156734218321498286_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:02.115Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 56,
+      "screenshot": "Skjermbilde 2026-05-14 085716.png",
+      "screenshot_mtime": "2026-05-14T06:57:16.745Z",
+      "bilde_nr": 59,
+      "bilde": "520228537_10162918875471368_8693685300745149099_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:11.986Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 57,
+      "screenshot": "Skjermbilde 2026-05-14 085726.png",
+      "screenshot_mtime": "2026-05-14T06:57:26.876Z",
+      "bilde_nr": 60,
+      "bilde": "472179447_10170550551290464_20389259500477410_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:22.557Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 58,
+      "screenshot": "Skjermbilde 2026-05-14 085735.png",
+      "screenshot_mtime": "2026-05-14T06:57:35.969Z",
+      "bilde_nr": 61,
+      "bilde": "472119935_10170550547600464_736685527438663604_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:31.245Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 59,
+      "screenshot": "Skjermbilde 2026-05-14 085750.png",
+      "screenshot_mtime": "2026-05-14T06:57:50.366Z",
+      "bilde_nr": 62,
+      "bilde": "468856451_10170055900330464_436059343400849049_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:43.199Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 60,
+      "screenshot": "Skjermbilde 2026-05-14 085759.png",
+      "screenshot_mtime": "2026-05-14T06:58:00.100Z",
+      "bilde_nr": 63,
+      "bilde": "472224837_10170550519000464_595659400939509453_n.jpg",
+      "bilde_mtime": "2026-05-14T06:57:56.007Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 61,
+      "screenshot": "Skjermbilde 2026-05-14 085809.png",
+      "screenshot_mtime": "2026-05-14T06:58:10.061Z",
+      "bilde_nr": 64,
+      "bilde": "472104457_10170550549540464_7228763410115619249_n.jpg",
+      "bilde_mtime": "2026-05-14T06:58:04.921Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 62,
+      "screenshot": "Skjermbilde 2026-05-14 111252.png",
+      "screenshot_mtime": "2026-05-14T09:12:52.379Z",
+      "bilde_nr": 65,
+      "bilde": "468420539_10169944412665096_2192487242058145001_n.jpg",
+      "bilde_mtime": "2026-05-14T06:58:16.922Z",
+      "diff_sek": 7
+    },
+    {
+      "screenshot_nr": 63,
+      "screenshot": "Skjermbilde 2026-05-14 085834.png",
+      "screenshot_mtime": "2026-05-14T06:58:34.277Z",
+      "bilde_nr": 66,
+      "bilde": "468443389_10169944412690096_3869888267080914533_n.jpg",
+      "bilde_mtime": "2026-05-14T06:58:28.771Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 64,
+      "screenshot": "Skjermbilde 2026-05-14 085847.png",
+      "screenshot_mtime": "2026-05-14T06:58:47.868Z",
+      "bilde_nr": 67,
+      "bilde": "468623550_10169944412680096_7274017795925705100_n.jpg",
+      "bilde_mtime": "2026-05-14T06:58:41.645Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 65,
+      "screenshot": "Skjermbilde 2026-05-14 085857.png",
+      "screenshot_mtime": "2026-05-14T06:58:58.081Z",
+      "bilde_nr": 68,
+      "bilde": "468357307_10169944412695096_1344239155219180584_n.jpg",
+      "bilde_mtime": "2026-05-14T06:58:52.132Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 66,
+      "screenshot": "Skjermbilde 2026-05-14 085907.png",
+      "screenshot_mtime": "2026-05-14T06:59:07.719Z",
+      "bilde_nr": 69,
+      "bilde": "468222418_10169944412710096_3369296609782977880_n.jpg",
+      "bilde_mtime": "2026-05-14T06:59:02.208Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 67,
+      "screenshot": "Skjermbilde 2026-05-14 085916.png",
+      "screenshot_mtime": "2026-05-14T06:59:16.907Z",
+      "bilde_nr": 70,
+      "bilde": "468358468_10169944407490096_231703184139795518_n.jpg",
+      "bilde_mtime": "2026-05-14T06:59:12.143Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 68,
+      "screenshot": "Skjermbilde 2026-05-14 085933.png",
+      "screenshot_mtime": "2026-05-14T06:59:33.192Z",
+      "bilde_nr": 71,
+      "bilde": "468357999_10169944407495096_5943155274355686811_n.jpg",
+      "bilde_mtime": "2026-05-14T06:59:28.065Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 69,
+      "screenshot": "Skjermbilde 2026-05-14 085941.png",
+      "screenshot_mtime": "2026-05-14T06:59:41.890Z",
+      "bilde_nr": 72,
+      "bilde": "468391613_10169944407485096_8618045998776258624_n.jpg",
+      "bilde_mtime": "2026-05-14T06:59:37.994Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 70,
+      "screenshot": "Skjermbilde 2026-05-14 085956.png",
+      "screenshot_mtime": "2026-05-14T06:59:56.757Z",
+      "bilde_nr": 73,
+      "bilde": "468388093_10169944407470096_1212063591183753932_n.jpg",
+      "bilde_mtime": "2026-05-14T06:59:47.841Z",
+      "diff_sek": 9
+    },
+    {
+      "screenshot_nr": 71,
+      "screenshot": "Skjermbilde 2026-05-14 090005.png",
+      "screenshot_mtime": "2026-05-14T07:00:06.102Z",
+      "bilde_nr": 74,
+      "bilde": "468358024_10169944407475096_1520356219861115183_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:02.180Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 72,
+      "screenshot": "Skjermbilde 2026-05-14 090017.png",
+      "screenshot_mtime": "2026-05-14T07:00:17.298Z",
+      "bilde_nr": 75,
+      "bilde": "468406279_10169944402200096_8662440642849756064_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:11.687Z",
+      "diff_sek": 6
+    },
+    {
+      "screenshot_nr": 73,
+      "screenshot": "Skjermbilde 2026-05-14 090032.png",
+      "screenshot_mtime": "2026-05-14T07:00:32.342Z",
+      "bilde_nr": 76,
+      "bilde": "468399892_10169944402165096_277228747751722778_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:22.464Z",
+      "diff_sek": 10
+    },
+    {
+      "screenshot_nr": 74,
+      "screenshot": "Skjermbilde 2026-05-14 090041.png",
+      "screenshot_mtime": "2026-05-14T07:00:42.110Z",
+      "bilde_nr": 77,
+      "bilde": "468480465_10169944400875096_7231026925742004139_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:37.815Z",
+      "diff_sek": 4
+    },
+    {
+      "screenshot_nr": 75,
+      "screenshot": "Skjermbilde 2026-05-14 090052.png",
+      "screenshot_mtime": "2026-05-14T07:00:52.291Z",
+      "bilde_nr": 78,
+      "bilde": "468358032_10169944400860096_2179309298273507387_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:47.588Z",
+      "diff_sek": 5
+    },
+    {
+      "screenshot_nr": 76,
+      "screenshot": "Skjermbilde 2026-05-14 090100.png",
+      "screenshot_mtime": "2026-05-14T07:01:00.637Z",
+      "bilde_nr": 79,
+      "bilde": "468332682_10169944400870096_607451437907088496_n.jpg",
+      "bilde_mtime": "2026-05-14T07:00:56.389Z",
+      "diff_sek": 4
+    }
+  ],
+  "ikke_parede_bilder": [],
+  "ikke_parede_screenshots": [
+    {
+      "screenshot_nr": 13,
+      "screenshot": "Skjermbilde 2026-05-14 064046.png",
+      "screenshot_mtime": "2026-05-14T04:40:46.124Z"
+    }
+  ]
+}

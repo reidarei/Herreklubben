@@ -121,10 +121,15 @@ export type PollRaad = {
 // melding_chat eller melding_reaksjon.
 export type MeldingRaad = {
   id: string
-  innhold: string
+  innhold: string | null
   opprettet: string
   sist_aktivitet: string
   bilde_url: string | null
+  // Tilleggsbilder utover bilde_url (cover). Brukes av FB-importerte poster
+  // med flere bilder. Sortert på rekkefoelge. Utvidelse til full multi-upload
+  // fra UI er sporet i issue #174.
+  tilleggsbilder: string[]
+  fraFacebook: boolean
   forfatter: {
     id: string
     navn: string
@@ -225,6 +230,8 @@ export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortD
     opprettet: m.opprettet,
     sist_aktivitet: m.sist_aktivitet,
     bilde_url: m.bilde_url,
+    tilleggsbilder: m.tilleggsbilder,
+    fraFacebook: m.fraFacebook,
     forfatter: m.forfatter,
     reaksjoner: m.reaksjoner,
     antallKommentarer: m.antallKommentarer,

@@ -47,5 +47,12 @@ scripts/data/import-rapport.json
 /scripts/fb-reimport.mjs
 /scripts/fb-kjor.mjs
 /scripts/kjor-migrasjon.mjs
+
+# FB-bilde-import (issue #?) — store kopier av råbilder + genererte HTML-rapporter
+/scripts/fb-bilder-preview/
+/scripts/fb-bilder-r2-upload/
+/scripts/fb-bilder-kommentar-crops/
+/scripts/fb-bilder-pairing.html
+/scripts/fb-bilder-metadata.html
 .vercel
 .env*.local
