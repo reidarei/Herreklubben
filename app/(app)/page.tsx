@@ -23,8 +23,8 @@ import {
   type PollRaad,
   type MeldingRaad,
 } from '@/lib/agenda-sortering'
-import { subDays } from 'date-fns'
 import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
+import { AGENDA_VINDU_MND } from '@/lib/konstanter'
 
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
@@ -35,16 +35,11 @@ export default async function Forside() {
   ])
 
   const naa = norskDatoNaa()
-  // Vis tidligere arrangementer 24 mnd tilbake på forsiden — eldre vises
-  // via «Se alle tidligere»-lenken til /arrangementer/tidligere.
-  const treMndSiden = subMonths(new Date(), 24)
+  // Felles cutoff for alle element-typer på forsiden: AGENDA_VINDU_MND måneder
+  // tilbake. Eldre vises via /tidligere (full historikk, paginert). Issue #176.
+  const cutoff = subMonths(new Date(), AGENDA_VINDU_MND)
+  const cutoffIso = cutoff.toISOString()
   const aar = norskAar()
-
-  // Polls hentes med alle stemmer joinet — billig så lenge vi filtrerer
-  // på nylige polls (svarfrist > nå - 30 dager). Stemme-aggregeringen
-  // (antall unike + «har jeg stemt») gjøres i app-laget for å unngå
-  // database-view/RPC.
-  const pollVinduStart = subDays(new Date(), 30).toISOString()
 
   const [
     { data: arrangementer },
@@ -68,7 +63,7 @@ export default async function Forside() {
         `id, type, tittel, start_tidspunkt, oppmoetested, bilde_url,
          paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))`,
       )
-      .gte('start_tidspunkt', treMndSiden.toISOString())
+      .gte('start_tidspunkt', cutoffIso)
       .order('start_tidspunkt', { ascending: true }),
     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('aktiv', true),
     supabase
@@ -89,21 +84,19 @@ export default async function Forside() {
          poll_valg (id, tekst, rekkefoelge),
          poll_stemme (profil_id, valg_id)`,
       )
-      .gte('svarfrist', pollVinduStart)
+      .gte('svarfrist', cutoffIso)
       .order('svarfrist', { ascending: true }),
     // Siste kommentarer per arrangement og poll — vises inline på hvert kort.
-    // Henter siste 30 per tabell innenfor samme 3-mnd-vindu som arrangementer,
-    // og grupperer i app-laget. 30 rader dekker ~10 arrangementer med 3
+    // Henter siste 30 per tabell innenfor samme 12-mnd-vindu (cutoffIso) som
+    // arrangementer og polls. 30 rader dekker ~10 arrangementer med 3
     // kommentarer hver — godt nok for det som er synlig på agenda.
-    // Tidligere hadde vi limit(100) som lastet unødvendig mye data og dro
-    // TTFB på agenda til rundt 2 sek.
     supabase
       .from('arrangement_chat')
       .select(
         `id, innhold, opprettet, arrangement_id,
          profiles (navn, bilde_url, rolle)`,
       )
-      .gte('opprettet', treMndSiden.toISOString())
+      .gte('opprettet', cutoffIso)
       .order('opprettet', { ascending: false })
       .limit(30),
     supabase
@@ -112,7 +105,7 @@ export default async function Forside() {
         `id, innhold, opprettet, poll_id,
          profiles (navn, bilde_url, rolle)`,
       )
-      .gte('opprettet', treMndSiden.toISOString())
+      .gte('opprettet', cutoffIso)
       .order('opprettet', { ascending: false })
       .limit(30),
     // Meldinger (#90, fjerde element-type). Vi henter relativt åpent (60)
@@ -128,10 +121,8 @@ export default async function Forside() {
         // kommentaren faller innenfor melding_chat-limit-vinduet under.
         'id, innhold, opprettet, sist_aktivitet, bilde_url, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
       )
+      .gte('sist_aktivitet', cutoffIso)
       .order('sist_aktivitet', { ascending: false }),
-      // Tidligere hadde vi limit(60) her, men det skvisa ut historiske
-      // FB-importerte meldinger (75 stk fra 2010-2022). Issue #176 sporer
-      // sentralisert agenda-cutoff + paginering på tvers av typer.
     supabase
       .from('melding_reaksjon')
       .select('melding_id, profil_id, emoji'),
@@ -549,7 +540,7 @@ export default async function Forside() {
             })}
           </div>
           <Link
-            href="/arrangementer/tidligere"
+            href="/tidligere"
             style={{
               display: 'block',
               marginTop: 16,

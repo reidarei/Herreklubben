@@ -25,3 +25,13 @@ export const PASS_TILGANG_TIMER = 24
 // Kommentarseksjonen på agenda-arrangementer kollapses automatisk når
 // det er stille; brukeren kan fortsatt åpne manuelt via chevron.
 export const KOMMENTARER_KOLLAPS_DAGER = 7
+
+// Agenda-vinduet bakover: forsiden viser arrangementer, polls og meldinger
+// som er høyst AGENDA_VINDU_MND måneder gamle. Alt eldre er tilgjengelig
+// via /tidligere (full historikk, paginert). Issue #176.
+export const AGENDA_VINDU_MND = 12
+
+// Sidestørrelse for /tidligere-paginering (keyset/cursor-basert).
+// Lavt nok til at siden er rask, høyt nok til at brukeren ikke trykker
+// «Last mer» for mye.
+export const TIDLIGERE_SIDESTOERRELSE = 30
