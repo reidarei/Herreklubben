@@ -99,6 +99,8 @@ export default async function Klubbinfo() {
         >
           <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
           Stiftet 24. november {KLUBBEN_START_AAR}
+          <span aria-hidden="true" style={{ opacity: 0.4 }}>·</span>
+          Søndre Nordstrand
         </div>
         <h2
           style={{
@@ -162,6 +164,60 @@ export default async function Klubbinfo() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Om klubben */}
+      <div style={{ marginBottom: 32 }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            marginBottom: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontWeight: 600,
+          }}
+        >
+          Om klubben
+          <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+        </div>
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 15,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.55,
+            margin: '0 0 10px',
+          }}
+        >
+          Vi blir gamle og grå, så en syklubb må vi få.
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 15,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.55,
+            margin: '0 0 10px',
+          }}
+        >
+          Her skal verdensproblemer løses og diskuteres av de største besserwisserne fra Mortensrud.
+        </p>
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 15,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.55,
+            margin: 0,
+          }}
+        >
+          Så vel møtt finansakrobater og rikssynsere til månedlige sammenkomster.
+        </p>
       </div>
 
       {/* Seksjons-label */}
