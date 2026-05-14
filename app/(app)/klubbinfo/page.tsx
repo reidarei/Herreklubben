@@ -99,7 +99,7 @@ export default async function Klubbinfo() {
         >
           <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
           Stiftet 24. november {KLUBBEN_START_AAR}
-          <span style={{ opacity: 0.4 }}>·</span>
+          <span aria-hidden="true" style={{ opacity: 0.4 }}>·</span>
           Søndre Nordstrand
         </div>
         <h2
