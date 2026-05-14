@@ -285,7 +285,7 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
                           fontWeight: 500,
                         }}
                       >
-                        +{antallBilder - 3}
+                        +{antallBilder - 4}
                       </div>
                     )}
                   </div>
