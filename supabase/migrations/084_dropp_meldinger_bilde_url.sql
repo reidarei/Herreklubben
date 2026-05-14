@@ -11,4 +11,4 @@ from public.meldinger
 where bilde_url is not null
 on conflict (melding_id, rekkefoelge) do nothing;
 
-alter table public.meldinger drop column bilde_url;
+alter table public.meldinger drop column if exists bilde_url;
