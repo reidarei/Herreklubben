@@ -88,8 +88,9 @@ export async function slettMelding(meldingId: string) {
 }
 
 // Slett ett bilde fra en melding. RLS på melding_bilder kontrollerer hvem
-// som får lov (eier via meldinger FK eller admin). R2-objektet orphanes —
-// dette er bevisst akseptert for enkelhetens skyld. Issue #174.
+// som får lov (eier via meldinger FK eller admin, og ikke FB-importert —
+// se mig. 085). R2-objektet orphanes — dette er bevisst akseptert for
+// enkelhetens skyld. Issue #174.
 export async function slettMeldingBilde(bildeId: string) {
   const { supabase } = await ensureInnlogget()
   const { error } = await supabase
