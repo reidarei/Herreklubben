@@ -122,7 +122,11 @@ export default async function Forside() {
         'id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
       )
       .gte('sist_aktivitet', cutoffIso)
-      .order('sist_aktivitet', { ascending: false }),
+      .order('sist_aktivitet', { ascending: false })
+      // Begrens til 20 — se #180. Etter FB-import (#177) og multi-bilde-grid (#181)
+      // kan hvert resultat hente opptil 4 thumbnails; uten limit slår dette hardt
+      // på cold load. Full historikk er tilgjengelig via /tidligere.
+      .limit(20),
     supabase
       .from('melding_reaksjon')
       .select('melding_id, profil_id, emoji'),
