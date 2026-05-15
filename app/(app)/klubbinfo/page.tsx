@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MapPinIcon } from '@heroicons/react/24/outline'
 import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
@@ -100,7 +101,10 @@ export default async function Klubbinfo() {
           <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
           Stiftet 24. november {KLUBBEN_START_AAR}
           <span aria-hidden="true" style={{ opacity: 0.4 }}>·</span>
-          Søndre Nordstrand
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <MapPinIcon aria-hidden="true" style={{ width: 11, height: 11 }} />
+            Søndre Nordstrand
+          </span>
         </div>
         <h2
           style={{
