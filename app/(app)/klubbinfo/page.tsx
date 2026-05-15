@@ -12,13 +12,10 @@ export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
   const erAdmin = kanAdministrere(profil?.rolle)
 
-  const [{ count: antallMedlemmer }, { count: totaltArr }] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('aktiv', true),
-    supabase.from('arrangementer').select('id', { count: 'exact', head: true }),
-  ])
+  const { count: antallMedlemmer } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('aktiv', true)
 
   const antallAar = norskAar() - KLUBBEN_START_AAR + 1
 
@@ -150,7 +147,6 @@ export default async function Klubbinfo() {
           {[
             { val: antallMedlemmer ?? 0, lbl: 'Medlemmer' },
             { val: antallAar, lbl: 'Årganger' },
-            { val: totaltArr ?? 0, lbl: 'Sammenkomster' },
           ].map(s => (
             <div key={s.lbl}>
               <div
