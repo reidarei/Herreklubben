@@ -124,11 +124,9 @@ export type MeldingRaad = {
   innhold: string | null
   opprettet: string
   sist_aktivitet: string
-  bilde_url: string | null
-  // Tilleggsbilder utover bilde_url (cover). Brukes av FB-importerte poster
-  // med flere bilder. Sortert på rekkefoelge. Utvidelse til full multi-upload
-  // fra UI er sporet i issue #174.
-  tilleggsbilder: string[]
+  // Flat liste over bilde-URL-er, sortert stigende på rekkefoelge fra DB.
+  // Erstatter bilde_url + tilleggsbilder etter migrasjonen i #174.
+  bilder: string[]
   fraFacebook: boolean
   forfatter: {
     id: string
@@ -221,7 +219,7 @@ export function tilHighlight(arr: ArrangementRaad, meg: string): HighlightKortDa
   }
 }
 
-// Mapper et MeldingRaad til MeldingKortData. Identitetsmapping i v1 —
+// Mapper et MeldingRaad til MeldingKortData. Identitetsmapping —
 // `tidligere`-feltet (boolean) styrer kun visuell dempning.
 export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortData {
   return {
@@ -229,8 +227,7 @@ export function tilMeldingKort(m: MeldingRaad, tidligere: boolean): MeldingKortD
     innhold: m.innhold,
     opprettet: m.opprettet,
     sist_aktivitet: m.sist_aktivitet,
-    bilde_url: m.bilde_url,
-    tilleggsbilder: m.tilleggsbilder,
+    bilder: m.bilder,
     fraFacebook: m.fraFacebook,
     forfatter: m.forfatter,
     reaksjoner: m.reaksjoner,

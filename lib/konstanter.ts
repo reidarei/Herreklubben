@@ -35,3 +35,7 @@ export const AGENDA_VINDU_MND = 12
 // Lavt nok til at siden er rask, høyt nok til at brukeren ikke trykker
 // «Last mer» for mye.
 export const TIDLIGERE_SIDESTOERRELSE = 30
+
+// Maks antall bilder per melding-innlegg. Cap forhindrer at én melding
+// dominerer feeden visuelt og begrenser R2-opplastinger per POST.
+export const MELDING_MAKS_BILDER = 10

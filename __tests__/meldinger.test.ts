@@ -16,8 +16,7 @@ function lagMelding(opprettetDagerSiden: number, aktivitetDagerSiden: number): M
   return {
     id: 'm1',
     innhold: 'test',
-    bilde_url: null as string | null,
-    tilleggsbilder: [] as string[],
+    bilder: [] as string[],
     fraFacebook: false,
     opprettet: new Date(naaMs - opprettetDagerSiden * DAG_MS).toISOString(),
     sist_aktivitet: new Date(naaMs - aktivitetDagerSiden * DAG_MS).toISOString(),
