@@ -53,15 +53,16 @@ export default async function Forside() {
     { data: meldingReaksjoner },
     { data: meldingKommentarer },
     { data: albumMedArrangement },
-    { data: arrKommTotalt },
-    { data: pollKommTotalt },
     { data: aktiveProfiler },
   ] = await Promise.all([
+    // arrangement_chat(count) gir totalt kommentarantall per arr via PostgREST
+    // embed — erstatter den separate id-only-spørringen vi hadde før (#180).
     supabase
       .from('arrangementer')
       .select(
         `id, type, tittel, start_tidspunkt, oppmoetested, bilde_url,
-         paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle))`,
+         paameldinger (profil_id, status, profiles (visningsnavn, bilde_url, rolle)),
+         arrangement_chat (count)`,
       )
       .gte('start_tidspunkt', cutoffIso)
       .order('start_tidspunkt', { ascending: true }),
@@ -76,13 +77,16 @@ export default async function Forside() {
       .select('arrangement_navn, purredato, ansvarlig_id, profiles (visningsnavn)')
       .eq('aar', aar)
       .is('arrangement_id', null),
+    // poll_chat(count) gir totalt kommentarantall per poll via PostgREST
+    // embed — erstatter den separate id-only-spørringen vi hadde før (#180).
     supabase
       .from('poll')
       .select(
         `id, spoersmaal, svarfrist, flervalg, opprettet_av,
          kaaring_mal_id, aar, avsluttet_paa, tiebreak_status,
          poll_valg (id, tekst, rekkefoelge),
-         poll_stemme (profil_id, valg_id)`,
+         poll_stemme (profil_id, valg_id),
+         poll_chat (count)`,
       )
       .gte('svarfrist', cutoffIso)
       .order('svarfrist', { ascending: true }),
@@ -123,14 +127,22 @@ export default async function Forside() {
       )
       .gte('sist_aktivitet', cutoffIso)
       .order('sist_aktivitet', { ascending: false }),
+    // Dato-filter så reaksjoner følger samme 12-mnd-vindu som resten (#180).
+    // Pragmatisk match mot agendaens 12-mnd-vindu — godt nok så lenge selve
+    // meldinger-funksjonen er nyere enn 12 mnd. Edge-case: melding med
+    // opprettet >12 mnd men sist_aktivitet <12 mnd kan miste gamle reaksjoner.
+    // Materialiseres tidligst ~mai 2027; forsiden viser kun 12-mnd uansett.
     supabase
       .from('melding_reaksjon')
-      .select('melding_id, profil_id, emoji'),
+      .select('melding_id, profil_id, emoji')
+      .gte('opprettet', cutoffIso),
+    // Dato-filter + limit — følger samme cutoff-vindu som resten (#180).
     supabase
       .from('melding_chat')
       .select(
         'id, innhold, opprettet, melding_id, profiles!melding_chat_profil_id_fkey (navn, bilde_url, rolle)',
       )
+      .gte('opprettet', cutoffIso)
       .order('opprettet', { ascending: false })
       .limit(60),
     // Hvilke arrangementer har album — brukes til både kamera-ikon på
@@ -145,17 +157,6 @@ export default async function Forside() {
         'arrangement_id, cover:album_bilde!album_cover_fk (bilde_url), antall:album_bilde!album_bilde_album_id_fkey (count)',
       )
       .not('arrangement_id', 'is', null),
-    // Totalt antall kommentarer per arrangement og poll — ren id-spørring
-    // uten join, limit eller dato-filter. Brukes til overskriften «X kommentarer»
-    // på agenda-kort så tallet er den faktiske totalen, ikke begrenset av
-    // visningsvinduet eller topp-3-uttrekket. For meldinger gjør vi tilsvarende
-    // via melding_chat(count)-embed direkte på meldinger-spørringen.
-    supabase
-      .from('arrangement_chat')
-      .select('arrangement_id'),
-    supabase
-      .from('poll_chat')
-      .select('poll_id'),
     // Aktive profiler — sendes til kortene for @mention-forslag i inline
     // kommentar-felt. Samme select-form som /chat-siden bruker.
     supabase
@@ -285,20 +286,41 @@ export default async function Forside() {
     r => r.melding_id,
   )
 
-  // Totalt antall kommentarer per arrangement/poll/melding. For arr/poll har vi
-  // egne id-only-spørringer (se Promise.all over) innenfor 3-mnd-vinduet så
-  // overskriften «X kommentarer» viser korrekt tall selv når vi kun henter
-  // 3 kommentarer per kort til visning. For meldinger teller vi direkte fra
-  // meldingKommentarer (limit 60) — meldinger-feeden er selv limit 60, så
-  // dekningen er praktisk talt total.
+  // Totalt antall kommentarer per arrangement — hentet fra arrangement_chat(count)-
+  // embed på arrangementer-spørringen (#180). Samme mønster som melding_chat(count).
+  // PostgREST returnerer [{ count: N }] per rad; vi leser [0]?.count ?? 0.
+  type RawArrMedCount = {
+    id: string
+    arrangement_chat: { count: number }[] | null
+  }
   const totaltPerArr = new Map<string, number>()
-  for (const r of (arrKommTotalt ?? []) as { arrangement_id: string }[]) {
-    totaltPerArr.set(r.arrangement_id, (totaltPerArr.get(r.arrangement_id) ?? 0) + 1)
+  for (const a of (arrangementer ?? []) as unknown as RawArrMedCount[]) {
+    totaltPerArr.set(a.id, a.arrangement_chat?.[0]?.count ?? 0)
+  }
+
+  // Totalt antall kommentarer per poll — hentet fra poll_chat(count)-embed
+  // på poll-spørringen (#180). Samme mønster som over.
+  type RawPollMedCount = {
+    id: string
+    poll_chat: { count: number }[] | null
   }
   const totaltPerPoll = new Map<string, number>()
-  for (const r of (pollKommTotalt ?? []) as { poll_id: string }[]) {
-    totaltPerPoll.set(r.poll_id, (totaltPerPoll.get(r.poll_id) ?? 0) + 1)
+  for (const p of (pollerRaad ?? []) as unknown as RawPollMedCount[]) {
+    totaltPerPoll.set(p.id, p.poll_chat?.[0]?.count ?? 0)
   }
+
+  type RawMelding = {
+    id: string
+    innhold: string | null
+    opprettet: string
+    sist_aktivitet: string
+    fra_facebook: boolean | null
+    profil_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
+    melding_chat: { count: number }[] | null
+  }
+
   // antallKommentarer per melding kommer nå fra count-aggregatet på selve
   // meldinger-spørringen (melding_chat(count)), ikke fra meldingKommentarer
   // (limit 60). Det fixer regresjonen som oppsto da vi fjernet limit(60) på
@@ -319,18 +341,6 @@ export default async function Forside() {
     profilIder.push(r.profil_id)
     perEmoji.set(r.emoji, profilIder)
     reaksjonerPerMelding.set(r.melding_id, perEmoji)
-  }
-
-  type RawMelding = {
-    id: string
-    innhold: string | null
-    opprettet: string
-    sist_aktivitet: string
-    fra_facebook: boolean | null
-    profil_id: string
-    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
-    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
-    melding_chat: { count: number }[] | null
   }
 
   const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
