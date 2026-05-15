@@ -1,9 +1,17 @@
 // ─── Caching ────────────────────────────────────────────────────────────────
 // CACHE_VERSION speiler app-versjonen fra lib/versjon.json og oppdateres
-// automatisk av scripts/stamp-versjon.mjs ved hver deploy. Slik invalideres
-// gammel cache uten manuell bumping.
-const CACHE_VERSION = 'V3.0.17'
-const STATIC_CACHE = `herreklubben-static-${CACHE_VERSION}`
+// automatisk av scripts/stamp-versjon.mjs ved hver deploy.
+//
+// STATIC_CACHE er bevisst UTEN versjon: Next.js innholds-hasher alle
+// /_next/static/-filer, så URL-en garanterer innhold. Filer som ikke har
+// endret seg mellom builds har samme hash og kan trygt gjenbrukes — det
+// sparer brukeren fra å re-laste 80-90% av JS-bundlen ved hver deploy.
+// Se #180.
+//
+// PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
+// kan ha samme URL men forskjellig output.
+const CACHE_VERSION = 'V3.0.18'
+const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
 // Begrens hvor mange HTML-sider som caches — Cache API har ingen LRU,
@@ -115,23 +123,33 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first: HTML-sider — prøv nett, fall tilbake til cache (offline)
+  // Stale-while-revalidate: HTML-sider — returner cachet versjon umiddelbart
+  // hvis vi har den, og oppdater i bakgrunnen. Cold-load føles momentan
+  // selv om Vercel-funksjonen cold-starter (~1-3s). Sosial data tåler å være
+  // sekunder gammel. Se #180.
+  //
+  // Fallback hvis ikke cached: vanlig network-fetch (med cache-write).
+  // Fallback ved offline: returner cache (samme som network-first før).
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone()
-            event.waitUntil(
-              caches.open(PAGE_CACHE).then(async (cache) => {
-                await cache.put(request, clone)
-                await trimCache(PAGE_CACHE, MAX_PAGE_CACHE_ENTRIES)
-              })
-            )
-          }
-          return response
-        })
-        .catch(() => caches.match(request))
+      caches.match(request).then((cached) => {
+        const fetchOgCache = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone()
+              event.waitUntil(
+                caches.open(PAGE_CACHE).then(async (cache) => {
+                  await cache.put(request, clone)
+                  await trimCache(PAGE_CACHE, MAX_PAGE_CACHE_ENTRIES)
+                })
+              )
+            }
+            return response
+          })
+          .catch(() => cached) // offline-fallback
+        // Stale: vis cache nå, oppdater i bakgrunnen
+        return cached || fetchOgCache
+      })
     )
     return
   }
