@@ -128,6 +128,10 @@ export default async function Forside() {
       .gte('sist_aktivitet', cutoffIso)
       .order('sist_aktivitet', { ascending: false }),
     // Dato-filter så reaksjoner følger samme 12-mnd-vindu som resten (#180).
+    // Pragmatisk match mot agendaens 12-mnd-vindu — godt nok så lenge selve
+    // meldinger-funksjonen er nyere enn 12 mnd. Edge-case: melding med
+    // opprettet >12 mnd men sist_aktivitet <12 mnd kan miste gamle reaksjoner.
+    // Materialiseres tidligst ~mai 2027; forsiden viser kun 12-mnd uansett.
     supabase
       .from('melding_reaksjon')
       .select('melding_id, profil_id, emoji')
@@ -305,6 +309,18 @@ export default async function Forside() {
     totaltPerPoll.set(p.id, p.poll_chat?.[0]?.count ?? 0)
   }
 
+  type RawMelding = {
+    id: string
+    innhold: string | null
+    opprettet: string
+    sist_aktivitet: string
+    fra_facebook: boolean | null
+    profil_id: string
+    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
+    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
+    melding_chat: { count: number }[] | null
+  }
+
   // antallKommentarer per melding kommer nå fra count-aggregatet på selve
   // meldinger-spørringen (melding_chat(count)), ikke fra meldingKommentarer
   // (limit 60). Det fixer regresjonen som oppsto da vi fjernet limit(60) på
@@ -325,18 +341,6 @@ export default async function Forside() {
     profilIder.push(r.profil_id)
     perEmoji.set(r.emoji, profilIder)
     reaksjonerPerMelding.set(r.melding_id, perEmoji)
-  }
-
-  type RawMelding = {
-    id: string
-    innhold: string | null
-    opprettet: string
-    sist_aktivitet: string
-    fra_facebook: boolean | null
-    profil_id: string
-    profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
-    melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
-    melding_chat: { count: number }[] | null
   }
 
   const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
