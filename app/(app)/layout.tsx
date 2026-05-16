@@ -11,12 +11,18 @@ import { createServerClient } from '@/lib/supabase/server'
 import { harUlestChat } from '@/lib/ulest'
 
 async function HeaderMedProfil() {
-  const [profil, supabase] = await Promise.all([getProfil(), createServerClient()])
-  // getInnloggetBruker() er cachet — ingen ekstra nettverkskall
-  const user = await getInnloggetBruker()
-  // Ulest-sjekk parallelliseres ikke med profil fordi vi trenger supabase-klienten
-  // og user-id-en først. Feil her skal aldri blokkere render — fallback false.
-  const ulestChat = user ? await harUlestChat(supabase, user.id).catch(() => false) : false
+  const profil = await getProfil()
+  const user = await getInnloggetBruker() // cachet via React cache()
+  // Ulest-prikken er nice-to-have. Vi sluker feil fra ulest-spørringen så en
+  // forbigående DB-feil aldri kræsjer headeren — verste utfall er at prikken
+  // ikke vises et øyeblikk.
+  let ulestChat = false
+  if (user) {
+    const supabase = await createServerClient()
+    ulestChat = await harUlestChat(supabase, user.id, profil?.chat_sist_sett ?? null).catch(
+      () => false,
+    )
+  }
 
   return (
     <TopHeader

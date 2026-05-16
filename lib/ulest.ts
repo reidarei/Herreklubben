@@ -1,30 +1,27 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/database.types'
 
 /**
  * Returnerer true hvis det finnes klubb_chat-meldinger fra andre enn brukeren
- * selv som er nyere enn brukerens `chat_sist_sett`-tidsstempel. Brukes til
- * ulest-prikken på Chat-tab i TopHeader. Holdt sentralt så indikatoren kan
- * gjenbrukes hvis vi senere vil vise badge andre steder.
+ * selv som er nyere enn `sistSett`. Brukes til ulest-prikken på Chat-tab i
+ * TopHeader. Tar `sistSett` som parameter (typisk fra `getProfil()`) for å
+ * spare en ekstra runde mot `profiles` — kallstedet har allerede lest raden.
+ *
+ * Bruker eksisterende indeks på `klubb_chat (opprettet desc)` (migrasjon 038).
+ * Ingen ny indeks lagt til — ~17 brukere og lav volum gjør det unødvendig.
  */
 export async function harUlestChat(
-  supabase: SupabaseClient,
-  brukerId: string
+  supabase: SupabaseClient<Database>,
+  brukerId: string,
+  sistSett: string | null,
 ): Promise<boolean> {
-  // Hent siste-sett først (én rad, RLS sørger for at vi kun ser egen rad)
-  const { data: profil } = await supabase
-    .from('profiles')
-    .select('chat_sist_sett')
-    .eq('id', brukerId)
-    .maybeSingle()
+  // Null = aldri åpnet chat → alt regnes som ulest (alle meldinger fra andre).
+  const cutoff = sistSett ?? '1970-01-01T00:00:00Z'
 
-  // Null = aldri åpnet chat, dvs. alt er "ulest"
-  const sistSett = profil?.chat_sist_sett ?? '1970-01-01T00:00:00Z'
-
-  // Finnes det minst én melding fra andre enn meg, nyere enn sistSett?
   const { count } = await supabase
     .from('klubb_chat')
     .select('id', { count: 'exact', head: true })
-    .gt('opprettet', sistSett)
+    .gt('opprettet', cutoff)
     .neq('profil_id', brukerId)
 
   return (count ?? 0) > 0

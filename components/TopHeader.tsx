@@ -108,26 +108,42 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
                 key={tab.href}
                 href={tab.href}
                 aria-current={aktiv ? 'page' : undefined}
-                aria-label={tab.label + (visPrikk ? ' (ulest)' : '')}
                 style={tabStil}
                 prefetch
               >
                 {tab.label}
                 {visPrikk && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 6,
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: 'var(--accent)',
-                      // Skygge i header-bg-fargen løfter prikken visuelt fra pill-bakgrunnen
-                      boxShadow: '0 0 0 2px rgba(14, 15, 19, 0.85)',
-                    }}
-                  />
+                  <>
+                    {/* Visuell prikk */}
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 6,
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: 'var(--accent)',
+                        // Skygge i header-bg-fargen løfter prikken visuelt fra pill-bakgrunnen
+                        boxShadow: '0 0 0 2px rgba(14, 15, 19, 0.85)',
+                      }}
+                    />
+                    {/* Sr-only — behold "Chat" som accessible name, legg ulest-info
+                        som ekstra tekst for skjermlesere uten å overstyre. */}
+                    <span
+                      style={{
+                        position: 'absolute',
+                        width: 1,
+                        height: 1,
+                        overflow: 'hidden',
+                        clip: 'rect(0 0 0 0)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      (ulest)
+                    </span>
+                  </>
                 )}
               </Link>
             )

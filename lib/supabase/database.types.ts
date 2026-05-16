@@ -1378,6 +1378,7 @@ export type Database = {
           vinner_profil_id: string
         }[]
       }
+      marker_chat_sett: { Args: never; Returns: undefined }
       tell_poll_stemmer: {
         Args: { p_poll_id: string }
         Returns: {
