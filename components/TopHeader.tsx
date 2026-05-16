@@ -86,22 +86,32 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
   }
 
   // useLayoutEffect = kjører synkront etter DOM-oppdatering, men før paint —
-  // gir riktig posisjon uten visuelt hopp ved navigasjon
+  // gir riktig posisjon uten visuelt hopp ved navigasjon. Tradeoff: på første
+  // SSR-render finnes ikke pill (pillRect er null) — den popper inn umiddelbart
+  // etter hydrering. Knapt synlig og vurdert akseptabelt for å unngå at vi må
+  // duplisere aktiv-logikken i en SSR-fallback. Se #200-review.
   useLayoutEffect(() => {
     maalPill()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, ulestChat])
+  }, [pathname])
 
-  // Re-mål ved resize (f.eks. rotering av telefon)
+  // Re-mål ved resize (f.eks. rotering av telefon). rAF-throttles så vi ikke
+  // gjør getBoundingClientRect 60+ ganger i sekundet under desktop-window-drag.
   useEffect(() => {
-    window.addEventListener('resize', maalPill)
-    window.addEventListener('orientationchange', maalPill)
+    let raf = 0
+    const onResize = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(maalPill)
+    }
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
     return () => {
-      window.removeEventListener('resize', maalPill)
-      window.removeEventListener('orientationchange', maalPill)
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, ulestChat])
+  }, [pathname])
 
   const headerStyle: CSSProperties = {
     position: 'sticky',
