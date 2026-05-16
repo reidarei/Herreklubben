@@ -420,7 +420,7 @@ export default async function Forside() {
       <header
         style={{
           display: 'flex',
-          alignItems: 'flex-end',
+          alignItems: 'center',
           justifyContent: 'space-between',
           marginTop: 12,
           marginBottom: 26,
@@ -454,19 +454,6 @@ export default async function Forside() {
           >
             {idagDato}
           </h1>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9.5,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.4)',
-              letterSpacing: '2px',
-              textTransform: 'uppercase',
-              marginTop: 10,
-            }}
-          >
-            I dag
-          </div>
         </div>
 
         <NyFAB />
