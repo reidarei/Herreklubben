@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
-import { norskAar, formaterDato } from '@/lib/dato'
+import { norskAar } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import SectionLabel from '@/components/ui/SectionLabel'
 import VarslerInnstillinger from '@/components/VarslerInnstillinger'
+import VarslerListe from '@/components/profil/VarslerListe'
 import PassInfoKort from '@/components/profil/PassInfoKort'
 import { tittelFor } from '@/lib/roller'
 import LoggUtKnapp from './LoggUtKnapp'
@@ -321,91 +322,10 @@ export default async function Profil() {
         epostAktiv={varselPref?.epost_aktiv ?? true}
       />
 
-      {/* Personlige varsler */}
+      {/* Personlige varsler — interaktiv klient-komponent med filter, kollaps
+          og marker-alle-lest. */}
       {varsler && varsler.length > 0 && (
-        <section style={{ marginBottom: 24, marginTop: 24 }}>
-          <SectionLabel count={varsler.filter(v => !v.lest).length || undefined}>
-            Varsler
-          </SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {varsler.map((v, i) => (
-              <Link
-                key={v.id}
-                href={`/varsler/${v.id}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 14,
-                  padding: '14px 4px',
-                  borderBottom:
-                    i < varsler.length - 1 ? '0.5px solid var(--border-subtle)' : 'none',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  opacity: v.lest ? 0.6 : 1,
-                }}
-              >
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: v.lest ? 'var(--border-subtle)' : 'var(--accent)',
-                    marginTop: 6,
-                    flexShrink: 0,
-                    boxShadow: v.lest
-                      ? 'none'
-                      : '0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent)',
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: 15,
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      letterSpacing: '-0.2px',
-                      lineHeight: 1.2,
-                      marginBottom: 3,
-                    }}
-                  >
-                    {v.tittel}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 12,
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.45,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
-                    {v.melding}
-                  </div>
-                  {v.opprettet && (
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 9,
-                        color: 'var(--text-tertiary)',
-                        letterSpacing: '1.4px',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        marginTop: 4,
-                      }}
-                    >
-                      {formaterDato(v.opprettet, 'd. MMM · HH:mm')}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        <VarslerListe varsler={varsler} />
       )}
 
       {/* Pass og Innspill samlet nederst — sjeldent brukt, eller mest praktisk
