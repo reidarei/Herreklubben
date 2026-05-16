@@ -269,13 +269,15 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
           />
           {visProfilPrikk && (
             <>
-              {/* Visuell prikk — samme stil som chat-tab-prikken */}
+              {/* Visuell prikk — samme stil som chat-tab-prikken. Plassert
+                  med top/right -1 så den stikker akkurat utenfor avatar-sirkelen
+                  istedenfor å overlappe den (og evt. generalsekretærens gule glød). */}
               <span
                 aria-hidden="true"
                 style={{
                   position: 'absolute',
-                  top: 0,
-                  right: 0,
+                  top: -1,
+                  right: -1,
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
