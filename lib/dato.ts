@@ -69,6 +69,45 @@ export function aarHvisAvvik(iso: string): string {
 }
 
 /**
+ * Sammenligner om to ISO-tidspunkter faller på samme norske kalenderdag.
+ * Viktig: bruker Oslo-tidssone så en melding sendt 01:30 norsk tid teller
+ * som "i dag", ikke "i går" basert på UTC.
+ */
+export function erSammeNorskeDag(isoA: string, isoB: string): boolean {
+  const a = formatInTimeZone(new Date(isoA), TIDSSONE, 'yyyy-MM-dd')
+  const b = formatInTimeZone(new Date(isoB), TIDSSONE, 'yyyy-MM-dd')
+  return a === b
+}
+
+/**
+ * Returnerer en kontekst-følsom dato-etikett for chat-dato-skiller:
+ * "I DAG", "I GÅR", ukedag ("FREDAG") for siste 7 dager, ellers "15. MARS"
+ * eller "15. MARS 2024" hvis annet år. Etiketten kommer UPPERCASE allerede
+ * — kallstedet trenger ikke text-transform.
+ */
+export function formaterDatoSkille(iso: string): string {
+  // Diff må regnes i UTC for å være DST-trygg — norskDatoNaa/norskDag returnerer
+  // Date-objekter konstruert i prosessens *lokale* tidssone, så ms-aritmetikk
+  // på dem kan svikte med ±1 time over DST-overganger. Vi henter Oslo-kalenderen
+  // som "yyyy-MM-dd"-streng og konstruerer rene UTC-Date for diff istedet.
+  const dagStr = (d: Date) => formatInTimeZone(d, TIDSSONE, 'yyyy-MM-dd')
+  const tilUtc = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  const diffMs = tilUtc(dagStr(new Date())) - tilUtc(dagStr(new Date(iso)))
+  const dager = Math.round(diffMs / (1000 * 60 * 60 * 24))
+
+  if (dager === 0) return 'I DAG'
+  if (dager === 1) return 'I GÅR'
+  if (dager >= 2 && dager <= 6) {
+    return formaterDato(iso, 'EEEE').toUpperCase()
+  }
+  const sammeAar = formatInTimeZone(new Date(iso), TIDSSONE, 'yyyy') === String(norskAar())
+  return formaterDato(iso, sammeAar ? 'd. MMMM' : 'd. MMMM yyyy').toUpperCase()
+}
+
+/**
  * Konverter ISO-dato til datetime-local verdi i norsk tidssone.
  * Brukes for å pre-fylle <input type="datetime-local"> med riktig tid.
  */
