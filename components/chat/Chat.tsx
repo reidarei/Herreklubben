@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   sendChatMelding,
@@ -737,7 +737,7 @@ export default function Chat({
           const rolle = rolleMap.get(m.profil_id) ?? null
           const tid = formaterDato(m.opprettet, 'HH:mm')
           return (
-            <React.Fragment key={m.id}>
+            <Fragment key={m.id}>
               {visDatoSkille && (
                 <div
                   style={{
@@ -1186,7 +1186,7 @@ export default function Chat({
                 </div>
               </div>
             </div>
-            </React.Fragment>
+            </Fragment>
           )
         })}
         <div ref={bunnenRef} />
