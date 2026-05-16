@@ -43,7 +43,6 @@ export default async function Forside() {
 
   const [
     { data: arrangementer },
-    { count: aktiveMedlemmer },
     { data: profilerMedBursdag },
     { data: ansvar },
     { data: pollerRaad },
@@ -66,7 +65,6 @@ export default async function Forside() {
       )
       .gte('start_tidspunkt', cutoffIso)
       .order('start_tidspunkt', { ascending: true }),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('aktiv', true),
     supabase
       .from('profiles')
       .select('id, visningsnavn, fodselsdato, bilde_url, rolle')
@@ -408,8 +406,13 @@ export default async function Forside() {
     aar,
   })
 
-  const antallGutta = aktiveMedlemmer ?? 0
   const chatProfiler = aktiveProfiler ?? []
+
+  // Header viser dagens norske dato: ukedag (eyebrow), dato (h1), "I dag" (label).
+  // Følger M5-referansen fra #190.
+  const naaIso = new Date().toISOString()
+  const ukedag = formaterDato(naaIso, 'EEEE')
+  const idagDato = formaterDato(naaIso, 'd. MMMM')
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
@@ -430,26 +433,40 @@ export default async function Forside() {
               fontSize: 10,
               fontWeight: 600,
               color: 'var(--text-tertiary)',
-              letterSpacing: '1.6px',
+              letterSpacing: '2.5px',
               textTransform: 'uppercase',
               marginBottom: 6,
             }}
           >
-            Siden 2007 · {antallGutta} herrer
+            {ukedag}
           </div>
           <h1
             style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 38,
-              fontWeight: 500,
-              letterSpacing: '-0.5px',
+              fontStyle: 'italic',
+              fontSize: 44,
+              fontWeight: 400,
+              letterSpacing: '-1px',
               lineHeight: 1,
               margin: 0,
               color: 'var(--text-primary)',
             }}
           >
-            Agenda
+            {idagDato}
           </h1>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 9.5,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.4)',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              marginTop: 10,
+            }}
+          >
+            I dag
+          </div>
         </div>
 
         <NyFAB />
