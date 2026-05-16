@@ -67,6 +67,12 @@ export default async function Klubbinfo() {
       href: '/innstillinger',
       kunAdmin: true,
     },
+    {
+      icon: 'info',
+      title: 'Om appen',
+      sub: 'Sikkerhet, personvern og hvordan dette er bygget',
+      href: '/om-appen',
+    },
   ]
 
   const synligeRader = rader.filter(r => !r.kunAdmin || erAdmin)
