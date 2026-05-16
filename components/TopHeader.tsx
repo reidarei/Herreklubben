@@ -34,6 +34,8 @@ type Props = {
   rolle?: string | null
   /** True hvis det finnes uleste klubb-chat-meldinger fra andre. */
   ulestChat?: boolean
+  /** True hvis det finnes uleste varsler i varsel_logg for denne brukeren. */
+  ulestVarsler?: boolean
 }
 
 /**
@@ -47,7 +49,7 @@ type Props = {
  * #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Se
  * Policy: Navigasjon i CLAUDE.md.
  */
-export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = false }: Props) {
+export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = false, ulestVarsler = false }: Props) {
   const pathname = usePathname()
 
   // Referanser for å måle pill-posisjon relativt til tabs-containeren
@@ -142,6 +144,8 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
   // outline i tillegg gir to overlappende gule ringer. Drop outline her,
   // gloeden alene markerer at /profil er aktiv siden for ham.
   const visAktivOutline = profilAktiv && !harGulGloed(rolle ?? null)
+  // Prikken vises kun når profil-siden ikke er aktiv (samme logikk som chat-prikken)
+  const visProfilPrikk = ulestVarsler && !profilAktiv
 
   return (
     <nav style={headerStyle} aria-label="Hovednavigasjon">
@@ -249,6 +253,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
           aria-label="Min profil"
           aria-current={profilAktiv ? 'page' : undefined}
           style={{
+            position: 'relative', // nødvendig for absolutt-posisjonert ulest-prikk
             display: 'block',
             borderRadius: '50%',
             outline: visAktivOutline ? '1.5px solid var(--accent)' : 'none',
@@ -262,6 +267,39 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
             rolle={rolle ?? null}
             size={38}
           />
+          {visProfilPrikk && (
+            <>
+              {/* Visuell prikk — samme stil som chat-tab-prikken. Plassert
+                  med top/right -1 så den stikker akkurat utenfor avatar-sirkelen
+                  istedenfor å overlappe den (og evt. generalsekretærens gule glød). */}
+              <span
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: -1,
+                  right: -1,
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  boxShadow: '0 0 0 2px rgba(14, 15, 19, 0.85)',
+                }}
+              />
+              {/* Sr-only — behold "Min profil" som accessible name */}
+              <span
+                style={{
+                  position: 'absolute',
+                  width: 1,
+                  height: 1,
+                  overflow: 'hidden',
+                  clip: 'rect(0 0 0 0)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                (ulest)
+              </span>
+            </>
+          )}
         </Link>
       </div>
     </nav>

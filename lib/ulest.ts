@@ -26,3 +26,23 @@ export async function harUlestChat(
 
   return (count ?? 0) > 0
 }
+
+/**
+ * Returnerer true hvis brukeren har minst én ulest rad i `varsel_logg`.
+ * Brukes til ulest-prikken på profil-avataren i TopHeader. Vi trenger ingen
+ * `sist_sett`-kolonne her fordi `varsel_logg.lest` bærer per-rad-statusen —
+ * markering skjer automatisk når man åpner et varsel eller bruker "Marker
+ * alle som lest"-knappen på profilsiden.
+ */
+export async function harUlestVarsler(
+  supabase: SupabaseClient<Database>,
+  brukerId: string,
+): Promise<boolean> {
+  const { count } = await supabase
+    .from('varsel_logg')
+    .select('id', { count: 'exact', head: true })
+    .eq('profil_id', brukerId)
+    .eq('lest', false)
+
+  return (count ?? 0) > 0
+}
