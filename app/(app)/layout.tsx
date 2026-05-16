@@ -7,14 +7,29 @@ import DeployInfo from '@/components/DeployInfo'
 import InstallVeiledning from '@/components/InstallVeiledning'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
+import { harUlestChat } from '@/lib/ulest'
 
 async function HeaderMedProfil() {
   const profil = await getProfil()
+  const user = await getInnloggetBruker() // cachet via React cache()
+  // Ulest-prikken er nice-to-have. Vi sluker feil fra ulest-spørringen så en
+  // forbigående DB-feil aldri kræsjer headeren — verste utfall er at prikken
+  // ikke vises et øyeblikk.
+  let ulestChat = false
+  if (user) {
+    const supabase = await createServerClient()
+    ulestChat = await harUlestChat(supabase, user.id, profil?.chat_sist_sett ?? null).catch(
+      () => false,
+    )
+  }
+
   return (
     <TopHeader
       brukerNavn={profil?.navn}
       bildeUrl={profil?.bilde_url ?? null}
       rolle={profil?.rolle ?? null}
+      ulestChat={ulestChat}
     />
   )
 }
