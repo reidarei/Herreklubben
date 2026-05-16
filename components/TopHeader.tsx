@@ -269,20 +269,20 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
           />
           {visProfilPrikk && (
             <>
-              {/* Visuell prikk — samme stil som chat-tab-prikken. Plassert
-                  med top/right -1 så den stikker akkurat utenfor avatar-sirkelen
-                  istedenfor å overlappe den (og evt. generalsekretærens gule glød). */}
+              {/* Visuell prikk — større og mer "stikker ut" enn chat-tab-prikken
+                  fordi avataren er rundt og prikken må konkurrere mot bilde-innholdet.
+                  Se #205 — Reidar ba om mer tydelig versjon. */}
               <span
                 aria-hidden="true"
                 style={{
                   position: 'absolute',
-                  top: -1,
-                  right: -1,
-                  width: 6,
-                  height: 6,
+                  top: -2,
+                  right: -2,
+                  width: 10,
+                  height: 10,
                   borderRadius: '50%',
                   background: 'var(--accent)',
-                  boxShadow: '0 0 0 2px rgba(14, 15, 19, 0.85)',
+                  boxShadow: '0 0 0 2.5px rgba(14, 15, 19, 0.95)',
                 }}
               />
               {/* Sr-only — behold "Min profil" som accessible name */}
