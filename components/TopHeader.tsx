@@ -31,12 +31,11 @@ type Props = {
   brukerNavn?: string | null
   bildeUrl?: string | null
   rolle?: string | null
-  versjon?: string
 }
 
 /**
  * Sticky topp-header med tre alltid-synlige tabs (Agenda / Chat / Klubb) og
- * profil-snarvei høyre. Aktiv tab markert med gull underline. Path-prefikser
+ * profil-snarvei høyre. Aktiv tab markert med soft pill-bakgrunn. Path-prefikser
  * styrer hvilken tab som er aktiv på undersider (f.eks. `/arrangementer/123`
  * → Agenda aktiv).
  *
@@ -44,7 +43,7 @@ type Props = {
  * #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Se
  * Policy: Navigasjon i CLAUDE.md.
  */
-export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Props) {
+export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
   const pathname = usePathname()
 
   const headerStyle: CSSProperties = {
@@ -63,11 +62,11 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Prop
   const innerStyle: CSSProperties = {
     // Høyden speiles av --top-header-h i globals.css så andre sticky-elementer
     // (f.eks. VinnerBanner) kan stikke seg under headeren.
-    height: 'var(--top-header-h, 56px)',
+    height: 'var(--top-header-h, 60px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0 14px',
+    padding: '0 16px',
     gap: 8,
   }
 
@@ -81,19 +80,22 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Prop
     <nav style={headerStyle} aria-label="Hovednavigasjon">
       <div style={innerStyle}>
         {/* Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {TABS.map(tab => {
             const aktiv = erAktiv(tab, pathname)
             const tabStil: CSSProperties = {
-              position: 'relative',
-              padding: '8px 10px',
-              fontFamily: 'var(--font-display)',
-              fontSize: 15,
-              fontWeight: 500,
+              padding: '8px 14px',
+              borderRadius: 999,
+              fontFamily: 'var(--font-body)',
+              fontSize: 17,
+              fontWeight: aktiv ? 600 : 400,
               color: aktiv ? 'var(--accent)' : 'var(--text-tertiary)',
+              opacity: aktiv ? 1 : 0.6,
+              background: aktiv ? 'var(--accent-soft)' : 'transparent',
               textDecoration: 'none',
-              transition: 'color 180ms ease',
-              letterSpacing: '-0.2px',
+              letterSpacing: '-0.3px',
+              lineHeight: 1,
+              transition: 'color 180ms ease, background-color 180ms ease, opacity 180ms ease',
             }
             return (
               <Link
@@ -104,41 +106,10 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Prop
                 prefetch
               >
                 {tab.label}
-                {aktiv && (
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      left: 10,
-                      right: 10,
-                      bottom: 2,
-                      height: 1.5,
-                      background: 'var(--accent)',
-                      borderRadius: 1,
-                    }}
-                  />
-                )}
               </Link>
             )
           })}
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {versjon && (
-            <span
-              aria-hidden="true"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 9.5,
-                color: 'var(--text-tertiary)',
-                opacity: 0.55,
-                letterSpacing: '0.5px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {versjon}
-            </span>
-          )}
 
         {/* Profil-snarvei */}
         <Link
@@ -157,10 +128,9 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, versjon }: Prop
             name={brukerNavn ?? 'Herreklubben'}
             src={bildeUrl ?? null}
             rolle={rolle ?? null}
-            size={36}
+            size={38}
           />
         </Link>
-        </div>
       </div>
     </nav>
   )

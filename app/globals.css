@@ -47,7 +47,7 @@
   /* Layout — sticky topp-header-høyde (uten safe-area). Eksponert som
    * CSS-variabel så andre sticky-elementer (f.eks. VinnerBanner) kan
    * stikke seg riktig under headeren i stedet for å havne bak. */
-  --top-header-h: 56px;
+  --top-header-h: 60px;
 
   /* Form */
   --radius: 18px;

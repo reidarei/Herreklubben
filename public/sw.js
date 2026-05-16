@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.0.23'
+const CACHE_VERSION = 'V3.1.1'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
