@@ -219,15 +219,6 @@ export default async function Profil() {
         </div>
       </div>
 
-      {/* Pass-info — synlig kun for eier (RLS) */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Pass</SectionLabel>
-        <PassInfoKort
-          nummer={passInfo?.nummer ?? null}
-          utloper={passInfo?.utloper ?? null}
-        />
-      </section>
-
       {/* Arrangøransvar */}
       {ansvar && ansvar.length > 0 && (
         <section style={{ marginBottom: 24 }}>
@@ -324,58 +315,6 @@ export default async function Profil() {
         </section>
       )}
 
-      {/* Innspill */}
-      <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Innspill</SectionLabel>
-        <Link
-          href="/innspill"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            padding: '16px 4px',
-            textDecoration: 'none',
-            color: 'inherit',
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 18,
-                fontWeight: 500,
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.2px',
-                lineHeight: 1.15,
-                marginBottom: 3,
-              }}
-            >
-              Dine innspill
-            </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 12,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '0.1px',
-              }}
-            >
-              Se innspill du har sendt inn og svar på håndterte saker
-            </div>
-          </div>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 14,
-              color: 'var(--text-tertiary)',
-              fontWeight: 400,
-            }}
-          >
-            →
-          </span>
-        </Link>
-      </section>
-
       {/* Varsler-innstillinger */}
       <VarslerInnstillinger
         pushAktiv={varselPref?.push_aktiv ?? false}
@@ -469,44 +408,67 @@ export default async function Profil() {
         </section>
       )}
 
-      {/* Om appen */}
-      <section style={{ marginTop: 28, marginBottom: 24 }}>
-        <SectionLabel>Om</SectionLabel>
+      {/* Pass og Innspill samlet nederst — sjeldent brukt, eller mest praktisk
+          å nå når man scroller forbi det viktige (varsler, ansvar). */}
+
+      {/* Pass-info — synlig kun for eier (RLS) */}
+      <section style={{ marginTop: 32, marginBottom: 24 }}>
+        <SectionLabel>Pass</SectionLabel>
+        <PassInfoKort
+          nummer={passInfo?.nummer ?? null}
+          utloper={passInfo?.utloper ?? null}
+        />
+      </section>
+
+      {/* Innspill */}
+      <section style={{ marginBottom: 24 }}>
+        <SectionLabel>Innspill</SectionLabel>
         <Link
-          href="/om-appen"
+          href="/innspill"
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '14px 4px',
+            gap: 14,
+            padding: '16px 4px',
             textDecoration: 'none',
             color: 'inherit',
           }}
         >
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 500,
                 color: 'var(--text-primary)',
                 letterSpacing: '-0.2px',
+                lineHeight: 1.15,
+                marginBottom: 3,
               }}
             >
-              Om appen
+              Dine innspill
             </div>
             <div
               style={{
                 fontFamily: 'var(--font-body)',
                 fontSize: 12,
                 color: 'var(--text-tertiary)',
-                marginTop: 3,
+                letterSpacing: '0.1px',
               }}
             >
-              Sikkerhet, personvern og hvordan dette er bygget
+              Se innspill du har sendt inn og svar på håndterte saker
             </div>
           </div>
-          <span style={{ fontSize: 18, color: 'var(--text-tertiary)' }}>→</span>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 14,
+              color: 'var(--text-tertiary)',
+              fontWeight: 400,
+            }}
+          >
+            →
+          </span>
         </Link>
       </section>
 
