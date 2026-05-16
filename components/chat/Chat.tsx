@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   sendChatMelding,
@@ -10,7 +10,7 @@ import {
   fjernReaksjon,
 } from '@/lib/actions/chat'
 import { konfigFor, type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
-import { formaterDato } from '@/lib/dato'
+import { formaterDato, erSammeNorskeDag, formaterDatoSkille } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
@@ -719,9 +719,12 @@ export default function Chat({
 
         {meldinger.map((m, i) => {
           const forrige = i > 0 ? meldinger[i - 1] : null
+          // Vis dato-skille når det er første melding eller ny kalenderdag (norsk tid).
+          const visDatoSkille = !forrige || !erSammeNorskeDag(forrige.opprettet, m.opprettet)
           // Grupper sammenhengende meldinger fra samme bruker — skjul avatar
-          // og navn/tid-header på fortsettelses-meldinger.
-          const erFortsettelse = forrige?.profil_id === m.profil_id
+          // og navn/tid-header på fortsettelses-meldinger. Dato-skille bryter
+          // alltid grupperingen så første melding på ny dag alltid viser header.
+          const erFortsettelse = !visDatoSkille && forrige?.profil_id === m.profil_id
           const erEgen = m.profil_id === brukerId
           // Slett-knapp: kun egen-eier. Admin har ingen UI-snarvei for å
           // slette andres meldinger — om noe må fjernes må admin gjøre det
@@ -734,8 +737,32 @@ export default function Chat({
           const rolle = rolleMap.get(m.profil_id) ?? null
           const tid = formaterDato(m.opprettet, 'HH:mm')
           return (
+            <React.Fragment key={m.id}>
+              {visDatoSkille && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    margin: '20px 0 12px',
+                  }}
+                >
+                  <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 9,
+                      letterSpacing: '1.4px',
+                      fontWeight: 600,
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    {formaterDatoSkille(m.opprettet)}
+                  </span>
+                  <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+                </div>
+              )}
             <div
-              key={m.id}
               style={{
                 display: 'flex',
                 gap: 10,
@@ -1159,6 +1186,7 @@ export default function Chat({
                 </div>
               </div>
             </div>
+            </React.Fragment>
           )
         })}
         <div ref={bunnenRef} />
