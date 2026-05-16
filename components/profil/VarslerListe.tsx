@@ -16,31 +16,46 @@ export type VarselRad = {
 
 type Props = {
   varsler: VarselRad[]
+  /**
+   * Totalt antall uleste varsler i DB (også eldre enn de 10 vi henter til
+   * listen). Tellingen i tittelen og "Marker alle som lest"-knappen bruker
+   * denne — uten den ville Reidar med 116 uleste eldre + 0 uleste i top 10
+   * sett "Varsler (0 uleste)" og en disabled knapp, men prikken på avataren
+   * fortsatt aktiv. Se #207.
+   */
+  antallUlesteTotal: number
 }
 
 // Klient-komponent fordi vi vil ha lokal state for kollaps og filter uten
 // å re-fetche fra serveren. Marker-alle-lest kaller server action og lar
 // revalidatePath sørge for at neste render reflekterer endringen — vi
 // oppdaterer også lokal state med en gang for momentan UI-feedback.
-export default function VarslerListe({ varsler: initialVarsler }: Props) {
+export default function VarslerListe({
+  varsler: initialVarsler,
+  antallUlesteTotal: initialAntallUlesteTotal,
+}: Props) {
   const [varsler, setVarsler] = useState(initialVarsler)
+  // Total ulest-count som lokal state så optimistisk marker-alle-lest kan
+  // nulle den umiddelbart uten å vente på revalidatePath.
+  const [antallUlesteTotal, setAntallUlesteTotal] = useState(initialAntallUlesteTotal)
   const [kollapset, setKollapset] = useState(false)
   const [kunUleste, setKunUleste] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const antallUleste = varsler.filter(v => !v.lest).length
   const visning = kunUleste ? varsler.filter(v => !v.lest) : varsler
 
   function markerAlleLest() {
-    if (antallUleste === 0) return
+    if (antallUlesteTotal === 0) return
     startTransition(async () => {
       // Optimistisk oppdatering — server action får siste ord via revalidatePath.
       setVarsler(varsler.map(v => ({ ...v, lest: true })))
+      setAntallUlesteTotal(0)
       try {
         await markerAlleVarslerLest()
       } catch {
         // Ved feil: rull tilbake lokal state.
         setVarsler(initialVarsler)
+        setAntallUlesteTotal(initialAntallUlesteTotal)
       }
     })
   }
@@ -94,7 +109,7 @@ export default function VarslerListe({ varsler: initialVarsler }: Props) {
             ▼
           </span>
           <span>
-            Varsler ({antallUleste} uleste)
+            Varsler ({antallUlesteTotal} uleste)
           </span>
         </button>
         <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
@@ -136,7 +151,7 @@ export default function VarslerListe({ varsler: initialVarsler }: Props) {
             <button
               type="button"
               onClick={markerAlleLest}
-              disabled={antallUleste === 0 || isPending}
+              disabled={antallUlesteTotal === 0 || isPending}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -144,9 +159,9 @@ export default function VarslerListe({ varsler: initialVarsler }: Props) {
                 fontFamily: 'var(--font-body)',
                 fontSize: 12,
                 fontWeight: 500,
-                color: antallUleste === 0 ? 'var(--text-tertiary)' : 'var(--accent)',
-                opacity: antallUleste === 0 || isPending ? 0.5 : 1,
-                cursor: antallUleste === 0 ? 'default' : 'pointer',
+                color: antallUlesteTotal === 0 ? 'var(--text-tertiary)' : 'var(--accent)',
+                opacity: antallUlesteTotal === 0 || isPending ? 0.5 : 1,
+                cursor: antallUlesteTotal === 0 ? 'default' : 'pointer',
                 letterSpacing: '-0.1px',
               }}
             >

@@ -22,6 +22,7 @@ export default async function Profil() {
     { data: ansvar },
     { data: varselPref },
     { data: varsler },
+    { count: antallUlesteVarsler },
     { data: passInfo },
   ] = await Promise.all([
     supabase
@@ -55,6 +56,14 @@ export default async function Profil() {
       .eq('profil_id', user!.id)
       .order('opprettet', { ascending: false })
       .limit(10),
+    // Total ulest-count på tvers av hele historikken — listen viser kun
+    // top 10, men "Marker alle som lest"-knappen og tellingen i tittelen
+    // må kjenne til alle uleste, også de eldre enn topp 10. Se #207.
+    supabase
+      .from('varsel_logg')
+      .select('id', { count: 'exact', head: true })
+      .eq('profil_id', user!.id)
+      .eq('lest', false),
     // RLS sørger for at vi kun får egen rad. maybeSingle siden raden
     // ikke nødvendigvis finnes ennå.
     supabase
@@ -323,9 +332,13 @@ export default async function Profil() {
       />
 
       {/* Personlige varsler — interaktiv klient-komponent med filter, kollaps
-          og marker-alle-lest. */}
-      {varsler && varsler.length > 0 && (
-        <VarslerListe varsler={varsler} />
+          og marker-alle-lest. Vis seksjonen hvis det enten finnes varsler i
+          top 10 ELLER hvis det finnes uleste eldre enn top 10 (se #207). */}
+      {((varsler && varsler.length > 0) || (antallUlesteVarsler ?? 0) > 0) && (
+        <VarslerListe
+          varsler={varsler ?? []}
+          antallUlesteTotal={antallUlesteVarsler ?? 0}
+        />
       )}
 
       {/* Pass og Innspill samlet nederst — sjeldent brukt, eller mest praktisk
