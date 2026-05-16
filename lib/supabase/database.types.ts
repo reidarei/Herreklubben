@@ -969,6 +969,7 @@ export type Database = {
         Row: {
           aktiv: boolean
           bilde_url: string | null
+          chat_sist_sett: string | null
           epost: string
           fodselsdato: string | null
           id: string
@@ -982,6 +983,7 @@ export type Database = {
         Insert: {
           aktiv?: boolean
           bilde_url?: string | null
+          chat_sist_sett?: string | null
           epost: string
           fodselsdato?: string | null
           id: string
@@ -995,6 +997,7 @@ export type Database = {
         Update: {
           aktiv?: boolean
           bilde_url?: string | null
+          chat_sist_sett?: string | null
           epost?: string
           fodselsdato?: string | null
           id?: string

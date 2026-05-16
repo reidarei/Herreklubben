@@ -9,14 +9,15 @@ import { harGulGloed } from '@/lib/roller'
 type Tab = {
   href: string
   label: string
+  nokkel: 'agenda' | 'chat' | 'klubb'
   /** Path-prefikser som markerer denne tab-en som aktiv. */
   prefikser: string[]
 }
 
 const TABS: Tab[] = [
-  { href: '/', label: 'Agenda', prefikser: ['/poll', '/arrangementer', '/meldinger'] },
-  { href: '/chat', label: 'Chat', prefikser: ['/chat', '/samtaler'] },
-  { href: '/klubbinfo', label: 'Klubb', prefikser: ['/klubbinfo', '/kaaringer', '/album'] },
+  { href: '/', label: 'Agenda', nokkel: 'agenda', prefikser: ['/poll', '/arrangementer', '/meldinger'] },
+  { href: '/chat', label: 'Chat', nokkel: 'chat', prefikser: ['/chat', '/samtaler'] },
+  { href: '/klubbinfo', label: 'Klubb', nokkel: 'klubb', prefikser: ['/klubbinfo', '/kaaringer', '/album'] },
 ]
 
 function erAktiv(tab: Tab, pathname: string): boolean {
@@ -31,6 +32,8 @@ type Props = {
   brukerNavn?: string | null
   bildeUrl?: string | null
   rolle?: string | null
+  /** True hvis det finnes uleste klubb-chat-meldinger fra andre. */
+  ulestChat?: boolean
 }
 
 /**
@@ -43,7 +46,7 @@ type Props = {
  * #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Se
  * Policy: Navigasjon i CLAUDE.md.
  */
-export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
+export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = false }: Props) {
   const pathname = usePathname()
 
   const headerStyle: CSSProperties = {
@@ -83,7 +86,10 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {TABS.map(tab => {
             const aktiv = erAktiv(tab, pathname)
+            // Prikken vises kun for Chat-taben, og aldri når taben er aktiv
+            const visPrikk = tab.nokkel === 'chat' && ulestChat && !aktiv
             const tabStil: CSSProperties = {
+              position: 'relative', // nødvendig for absolutt-posisjonert ulest-prikk
               padding: '8px 14px',
               borderRadius: 999,
               fontFamily: 'var(--font-body)',
@@ -102,10 +108,27 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
                 key={tab.href}
                 href={tab.href}
                 aria-current={aktiv ? 'page' : undefined}
+                aria-label={tab.label + (visPrikk ? ' (ulest)' : '')}
                 style={tabStil}
                 prefetch
               >
                 {tab.label}
+                {visPrikk && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 6,
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: 'var(--accent)',
+                      // Skygge i header-bg-fargen løfter prikken visuelt fra pill-bakgrunnen
+                      boxShadow: '0 0 0 2px rgba(14, 15, 19, 0.85)',
+                    }}
+                  />
+                )}
               </Link>
             )
           })}

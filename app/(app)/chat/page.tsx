@@ -4,6 +4,7 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Chat from '@/components/chat/Chat'
 import Icon from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
+import { markerChatSett } from '@/lib/actions/ulest'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
 // Initial-last er siste 30 meldinger (i desc-rekkefølge fra DB, reversert til
@@ -31,6 +32,10 @@ export default async function KlubbChatSide() {
       .eq('lest', false)
       .neq('profil_id', user!.id),
   ])
+
+  // Marker at brukeren nå ser klubb-chat — prikken forsvinner ved neste
+  // navigasjon. Fire-and-forget: vi venter ikke, men heller ikke stille.
+  markerChatSett().catch(() => {})
 
   const erAdmin = kanAdministrere(profil?.rolle)
   const initialMeldinger = [...(siste ?? [])].reverse()

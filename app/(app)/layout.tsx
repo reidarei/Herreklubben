@@ -7,14 +7,23 @@ import DeployInfo from '@/components/DeployInfo'
 import InstallVeiledning from '@/components/InstallVeiledning'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { redirect } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
+import { harUlestChat } from '@/lib/ulest'
 
 async function HeaderMedProfil() {
-  const profil = await getProfil()
+  const [profil, supabase] = await Promise.all([getProfil(), createServerClient()])
+  // getInnloggetBruker() er cachet — ingen ekstra nettverkskall
+  const user = await getInnloggetBruker()
+  // Ulest-sjekk parallelliseres ikke med profil fordi vi trenger supabase-klienten
+  // og user-id-en først. Feil her skal aldri blokkere render — fallback false.
+  const ulestChat = user ? await harUlestChat(supabase, user.id).catch(() => false) : false
+
   return (
     <TopHeader
       brukerNavn={profil?.navn}
       bildeUrl={profil?.bilde_url ?? null}
       rolle={profil?.rolle ?? null}
+      ulestChat={ulestChat}
     />
   )
 }
