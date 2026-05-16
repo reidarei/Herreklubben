@@ -5,6 +5,7 @@ import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
 import Avatar from '@/components/ui/Avatar'
 import Chat from '@/components/chat/Chat'
+import ChatAutoScrollScript from '@/components/chat/ChatAutoScrollScript'
 import { markerSamtaleLest } from '@/lib/actions/samtaler'
 
 type SamtaleRad = {
@@ -81,6 +82,7 @@ export default async function SamtaleDetalj({
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
+      <ChatAutoScrollScript />
       <header style={{ marginTop: 12, marginBottom: 22 }}>
         <Link
           href="/samtaler"

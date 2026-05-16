@@ -226,10 +226,14 @@ export default function Chat({
   }
 
   const scrollTilBunn = useCallback((instant = false) => {
-    // scrollIntoView legger elementet ved viewport-bunnen, men der ligger
-    // docken (fixed) oppå — så meldingen blir skjult bak. Vi scroller
-    // i stedet hele siden helt nederst. Input-pillet under bunnenRef gir
-    // naturlig avstand mellom siste melding og docken.
+    // window.scrollTo (ikke scrollIntoView) fordi vi vil ha hele siden
+    // til bunnen, ikke kun bunnen av meldingsblokken. Sticky input-pill
+    // under bunnenRef gir naturlig avstand.
+    //
+    // Initial-mount-scroll håndteres nå av <ChatAutoScrollScript /> i
+    // sidens markup (kjører før hydrering, eliminerer flikket fra #209).
+    // Denne useCallback brukes fortsatt for realtime-INSERT-grenen og som
+    // defense-in-depth-fallback hvis inline-scriptet blokkeres.
     if (typeof window === 'undefined') return
     window.scrollTo({
       top: document.documentElement.scrollHeight,

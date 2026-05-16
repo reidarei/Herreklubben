@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Chat from '@/components/chat/Chat'
+import ChatAutoScrollScript from '@/components/chat/ChatAutoScrollScript'
 import Icon from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
 import { markerChatSett } from '@/lib/actions/ulest'
@@ -43,6 +44,7 @@ export default async function KlubbChatSide() {
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
+      <ChatAutoScrollScript />
       {/* Breadcrumb + tittel */}
       <div style={{ padding: '12px 4px 22px' }}>
         <div
