@@ -5,6 +5,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
+import versjon from '@/lib/versjon.json'
 
 const KLUBBEN_START_AAR = 2007
 
@@ -103,6 +104,26 @@ export default async function Klubbinfo() {
             Søndre Nordstrand
           </span>
         </div>
+
+        {/* Diskret divider med versjonsnummer høyrejustert. Plassert her etter
+            at headeren ble strippet for versjon i #190 — klubb-siden er nå
+            kanonisk sted for app-versjon. */}
+        <div
+          style={{
+            borderTop: '0.5px solid var(--border-subtle)',
+            margin: '0 0 16px',
+            paddingTop: 6,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 9,
+            color: 'var(--text-tertiary)',
+            letterSpacing: '1.5px',
+          }}
+        >
+          {versjon.versjon}
+        </div>
+
         <h2
           style={{
             fontFamily: 'var(--font-display)',
