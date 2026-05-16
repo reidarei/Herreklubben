@@ -692,18 +692,18 @@ export default function Chat({
         </div>
       )}
 
-      {/* Meldingsliste — padding-bottom = dock + safe-area + plass til input-
-          pillen (~48px) + lite gap. Reduseert fra 200px (som romslig dekket
-          worst-case bilde-preview) — i normal-tilstand uten preview ble det
-          for stor avstand mellom siste melding og input. Hvis brukeren har
-          bilde-preview/mentions aktivt kan siste melding bli litt skjult
-          kortvarig — akseptabel kompromiss. */}
+      {/* Meldingsliste — padding-bottom må romme sticky input-pillen så ingen
+          melding havner visuelt bak den. ~48px = pill-høyde (button 32 + 8+8
+          padding) + buffer for grupperingsavstand. Tidligere kuttet ned til
+          bare safe-area, men siden iOS-safe-area-inset-bottom (~34px) er
+          større enn wrapperens 20px padding, endte sticky-pillen et stykke
+          over sin naturlige posisjon og dekket siste melding. */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           marginBottom: 4,
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',
         }}
       >
         {meldinger.length === 0 && (
@@ -1269,7 +1269,9 @@ export default function Chat({
         </div>
       )}
 
-      {/* Skriv melding — pill */}
+      {/* Skriv melding — pill. Solid bakgrunn (ikke --bg-elevated som er
+          95% opaque) så eventuelle meldinger som glir bak pillen ved sticky-
+          offset ikke skinner gjennom. */}
       <div
         style={{
           display: 'flex',
@@ -1278,7 +1280,7 @@ export default function Chat({
           padding: '8px 8px 8px 12px',
           border: '0.5px solid var(--border)',
           borderRadius: 999,
-          background: 'var(--bg-elevated)',
+          background: '#282a32',
           marginBottom: 4,
         }}
       >
