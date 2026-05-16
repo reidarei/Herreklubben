@@ -84,7 +84,6 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle }: Props) {
           {TABS.map(tab => {
             const aktiv = erAktiv(tab, pathname)
             const tabStil: CSSProperties = {
-              position: 'relative',
               padding: '8px 14px',
               borderRadius: 999,
               fontFamily: 'var(--font-body)',
