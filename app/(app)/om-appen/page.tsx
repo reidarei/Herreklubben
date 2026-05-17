@@ -85,9 +85,8 @@ export default function OmAppen() {
       <section style={{ marginBottom: 30 }}>
         <SectionLabel>Personvern</SectionLabel>
         <Avsnitt overskrift="Hva vi lagrer">
-          Bare det vi trenger: kontaktinfo, profilbilde, deltakelse på
-          arrangementer, kommentarer og reaksjoner i appen, samt
-          push-preferanser. Pass-info hvis du selv har lagt det inn.
+          Alt, til evig tid. Når du dævver blir det fortsatt liggende
+          til spott og spe for evig tid.
         </Avsnitt>
         <Avsnitt overskrift="Ingen tracking">
           Vi har ingen annonser, ingen Google Analytics, ingen Facebook-
@@ -95,14 +94,9 @@ export default function OmAppen() {
           Eneste eksterne tjeneste er Vercel sin Web Vitals (anonyme
           ytelsesmålinger uten brukerdata).
         </Avsnitt>
-        <Avsnitt overskrift="Hvor data ligger">
+        <Avsnitt overskrift="Hvor data ligger" siste>
           Database og fillagring hos Supabase i Dublin (EU). Hosting hos
           Vercel, også Dublin-region. Data forlater ikke EU-området.
-        </Avsnitt>
-        <Avsnitt overskrift="Sletting" siste>
-          Alle medlemmers data slettes hvis de melder seg ut. Bilder du
-          har lastet opp fjernes; kommentarer og reaksjoner forblir
-          (anonymisert hvis du ber om det).
         </Avsnitt>
       </section>
 
