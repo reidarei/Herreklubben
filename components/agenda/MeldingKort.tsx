@@ -5,9 +5,11 @@ import Image from 'next/image'
 import { useRef, useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
+import Icon from '@/components/ui/Icon'
 import KommentarerPaaKort, { type KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import MeldingReaksjoner, { type ReaksjonGruppe } from '@/components/agenda/MeldingReaksjoner'
 import type { ChatProfil } from '@/lib/mention'
+import type { AlbumSpotlight } from '@/lib/melding-spotlight'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
 
@@ -30,6 +32,9 @@ export type MeldingKortData = {
   antallKommentarer: number
   /** Visuell dempning når kortet ligger i Tidligere-seksjonen */
   tidligere: boolean
+  /** Album-spotlight: når satt erstatter spotlight-bildet vanlig bilde-grid
+   * og en CTA-pille lenker til albumet. Se #214. */
+  albumSpotlight: AlbumSpotlight | null
 }
 
 function relativTid(iso: string): string {
@@ -96,9 +101,12 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
   //   1 bilde  → full bredde, 4:3
   //   2–4      → 2×2-grid (kvadratiske celler)
   //   5+       → de 4 første i 2×2 med «+N»-overlay på 4. celle
+  // Hvis melding.albumSpotlight er satt overstyres dette helt — vi viser
+  // spotlight-bildet + CTA-pille i stedet for grid.
   const wrapperBunn =
     !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen) ? 10 : 0
-  const antallBilder = melding.bilder.length
+  const spotlight = melding.albumSpotlight
+  const antallBilder = spotlight ? 0 : melding.bilder.length
   const visOverlay = antallBilder > 4
   const bildeGrid = melding.bilder.slice(0, 4) // maks 4 vises
 
@@ -207,7 +215,7 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
               lineHeight: 1.4,
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
-              marginBottom: antallBilder > 0
+              marginBottom: antallBilder > 0 || spotlight
                 ? 10
                 : !melding.tidligere && (melding.reaksjoner.length > 0 || pickerApen)
                   ? 8
@@ -216,6 +224,63 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
           >
             {melding.innhold}
           </div>
+
+          {/* Album-spotlight: én stort bilde + CTA-pille som lenker til
+              hele albumet. Erstatter vanlig bilde-grid. Se #214. */}
+          {spotlight && (
+            <div style={{ marginBottom: wrapperBunn }}>
+              {spotlight.bildeUrl && (
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    aspectRatio: '4/3',
+                    borderRadius: 'var(--radius-card)',
+                    overflow: 'hidden',
+                    marginBottom: 8,
+                  }}
+                >
+                  <Image
+                    src={spotlight.bildeUrl}
+                    alt=""
+                    fill
+                    sizes="(max-width: 512px) 100vw, 512px"
+                    style={{ objectFit: 'cover' }}
+                  />
+                </div>
+              )}
+              {/* CTA-pille — stopPropagation hindrer at trykk på pillen også
+                  trigger Link-en rundt hele kortet (Link → /meldinger/[id]). */}
+              <Link
+                href={`/album/${spotlight.albumId}`}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  background: 'var(--accent-soft)',
+                  border: '0.5px solid var(--accent)',
+                  borderRadius: 999,
+                  color: 'var(--text-primary)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                <Icon name="image" size={13} color="var(--accent)" strokeWidth={1.8} />
+                <span>
+                  Se hele albumet
+                  <span style={{ color: 'var(--text-tertiary)' }}>
+                    {' · '}
+                    {spotlight.albumTittel}
+                    {spotlight.antallBilder > 0 && ` (${spotlight.antallBilder})`}
+                  </span>
+                </span>
+              </Link>
+            </div>
+          )}
 
           {/* Bilde-grid. 1 bilde: full bredde 4:3. 2-4: 2×2-grid.
               5+: 4 første i grid med «+N»-overlay på siste celle. */}

@@ -25,6 +25,7 @@ import {
 } from '@/lib/agenda-sortering'
 import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
 import { AGENDA_VINDU_MND } from '@/lib/konstanter'
+import { ALBUM_SPOTLIGHT_SELECT, tilAlbumSpotlight } from '@/lib/melding-spotlight'
 
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
@@ -121,7 +122,13 @@ export default async function Forside() {
         // melding_chat(count) returnerer aggregert antall kommentarer per
         // melding via PostgREST — billig og uavhengig av om den enkelte
         // kommentaren faller innenfor melding_chat-limit-vinduet under.
-        'id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
+        // Album-spotlight (#214): album + spotlight-bilde embed-es via
+        // ALBUM_SPOTLIGHT_SELECT så samme select brukes alle steder.
+        `id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id,
+         profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle),
+         melding_bilder (bilde_url, rekkefoelge),
+         melding_chat (count),
+         ${ALBUM_SPOTLIGHT_SELECT}`,
       )
       .gte('sist_aktivitet', cutoffIso)
       .order('sist_aktivitet', { ascending: false }),
@@ -307,6 +314,14 @@ export default async function Forside() {
     totaltPerPoll.set(p.id, p.poll_chat?.[0]?.count ?? 0)
   }
 
+  type RawAlbumEmbed = {
+    id: string
+    tittel: string
+    cover: { bilde_url: string; thumb_url: string | null } | { bilde_url: string; thumb_url: string | null }[] | null
+    antall: { count: number }[] | null
+  } | null
+  type RawSpotlightEmbed = { bilde_url: string; thumb_url: string | null } | { bilde_url: string; thumb_url: string | null }[] | null
+
   type RawMelding = {
     id: string
     innhold: string | null
@@ -317,6 +332,8 @@ export default async function Forside() {
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
     melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
     melding_chat: { count: number }[] | null
+    album: RawAlbumEmbed | RawAlbumEmbed[]
+    spotlight: RawSpotlightEmbed
   }
 
   // antallKommentarer per melding kommer nå fra count-aggregatet på selve
@@ -366,6 +383,7 @@ export default async function Forside() {
       },
       reaksjoner,
       antallKommentarer: antallKommPerMelding.get(m.id) ?? 0,
+      albumSpotlight: tilAlbumSpotlight(m.album, m.spotlight),
     }
   })
 

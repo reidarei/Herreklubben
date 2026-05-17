@@ -10,6 +10,7 @@ import { dekodeCursor, enkodeCursor } from '@/lib/tidligere-cursor'
 import { tilKort, tilMeldingKort, tilPollKort } from '@/lib/agenda-sortering'
 import type { TidligereItem, MeldingRaad } from '@/lib/agenda-sortering'
 import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
+import { ALBUM_SPOTLIGHT_SELECT, tilAlbumSpotlight } from '@/lib/melding-spotlight'
 import { naa } from '@/lib/dato'
 import ArrangementKort from '@/components/agenda/ArrangementKort'
 import PollKort from '@/components/agenda/PollKort'
@@ -54,7 +55,11 @@ export default async function TidligereSide({
   let meldQuery = supabase
     .from('meldinger')
     .select(
-      'id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle), melding_bilder (bilde_url, rekkefoelge), melding_chat (count)',
+      `id, innhold, opprettet, sist_aktivitet, fra_facebook, profil_id,
+       profiles!meldinger_profil_id_fkey (navn, bilde_url, rolle),
+       melding_bilder (bilde_url, rekkefoelge),
+       melding_chat (count),
+       ${ALBUM_SPOTLIGHT_SELECT}`,
     )
     .order('sist_aktivitet', { ascending: false })
     .order('id', { ascending: false })
@@ -106,6 +111,13 @@ export default async function TidligereSide({
   const pollSide = (pollRaad ?? []).slice(0, TIDLIGERE_SIDESTOERRELSE)
 
   // Bygg TidligereItem-lister fra rådataene
+  type CoverObj = { bilde_url: string; thumb_url: string | null }
+  type RawAlbumEmbed = {
+    id: string
+    tittel: string
+    cover: CoverObj | CoverObj[] | null
+    antall: { count: number }[] | null
+  } | null
   type RawMelding = {
     id: string
     innhold: string | null
@@ -116,6 +128,8 @@ export default async function TidligereSide({
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
     melding_bilder: { bilde_url: string; rekkefoelge: number }[] | null
     melding_chat: { count: number }[] | null
+    album: RawAlbumEmbed | RawAlbumEmbed[]
+    spotlight: CoverObj | CoverObj[] | null
   }
 
   // Alle bilder er nå i melding_bilder — bilde_url-kolonnen er droppet (#174)
@@ -136,6 +150,7 @@ export default async function TidligereSide({
     },
     reaksjoner: [], // reaksjoner hentes ikke på /tidligere for å holde siden rask
     antallKommentarer: (m.melding_chat?.[0] as { count: number } | undefined)?.count ?? 0,
+    albumSpotlight: tilAlbumSpotlight(m.album, m.spotlight),
   }))
 
   // Bygg items for arrangmenter

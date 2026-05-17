@@ -7,15 +7,37 @@ import { redirect } from 'next/navigation'
 import { BASE_URL } from '@/lib/config'
 import { INNLEGG_MAKS_LENGDE, INNLEGG_MIN_LENGDE, MELDING_MAKS_BILDER } from '@/lib/konstanter'
 
-export async function opprettMelding(input: { innhold: string; bilde_urls?: string[] }) {
+export async function opprettMelding(input: {
+  innhold: string
+  bilde_urls?: string[]
+  /** Album-spotlight: gjør innlegget til en lenke til et eksisterende album.
+   * Kan ikke kombineres med egne opplastede bilder — enten/eller. */
+  album_id?: string | null
+  /** Spotlight-bilde fra valgt album. Null = bruk album.cover_bilde_id. */
+  album_spotlight_bilde_id?: string | null
+}) {
   const tekst = input.innhold.trim()
   const bilder = (input.bilde_urls ?? []).slice(0, MELDING_MAKS_BILDER)
+  const albumId = input.album_id ?? null
+  const spotlightId = input.album_spotlight_bilde_id ?? null
 
-  // Minst enten tekst eller ett bilde kreves — tom melding er ikke nyttig.
-  if (bilder.length === 0 && (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE)) {
+  // Album-spotlight og egne opplastede bilder utelukker hverandre — UI
+  // håndhever det også, men vi avviser her som forsvar i dybden.
+  if (albumId && bilder.length > 0) {
+    throw new Error('Kan ikke laste opp egne bilder samtidig som du lenker til et album')
+  }
+  if (spotlightId && !albumId) {
+    throw new Error('Spotlight-bilde krever at album er valgt')
+  }
+
+  // Hvis det IKKE er album-spotlight: minst enten tekst eller ett bilde kreves.
+  // Album-spotlight er gyldig uten egen tekst — bildet og lenken til albumet
+  // er innholdet.
+  const harSpotlight = !!albumId
+  if (!harSpotlight && bilder.length === 0 && (tekst.length < INNLEGG_MIN_LENGDE || tekst.length > INNLEGG_MAKS_LENGDE)) {
     throw new Error(`Innholdet må være ${INNLEGG_MIN_LENGDE}–${INNLEGG_MAKS_LENGDE} tegn`)
   }
-  if (bilder.length > 0 && tekst.length > INNLEGG_MAKS_LENGDE) {
+  if ((bilder.length > 0 || harSpotlight) && tekst.length > INNLEGG_MAKS_LENGDE) {
     throw new Error(`Innholdet kan maks være ${INNLEGG_MAKS_LENGDE} tegn`)
   }
 
@@ -27,6 +49,8 @@ export async function opprettMelding(input: { innhold: string; bilde_urls?: stri
       profil_id: user.id,
       // Null-innhold er OK når bildet bærer innlegget
       innhold: tekst || null,
+      album_id: albumId,
+      album_spotlight_bilde_id: spotlightId,
     })
     .select('id')
     .single()

@@ -23,6 +23,7 @@ function lagMelding(opprettetDagerSiden: number, aktivitetDagerSiden: number): M
     forfatter: { id: 'p', navn: 'Ola', bilde_url: null, rolle: null },
     reaksjoner: [],
     antallKommentarer: 0,
+    albumSpotlight: null,
   }
 }
 

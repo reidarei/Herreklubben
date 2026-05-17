@@ -589,6 +589,8 @@ export type Database = {
       }
       meldinger: {
         Row: {
+          album_id: string | null
+          album_spotlight_bilde_id: string | null
           fra_facebook: boolean
           id: string
           innhold: string | null
@@ -598,6 +600,8 @@ export type Database = {
           sist_aktivitet: string
         }
         Insert: {
+          album_id?: string | null
+          album_spotlight_bilde_id?: string | null
           fra_facebook?: boolean
           id?: string
           innhold?: string | null
@@ -607,6 +611,8 @@ export type Database = {
           sist_aktivitet?: string
         }
         Update: {
+          album_id?: string | null
+          album_spotlight_bilde_id?: string | null
           fra_facebook?: boolean
           id?: string
           innhold?: string | null
@@ -616,6 +622,20 @@ export type Database = {
           sist_aktivitet?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meldinger_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "album"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meldinger_album_spotlight_bilde_id_fkey"
+            columns: ["album_spotlight_bilde_id"]
+            isOneToOne: false
+            referencedRelation: "album_bilde"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meldinger_profil_id_fkey"
             columns: ["profil_id"]

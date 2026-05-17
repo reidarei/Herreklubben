@@ -1,15 +1,26 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
 import Avatar from '@/components/ui/Avatar'
+import Icon from '@/components/ui/Icon'
 import Chat from '@/components/chat/Chat'
 import MeldingReaksjoner from '@/components/agenda/MeldingReaksjoner'
 import SlettMeldingKnapp from './SlettMeldingKnapp'
 import SlettBildeKnapp from './SlettBildeKnapp'
+import { ALBUM_SPOTLIGHT_SELECT, tilAlbumSpotlight } from '@/lib/melding-spotlight'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
+
+type CoverObj = { bilde_url: string; thumb_url: string | null }
+type RawAlbumEmbed = {
+  id: string
+  tittel: string
+  cover: CoverObj | CoverObj[] | null
+  antall: { count: number }[] | null
+} | null
 
 type MeldingRad = {
   id: string
@@ -24,6 +35,8 @@ type MeldingRad = {
   } | null
   // Sorteres på rekkefoelge her — flat liste av bilder
   melding_bilder: { id: string; bilde_url: string; rekkefoelge: number }[] | null
+  album: RawAlbumEmbed | RawAlbumEmbed[]
+  spotlight: CoverObj | CoverObj[] | null
 }
 
 type ReaksjonRad = {
@@ -52,7 +65,10 @@ export default async function MeldingDetalj({
     supabase
       .from('meldinger')
       .select(
-        'id, innhold, opprettet, fra_facebook, profil_id, profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle), melding_bilder(id, bilde_url, rekkefoelge)',
+        `id, innhold, opprettet, fra_facebook, profil_id,
+         profiles!meldinger_profil_id_fkey(navn, bilde_url, rolle),
+         melding_bilder(id, bilde_url, rekkefoelge),
+         ${ALBUM_SPOTLIGHT_SELECT}`,
       )
       .eq('id', id)
       .single<MeldingRad>(),
@@ -97,6 +113,12 @@ export default async function MeldingDetalj({
   const bilder = [...(melding.melding_bilder ?? [])].sort(
     (a, b) => a.rekkefoelge - b.rekkefoelge,
   )
+
+  // Album-spotlight (#214): hvis innlegget peker til et album, viser vi
+  // spotlight-bildet og en CTA-pille til albumet i stedet for vanlig
+  // bilde-grid. Egne bilder er ikke mulig på album-spotlight-innlegg, så
+  // vi trenger ikke å vise begge.
+  const spotlight = tilAlbumSpotlight(melding.album, melding.spotlight)
 
   return (
     <div style={{ padding: '0 20px 20px' }}>
@@ -173,9 +195,64 @@ export default async function MeldingDetalj({
           {melding.innhold}
         </div>
 
+        {/* Album-spotlight: stort bilde + CTA-pille som lenker til albumet.
+            Brukes når innlegget er en lenke til et eksisterende album. */}
+        {spotlight && (
+          <div style={{ marginBottom: 16 }}>
+            {spotlight.bildeUrl && (
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '4/3',
+                  borderRadius: 'var(--radius-card)',
+                  overflow: 'hidden',
+                  marginBottom: 10,
+                }}
+              >
+                <Image
+                  src={spotlight.bildeUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 512px) 100vw, 512px"
+                  style={{ objectFit: 'cover' }}
+                  priority
+                />
+              </div>
+            )}
+            <Link
+              href={`/album/${spotlight.albumId}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                background: 'var(--accent-soft)',
+                border: '0.5px solid var(--accent)',
+                borderRadius: 999,
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              <Icon name="image" size={14} color="var(--accent)" strokeWidth={1.8} />
+              <span>
+                Se hele albumet
+                <span style={{ color: 'var(--text-tertiary)' }}>
+                  {' · '}
+                  {spotlight.albumTittel}
+                  {spotlight.antallBilder > 0 && ` (${spotlight.antallBilder})`}
+                </span>
+              </span>
+            </Link>
+          </div>
+        )}
+
         {/* Bilder sortert på rekkefoelge. Hvert bilde har slett-knapp for
             eier/admin (ikke for FB-importerte innlegg). */}
-        {bilder.length > 0 && (
+        {!spotlight && bilder.length > 0 && (
           <div
             style={{
               display: 'flex',
