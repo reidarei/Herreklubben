@@ -263,6 +263,41 @@ export default function Chat({
     if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
+  // Tastatur-høyde via visualViewport. Når iOS-tastaturet åpner med
+  // interactiveWidget='overlays-content' (jf. app/layout.tsx, valgt for å
+  // unngå dock-bug-klassen) endrer ikke window.innerHeight seg, men
+  // visualViewport.height krymper. Differansen er omtrent tastatur-høyden.
+  // Vi bruker den til å løfte input-pillen over tastaturet — og på chat-
+  // fokuserte sider også til å vokse meldings-listas bunnpadding så siste
+  // melding holder seg synlig. Se #216.
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return
+    const vv = window.visualViewport
+    function oppdater() {
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setKeyboardOffset(offset)
+    }
+    vv.addEventListener('resize', oppdater)
+    vv.addEventListener('scroll', oppdater)
+    oppdater()
+    return () => {
+      vv.removeEventListener('resize', oppdater)
+      vv.removeEventListener('scroll', oppdater)
+    }
+  }, [])
+
+  // Når tastaturet åpner på chat-fokuserte sider, scroll til ny bunn slik
+  // at siste melding fortsetter å være synlig like over input-pillen.
+  // Uten dette ville den vokste paddingBottom-en bare lagt til tom plass
+  // under siste melding uten å flytte brukerens scroll-posisjon.
+  useEffect(() => {
+    if (!autoScrollTilBunn) return
+    if (keyboardOffset > 0) {
+      requestAnimationFrame(() => scrollTilBunn(true))
+    }
+  }, [keyboardOffset, autoScrollTilBunn, scrollTilBunn])
+
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
     let cancelled = false
@@ -692,18 +727,23 @@ export default function Chat({
         </div>
       )}
 
-      {/* Meldingsliste — padding-bottom må romme sticky input-pillen så ingen
+      {/* Meldingsliste — padding-bottom må romme input-pillen så ingen
           melding havner visuelt bak den. ~48px = pill-høyde (button 32 + 8+8
           padding) + buffer for grupperingsavstand. Tidligere kuttet ned til
           bare safe-area, men siden iOS-safe-area-inset-bottom (~34px) er
           større enn wrapperens 20px padding, endte sticky-pillen et stykke
-          over sin naturlige posisjon og dekket siste melding. */}
+          over sin naturlige posisjon og dekket siste melding.
+          På chat-fokuserte sider vokser paddingen i tillegg med keyboardOffset
+          slik at dokumentet blir høyt nok til å scrolle siste melding opp
+          over tastaturet når det åpner (jf. #216). */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           marginBottom: 4,
-          paddingBottom: 'calc(64px + env(safe-area-inset-bottom))',
+          paddingBottom: autoScrollTilBunn
+            ? `calc(64px + ${keyboardOffset}px + env(safe-area-inset-bottom))`
+            : 'calc(64px + env(safe-area-inset-bottom))',
         }}
       >
         {meldinger.length === 0 && (
@@ -1196,16 +1236,57 @@ export default function Chat({
         <div ref={bunnenRef} />
       </div>
 
-      {/* Sticky-container med mention-chips, bilde-preview, evt. feilmelding
-          og input-pill. Mention-chips ligger inni sticky for å unngå at de
-          skjules bak input-pill når flere chips wrappes til flere linjer. */}
+      {/* Container med mention-chips, bilde-preview, evt. feilmelding
+          og input-pill. Mention-chips ligger inni for å unngå at de
+          skjules bak input-pill når flere chips wrappes til flere linjer.
+          På chat-fokuserte sider er container fixed til bunn av viewportet
+          så pillen alltid er synlig (også når innholdet er kortere enn
+          skjermen); ellers sticky, sånn at den følger med når brukeren
+          scroller chat-seksjonen inn i bilde på detalj-sider.
+          `bottom` løftes med keyboardOffset så pillen holder seg over
+          iOS-tastaturet (jf. #216). */}
       <div
-        style={{
-          position: 'sticky',
-          bottom: 'env(safe-area-inset-bottom)',
-          zIndex: 20,
-        }}
+        style={
+          autoScrollTilBunn
+            ? {
+                position: 'fixed',
+                left: 0,
+                right: 0,
+                bottom:
+                  keyboardOffset > 0
+                    ? `${keyboardOffset}px`
+                    : 'env(safe-area-inset-bottom)',
+                zIndex: 20,
+                display: 'flex',
+                justifyContent: 'center',
+                // pointer-events: none på ytre wrapper så taps over/under
+                // pillen treffer chat-innholdet under; inner gjenoppretter
+                // pointer-events for selve pillen.
+                pointerEvents: 'none',
+              }
+            : {
+                position: 'sticky',
+                bottom:
+                  keyboardOffset > 0
+                    ? `${keyboardOffset}px`
+                    : 'env(safe-area-inset-bottom)',
+                zIndex: 20,
+              }
+        }
       >
+        <div
+          style={
+            autoScrollTilBunn
+              ? {
+                  width: '100%',
+                  maxWidth: 480,
+                  padding: '0 20px',
+                  boxSizing: 'border-box',
+                  pointerEvents: 'auto',
+                }
+              : undefined
+          }
+        >
       {/* @mention-forslag */}
       <MentionVelger forslag={mentionForslag} onVelg={velgMention} />
       {/* Bilde-forhåndsvisning over input når et bilde er valgt */}
@@ -1362,6 +1443,7 @@ export default function Chat({
         >
           <Icon name="arrowRight" size={14} color="#0a0a0a" strokeWidth={2.5} />
         </button>
+      </div>
       </div>
       </div>
 

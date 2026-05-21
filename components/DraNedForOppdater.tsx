@@ -19,8 +19,22 @@ export default function DraNedForOppdater() {
   const draRef = useRef(0)
 
   useEffect(() => {
+    // Sjekker om brukeren skriver i et tekstfelt (chat-input, kommentar,
+    // tittel-redigering osv). Da skal dra-ned ikke aktiveres — én gest
+    // mindre som kan kollidere med tastatur og forskyve input-pillen
+    // (jf. #216).
+    function brukerSkriver() {
+      const el = document.activeElement
+      if (!el) return false
+      const tag = el.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return true
+      if ((el as HTMLElement).isContentEditable) return true
+      return false
+    }
+
     function start(e: TouchEvent) {
       if (window.scrollY > 0) return
+      if (brukerSkriver()) return
       startY.current = e.touches[0].clientY
       tracking.current = true
       draRef.current = 0
