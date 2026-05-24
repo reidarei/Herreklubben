@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { formaterDato } from '@/lib/dato'
 
@@ -19,6 +20,11 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
 
   if (!varsel.lest) {
     await supabase.from('varsel_logg').update({ lest: true }).eq('id', id)
+    // Revaliderer layoutet så ulest-prikken på profil-avataren (rendres
+    // fra TopHeader i (app)/layout.tsx) oppdaterer seg neste gang
+    // brukeren navigerer. Uten dette beholder Next.js cached layout-RSC
+    // og prikken henger igjen til pull-to-refresh. Se #218.
+    revalidatePath('/profil', 'layout')
   }
 
   return (
