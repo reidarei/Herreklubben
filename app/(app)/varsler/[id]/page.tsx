@@ -19,12 +19,19 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
   if (!varsel) notFound()
 
   if (!varsel.lest) {
-    await supabase.from('varsel_logg').update({ lest: true }).eq('id', id)
-    // Revaliderer layoutet så ulest-prikken på profil-avataren (rendres
-    // fra TopHeader i (app)/layout.tsx) oppdaterer seg neste gang
-    // brukeren navigerer. Uten dette beholder Next.js cached layout-RSC
-    // og prikken henger igjen til pull-to-refresh. Se #218.
-    revalidatePath('/profil', 'layout')
+    const { error: oppdaterFeil } = await supabase
+      .from('varsel_logg')
+      .update({ lest: true })
+      .eq('id', id)
+    // Revaliderer kun ved suksess — ellers ville en stille feil ført
+    // til at vi invaliderer cachen uten at noe har endret seg, og prikken
+    // ville fortsatt hengt igjen. Layoutet revalideres med 'layout' fordi
+    // ulest-prikken rendres fra TopHeader i (app)/layout.tsx. Uten dette
+    // beholder Next.js cached layout-RSC og prikken henger igjen til
+    // pull-to-refresh. Se #218.
+    if (!oppdaterFeil) {
+      revalidatePath('/profil', 'layout')
+    }
   }
 
   return (
