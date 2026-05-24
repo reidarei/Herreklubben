@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import { formaterDato } from '@/lib/dato'
 
@@ -18,7 +19,19 @@ export default async function VarselSide({ params }: { params: Promise<{ id: str
   if (!varsel) notFound()
 
   if (!varsel.lest) {
-    await supabase.from('varsel_logg').update({ lest: true }).eq('id', id)
+    const { error: oppdaterFeil } = await supabase
+      .from('varsel_logg')
+      .update({ lest: true })
+      .eq('id', id)
+    // Revaliderer kun ved suksess — ellers ville en stille feil ført
+    // til at vi invaliderer cachen uten at noe har endret seg, og prikken
+    // ville fortsatt hengt igjen. Layoutet revalideres med 'layout' fordi
+    // ulest-prikken rendres fra TopHeader i (app)/layout.tsx. Uten dette
+    // beholder Next.js cached layout-RSC og prikken henger igjen til
+    // pull-to-refresh. Se #218.
+    if (!oppdaterFeil) {
+      revalidatePath('/profil', 'layout')
+    }
   }
 
   return (

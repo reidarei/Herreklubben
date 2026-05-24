@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { formaterDato } from '@/lib/dato'
 import { markerAlleVarslerLest } from '@/lib/actions/varsler'
@@ -34,6 +35,7 @@ export default function VarslerListe({
   varsler: initialVarsler,
   antallUlesteTotal: initialAntallUlesteTotal,
 }: Props) {
+  const router = useRouter()
   const [varsler, setVarsler] = useState(initialVarsler)
   // Total ulest-count som lokal state så optimistisk marker-alle-lest kan
   // nulle den umiddelbart uten å vente på revalidatePath.
@@ -52,6 +54,11 @@ export default function VarslerListe({
       setAntallUlesteTotal(0)
       try {
         await markerAlleVarslerLest()
+        // router.refresh() tvinger klientens Router Cache til å re-fetche
+        // layout-RSC, slik at ulest-prikken på profil-avataren forsvinner
+        // umiddelbart. revalidatePath på serveren alene er ikke nok når
+        // layouten allerede er hydrert i klientens cache. Se #218.
+        router.refresh()
       } catch {
         // Ved feil: rull tilbake lokal state.
         setVarsler(initialVarsler)
