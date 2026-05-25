@@ -803,7 +803,6 @@ export default function Chat({
                       letterSpacing: '1.2px',
                       fontWeight: 600,
                       color: 'var(--text-tertiary)',
-                      textTransform: 'uppercase',
                     }}
                   >
                     {formaterDatoSkille(m.opprettet)}
