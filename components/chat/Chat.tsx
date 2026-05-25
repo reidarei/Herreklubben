@@ -784,26 +784,30 @@ export default function Chat({
             <Fragment key={m.id}>
               {visDatoSkille && (
                 <div
+                  role="separator"
+                  aria-label={`Meldinger fra ${formaterDatoSkille(m.opprettet)}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    margin: '20px 0 12px',
+                    justifyContent: 'flex-end',
+                    gap: 8,
+                    margin: '10px 0 2px',
+                    paddingRight: 2,
                   }}
                 >
-                  <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+                  <span aria-hidden="true" style={{ width: 24, height: '0.5px', background: 'var(--border-subtle)' }} />
                   <span
                     style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: 9,
-                      letterSpacing: '1.4px',
+                      letterSpacing: '1.2px',
                       fontWeight: 600,
                       color: 'var(--text-tertiary)',
+                      textTransform: 'uppercase',
                     }}
                   >
                     {formaterDatoSkille(m.opprettet)}
                   </span>
-                  <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
                 </div>
               )}
             <div
@@ -811,7 +815,7 @@ export default function Chat({
                 display: 'flex',
                 gap: 10,
                 flexDirection: erEgen ? 'row-reverse' : 'row',
-                marginTop: erFortsettelse ? 3 : i === 0 ? 0 : 14,
+                marginTop: erFortsettelse ? 2 : i === 0 ? 0 : 8,
               }}
             >
               <div style={{ flexShrink: 0, alignSelf: 'flex-end' }}>
@@ -837,7 +841,7 @@ export default function Chat({
                       display: 'flex',
                       alignItems: 'baseline',
                       gap: 8,
-                      marginBottom: 4,
+                      marginBottom: 2,
                       paddingLeft: erEgen ? 0 : 2,
                       paddingRight: erEgen ? 2 : 0,
                     }}
@@ -971,7 +975,7 @@ export default function Chat({
                       if (!m.id.startsWith('temp-')) setPickerFor(m.id)
                     }}
                     style={{
-                      padding: '10px 14px',
+                      padding: '7px 12px',
                       borderRadius: erEgen ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
                       background: erEgen ? 'var(--accent-soft)' : 'var(--bg-elevated)',
                       border: `0.5px solid ${
