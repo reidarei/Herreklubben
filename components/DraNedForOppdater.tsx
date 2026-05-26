@@ -17,6 +17,8 @@ export default function DraNedForOppdater() {
   const startY = useRef(0)
   const tracking = useRef(false)
   const draRef = useRef(0)
+  const aktivGest = useRef(false)
+  const avbrutt = useRef(false)
 
   useEffect(() => {
     // Sjekker om brukeren skriver i et tekstfelt (chat-input, kommentar,
@@ -33,27 +35,56 @@ export default function DraNedForOppdater() {
     }
 
     function start(e: TouchEvent) {
+      // Multi-touch (pinch/zoom eller andre samtidige gester): ikke nullstill
+      // pågående gest. Vi vil ikke at en ny finger midt i en dra-ned skal
+      // resette startY og forvirre logikken.
+      if (e.touches.length > 1) return
       if (window.scrollY > 0) return
       if (brukerSkriver()) return
       startY.current = e.touches[0].clientY
-      tracking.current = true
+      tracking.current = false
+      aktivGest.current = true
+      avbrutt.current = false
       draRef.current = 0
     }
     function move(e: TouchEvent) {
-      if (!tracking.current) return
+      if (e.touches.length > 1) return
+      if (!aktivGest.current || avbrutt.current) return
       if (window.scrollY > 0) {
+        // Momentum-scroll eller manuell scroll bort fra toppen — avbryt
+        // gesten permanent slik at vi ikke kan aktivere senere når
+        // brukeren tilfeldigvis treffer toppen igjen.
+        aktivGest.current = false
         tracking.current = false
+        avbrutt.current = true
         setDra(0)
         return
       }
       const dy = e.touches[0].clientY - startY.current
+      if (!tracking.current) {
+        // Første dy negativ = bruker scroller fortsatt opp (momentum-rest).
+        // Marker gesten som avbrutt slik at den ikke kan aktiveres senere.
+        if (dy < 0) {
+          avbrutt.current = true
+          aktivGest.current = false
+          return
+        }
+        // Krev en bevisst nedover-bevegelse før vi aktiverer tracking.
+        if (dy < 8) return
+        tracking.current = true
+      }
       if (dy <= 0) return
       const v = Math.min(dy, MAX)
       draRef.current = v
       setDra(v)
     }
     function end() {
-      if (!tracking.current) return
+      aktivGest.current = false
+      avbrutt.current = false
+      if (!tracking.current) {
+        draRef.current = 0
+        return
+      }
       tracking.current = false
       if (draRef.current >= TERSKEL) {
         setLaster(true)
@@ -65,15 +96,28 @@ export default function DraNedForOppdater() {
       } else {
         setDra(0)
       }
+      draRef.current = 0
+    }
+    function cancel() {
+      // iOS sender touchcancel ved system-interrupt (varsel, kontroll-senter,
+      // gesture-konflikt). Da uteblir touchend — vi må nullstille flagg selv
+      // uten å trigge router.refresh().
+      aktivGest.current = false
+      avbrutt.current = false
+      tracking.current = false
+      draRef.current = 0
+      setDra(0)
     }
 
     window.addEventListener('touchstart', start, { passive: true })
     window.addEventListener('touchmove', move, { passive: true })
     window.addEventListener('touchend', end, { passive: true })
+    window.addEventListener('touchcancel', cancel, { passive: true })
     return () => {
       window.removeEventListener('touchstart', start)
       window.removeEventListener('touchmove', move)
       window.removeEventListener('touchend', end)
+      window.removeEventListener('touchcancel', cancel)
     }
   }, [router])
 
