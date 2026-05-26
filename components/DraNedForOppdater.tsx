@@ -73,12 +73,23 @@ export default function DraNedForOppdater() {
         if (dy < 8) return
         tracking.current = true
       }
-      if (dy <= 0) return
+      if (dy < 4) {
+        // Bruker dro først ned (aktiverte tracking), så tilbake nær/forbi
+        // startpunktet — i praksis en kansellert gest. Nullstill så end()
+        // ikke trigger refresh på gammel draRef.
+        tracking.current = false
+        draRef.current = 0
+        setDra(0)
+        return
+      }
       const v = Math.min(dy, MAX)
       draRef.current = v
       setDra(v)
     }
-    function end() {
+    function end(e: TouchEvent) {
+      // touchend fyres også når én av flere fingre slippes. Hvis det fortsatt
+      // er fingre nede, er gesten ikke avsluttet — vent på neste touchend.
+      if (e.touches.length > 0) return
       aktivGest.current = false
       avbrutt.current = false
       if (!tracking.current) {
