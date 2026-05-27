@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import TopHeader from '@/components/TopHeader'
 import PageTransition from '@/components/PageTransition'
 import ServiceWorkerRegistrering from '@/components/ServiceWorkerRegistrering'
+import DraNedForOppdater from '@/components/DraNedForOppdater'
 import DeployInfo from '@/components/DeployInfo'
 import InstallVeiledning from '@/components/InstallVeiledning'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
@@ -49,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
     >
       <ServiceWorkerRegistrering />
+      <DraNedForOppdater />
       <InstallVeiledning />
       <Suspense fallback={<TopHeader />}>
         <HeaderMedProfil />
