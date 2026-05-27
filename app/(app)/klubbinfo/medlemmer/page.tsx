@@ -38,8 +38,6 @@ export default async function Medlemmer() {
 
   const statistikk = stat as unknown as Statistikk | null
   const iAarTotalt = statistikk?.i_aar_totalt ?? 0
-  // Beholder totalHistoriske for undertittel-visning (antall sammenkomster totalt)
-  const totalHistoriske = statistikk?.totalt ?? 0
   const deltagelseMap = new Map<string, number>()
   for (const d of statistikk?.deltagelse ?? []) {
     // i_aar er nytt felt fra migrasjon 090 — fallback til 0 til typer er regenerert
