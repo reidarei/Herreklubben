@@ -103,7 +103,7 @@ export default function MedlemRad({
               marginTop: 1,
             }}
           >
-            Nærvær
+            I år
           </div>
         </div>
       )}

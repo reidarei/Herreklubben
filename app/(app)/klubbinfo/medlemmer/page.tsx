@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getProfil } from '@/lib/auth-cache'
 import MedlemmerListe from './MedlemmerListe'
 import { kanAdministrere } from '@/lib/roller'
+import { norskAar } from '@/lib/dato'
 
 type Deltagelse = {
   id: string
@@ -10,11 +11,15 @@ type Deltagelse = {
   totalt: number
   siste12: number
   arrangert: number
+  /** Antall ja-svar i inneværende kalenderår — se migrasjon 090 */
+  i_aar?: number
 }
 
 type Statistikk = {
   totalt: number
   siste12: number
+  /** Antall avholdte arrangementer i inneværende kalenderår (Oslo-tid) */
+  i_aar_totalt?: number
   deltagelse: Deltagelse[] | null
   per_aar: unknown
 }
@@ -32,16 +37,20 @@ export default async function Medlemmer() {
   ])
 
   const statistikk = stat as unknown as Statistikk | null
+  const iAarTotalt = statistikk?.i_aar_totalt ?? 0
+  // Beholder totalHistoriske for undertittel-visning (antall sammenkomster totalt)
   const totalHistoriske = statistikk?.totalt ?? 0
   const deltagelseMap = new Map<string, number>()
   for (const d of statistikk?.deltagelse ?? []) {
-    deltagelseMap.set(d.id, d.totalt)
+    // i_aar er nytt felt fra migrasjon 090 — fallback til 0 til typer er regenerert
+    deltagelseMap.set(d.id, d.i_aar ?? 0)
   }
 
   const medlemmer = (profiler ?? []).map(p => {
     const ja = deltagelseMap.get(p.id) ?? 0
+    // Nærvær beregnes nå på inneværende kalenderår, ikke alle historiske
     const narv =
-      totalHistoriske > 0 ? Math.round((ja / totalHistoriske) * 100) : null
+      iAarTotalt > 0 ? Math.round((ja / iAarTotalt) * 100) : null
     return {
       id: p.id,
       navn: p.navn,
@@ -110,7 +119,7 @@ export default async function Medlemmer() {
             letterSpacing: '0.1px',
           }}
         >
-          {antallAktive} aktive · {totalHistoriske} sammenkomster
+          {antallAktive} aktive · {iAarTotalt} sammenkomster i {norskAar()}
         </div>
       </div>
 
