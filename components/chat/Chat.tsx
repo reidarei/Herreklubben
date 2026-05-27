@@ -48,6 +48,11 @@ export type ChatMelding = {
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
 const SIDE_STORRELSE = 30
 
+// Terskel i px for å skille ekte tastatur-åpning fra iOS PWA overscroll-bounce
+// på visualViewport.offsetTop. iPhone-tastatur er minst ~215px høyt, bounce
+// gir typisk < 100px. 120px er trygt over bounce-spektret. Se #222.
+const TASTATUR_OFFSET_TERSKEL_PX = 120
+
 // Emojis tilgjengelige i reaksjons-picker
 const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as const
 
@@ -292,13 +297,13 @@ export default function Chat({
   // Uten dette ville den vokste paddingBottom-en bare lagt til tom plass
   // under siste melding uten å flytte brukerens scroll-posisjon.
   //
-  // Terskel på 120px skiller ekte tastatur-åpning (typisk 200-300px) fra
-  // iOS PWA overscroll-bounce (typisk < 100px) som midlertidig endrer
-  // visualViewport.offsetTop ved scroll mot topp. Uten terskel forårsaket
-  // bounce-driven offset en utilsiktet scroll-til-bunn (#222).
+  // Terskelen (TASTATUR_OFFSET_TERSKEL_PX) skiller ekte tastatur-åpning fra
+  // iOS PWA overscroll-bounce som midlertidig endrer visualViewport.offsetTop
+  // ved scroll mot topp. Uten terskel forårsaket bounce-driven offset en
+  // utilsiktet scroll-til-bunn (#222).
   useEffect(() => {
     if (!autoScrollTilBunn) return
-    if (keyboardOffset > 120) {
+    if (keyboardOffset >= TASTATUR_OFFSET_TERSKEL_PX) {
       requestAnimationFrame(() => scrollTilBunn(true))
     }
   }, [keyboardOffset, autoScrollTilBunn, scrollTilBunn])
