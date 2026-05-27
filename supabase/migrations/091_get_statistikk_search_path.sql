@@ -1,7 +1,8 @@
--- Legg til i_aar og i_aar_totalt i get_statistikk() for "Deltakelse i år"-kolonnen
--- på /klubbinfo/medlemmer. Beregner basert på inneværende kalenderår (Oslo-tid).
--- Alle eksisterende felter (totalt, siste12, arrangert, per_aar) beholdes uendret
--- slik at /klubbinfo/statistikk ikke påvirkes.
+-- Sikkerhetsfiks: lås search_path og stram inn EXECUTE-grants på get_statistikk().
+-- SECURITY DEFINER uten eksplisitt search_path er sårbart for hijacking via pg_temp
+-- (en angriper kan skygge tabeller/funksjoner ved å plassere objekter i en søkbar
+-- schema før public). Mig. 090 introduserte den oppdaterte funksjonen uten dette.
+-- Mønsteret er det samme som i mig. 079 (tell_poll_stemmer).
 
 create or replace function get_statistikk()
 returns json
@@ -15,7 +16,6 @@ as $$
     from arrangementer
     where start_tidspunkt < now()
   ),
-  -- Inneværende kalenderår sammenlignes i Oslo-tid for å håndtere nyttårsaften
   i_aar_arr as (
     select id
     from historiske
@@ -27,7 +27,6 @@ as $$
       p.profil_id,
       count(*) as totalt,
       count(*) filter (where a.start_tidspunkt >= now() - interval '12 months') as siste12,
-      -- Antall ja-svar i inneværende kalenderår
       count(*) filter (where a.id in (select id from i_aar_arr)) as i_aar
     from paameldinger p
     join historiske a on a.id = p.arrangement_id
@@ -47,7 +46,6 @@ as $$
   select json_build_object(
     'totalt', (select count(*) from historiske),
     'siste12', (select count(*) from historiske where start_tidspunkt >= now() - interval '12 months'),
-    -- Antall avholdte arrangementer i inneværende kalenderår (Oslo-tid)
     'i_aar_totalt', (select count(*) from i_aar_arr),
     'deltagelse', (
       select json_agg(
