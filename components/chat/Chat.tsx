@@ -291,9 +291,14 @@ export default function Chat({
   // at siste melding fortsetter å være synlig like over input-pillen.
   // Uten dette ville den vokste paddingBottom-en bare lagt til tom plass
   // under siste melding uten å flytte brukerens scroll-posisjon.
+  //
+  // Terskel på 120px skiller ekte tastatur-åpning (typisk 200-300px) fra
+  // iOS PWA overscroll-bounce (typisk < 100px) som midlertidig endrer
+  // visualViewport.offsetTop ved scroll mot topp. Uten terskel forårsaket
+  // bounce-driven offset en utilsiktet scroll-til-bunn (#222).
   useEffect(() => {
     if (!autoScrollTilBunn) return
-    if (keyboardOffset > 0) {
+    if (keyboardOffset > 120) {
       requestAnimationFrame(() => scrollTilBunn(true))
     }
   }, [keyboardOffset, autoScrollTilBunn, scrollTilBunn])
