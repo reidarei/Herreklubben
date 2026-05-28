@@ -6,19 +6,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { erChatTab } from '@/lib/navigasjon'
 
 const TERSKEL = 80
 const MAX = 120
-
-// Ruter hvor pull-to-refresh er deaktivert. Chat-sidene har egen
-// visibilitychange-refetch og realtime-subscription som holder
-// meldingslisten ajour — pull-to-refresh trengs ikke der, og en
-// uventet router.refresh() forårsaket scroll-til-bunn-bug (#222).
-function erChatRute(pathname: string): boolean {
-  if (pathname === '/chat') return true
-  if (pathname.startsWith('/samtaler/')) return true
-  return false
-}
 
 export default function DraNedForOppdater() {
   const [dra, setDra] = useState(0)
@@ -32,7 +23,10 @@ export default function DraNedForOppdater() {
   const avbrutt = useRef(false)
 
   useEffect(() => {
-    if (erChatRute(pathname)) return
+    // Chat-sidene har eigen visibilitychange-refetch og realtime-subscription
+    // som holder meldingslisten ajour — pull-to-refresh trengs ikke der, og
+    // ein uventet router.refresh() forårsaket scroll-til-bunn-bug (#222).
+    if (erChatTab(pathname)) return
     // Sjekker om brukeren skriver i et tekstfelt (chat-input, kommentar,
     // tittel-redigering osv). Da skal dra-ned ikke aktiveres — én gest
     // mindre som kan kollidere med tastatur og forskyve input-pillen

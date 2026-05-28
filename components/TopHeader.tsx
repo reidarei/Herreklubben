@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import { harGulGloed } from '@/lib/roller'
+import { CHAT_TAB_PREFIKSER } from '@/lib/navigasjon'
 
 type Tab = {
   href: string
@@ -16,7 +17,7 @@ type Tab = {
 
 const TABS: Tab[] = [
   { href: '/', label: 'Agenda', nokkel: 'agenda', prefikser: ['/poll', '/arrangementer', '/meldinger'] },
-  { href: '/chat', label: 'Chat', nokkel: 'chat', prefikser: ['/chat', '/samtaler'] },
+  { href: '/chat', label: 'Chat', nokkel: 'chat', prefikser: [...CHAT_TAB_PREFIKSER] },
   { href: '/klubbinfo', label: 'Klubb', nokkel: 'klubb', prefikser: ['/klubbinfo', '/kaaringer', '/album'] },
 ]
 
