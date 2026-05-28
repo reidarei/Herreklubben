@@ -23,9 +23,9 @@ export default function DraNedForOppdater() {
   const avbrutt = useRef(false)
 
   useEffect(() => {
-    // Chat-sidene har eigen visibilitychange-refetch og realtime-subscription
+    // Chat-sidene har egen visibilitychange-refetch og realtime-subscription
     // som holder meldingslisten ajour — pull-to-refresh trengs ikke der, og
-    // ein uventet router.refresh() forårsaket scroll-til-bunn-bug (#222).
+    // en uventet router.refresh() forårsaket scroll-til-bunn-bug (#222).
     if (erChatTab(pathname)) return
     // Sjekker om brukeren skriver i et tekstfelt (chat-input, kommentar,
     // tittel-redigering osv). Da skal dra-ned ikke aktiveres — én gest
