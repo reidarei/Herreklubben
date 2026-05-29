@@ -25,6 +25,7 @@ import {
   type ChatProfil,
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
+import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -241,14 +242,9 @@ export default function Chat({
     })
   }, [])
 
-  // Terskel i piksler fra bunnen — under dette scrolles det automatisk
-  // ved andres meldinger. Justert UI-fintuning: langt nok til at litt
-  // scroll-margin ikke trigger, kort nok til at «nesten i bunn» teller.
-  const NÆR_BUNN_TERSKEL_PX = 150
-
   // Sjekker om brukeren befinner seg nær bunnen av siden.
   // Kjøres kun klient-side (window er undefined under SSR).
-  function erNaerBunn(terskel = NÆR_BUNN_TERSKEL_PX) {
+  function erNaerBunn(terskel = CHAT_NAER_BUNN_TERSKEL_PX) {
     if (typeof window === 'undefined') return true
     const rest = document.documentElement.scrollHeight - window.scrollY - window.innerHeight
     return rest <= terskel
