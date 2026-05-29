@@ -27,14 +27,6 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Mobile-only: smal deviceSizes-liste reduserer Vercel Image Optimization-
-    // transformasjoner fra ~25 til ~5 per bilde. Kun WebP (ikke AVIF) for å
-    // halvere antall transformasjoner. Lang TTL fordi vi alltid genererer
-    // unike filnavn på opplastede bilder (R2). Se #215.
-    deviceSizes: [640, 828, 1200],
-    imageSizes: [64, 128, 256],
-    formats: ['image/webp'],
-    minimumCacheTTL: 60 * 60 * 24 * 31, // 31 dager
     remotePatterns: [
       {
         protocol: 'https',
