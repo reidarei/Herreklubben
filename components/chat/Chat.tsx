@@ -48,11 +48,6 @@ export type ChatMelding = {
 // Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
 const SIDE_STORRELSE = 30
 
-// Terskel i px for å skille ekte tastatur-åpning fra iOS PWA overscroll-bounce
-// på visualViewport.offsetTop. iPhone-tastatur er minst ~215px høyt, bounce
-// gir typisk < 100px. 120px er trygt over bounce-spektret. Se #222.
-const TASTATUR_OFFSET_TERSKEL_PX = 120
-
 // Emojis tilgjengelige i reaksjons-picker
 const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as const
 
@@ -272,9 +267,10 @@ export default function Chat({
   // interactiveWidget='overlays-content' (jf. app/layout.tsx, valgt for å
   // unngå dock-bug-klassen) endrer ikke window.innerHeight seg, men
   // visualViewport.height krymper. Differansen er omtrent tastatur-høyden.
-  // Vi bruker den til å løfte input-pillen over tastaturet — og på chat-
-  // fokuserte sider også til å vokse meldings-listas bunnpadding så siste
-  // melding holder seg synlig. Se #216.
+  // keyboardOffset brukes KUN til layout: løfter input-pillen (sticky-pill
+  // bottom) og vokser paddingBottom på meldingslisten. Ingen scroll-side-
+  // effekter — terskel-basert auto-scroll fjernet fordi bounce-quirk (#222)
+  // på iOS PWA var ikke robust å skille fra ekte tastatur-åpning. Se #236.
   const [keyboardOffset, setKeyboardOffset] = useState(0)
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return
@@ -291,22 +287,6 @@ export default function Chat({
       vv.removeEventListener('scroll', oppdater)
     }
   }, [])
-
-  // Når tastaturet åpner på chat-fokuserte sider, scroll til ny bunn slik
-  // at siste melding fortsetter å være synlig like over input-pillen.
-  // Uten dette ville den vokste paddingBottom-en bare lagt til tom plass
-  // under siste melding uten å flytte brukerens scroll-posisjon.
-  //
-  // Terskelen (TASTATUR_OFFSET_TERSKEL_PX) skiller ekte tastatur-åpning fra
-  // iOS PWA overscroll-bounce som midlertidig endrer visualViewport.offsetTop
-  // ved scroll mot topp. Uten terskel forårsaket bounce-driven offset en
-  // utilsiktet scroll-til-bunn (#222).
-  useEffect(() => {
-    if (!autoScrollTilBunn) return
-    if (keyboardOffset >= TASTATUR_OFFSET_TERSKEL_PX) {
-      requestAnimationFrame(() => scrollTilBunn(true))
-    }
-  }, [keyboardOffset, autoScrollTilBunn, scrollTilBunn])
 
   // Realtime-subscription — én kanal per scope
   useEffect(() => {
