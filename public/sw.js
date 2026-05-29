@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.26'
+const CACHE_VERSION = 'V3.1.27'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -176,6 +176,14 @@ self.addEventListener('notificationclick', (event) => {
   // Appen er mobil-PWA. På iOS standalone fokuserer openWindow() PWA-en og
   // navigerer i ett steg — uten matchAll/navigate-quirksene som tidligere
   // sendte brukeren til feil side (#233).
-  const target = new URL(event.notification.data?.url ?? '/', self.location.origin).href
+  // Begrenser til same-origin så en ugyldig eller ekstern URL i payload aldri
+  // kan åpne ekstern side eller krasje handleren.
+  let target = '/'
+  try {
+    const url = new URL(event.notification.data?.url ?? '/', self.location.origin)
+    if (url.origin === self.location.origin) target = url.href
+  } catch {
+    // Ugyldig URL — fall til '/'
+  }
   event.waitUntil(clients.openWindow(target))
 })
