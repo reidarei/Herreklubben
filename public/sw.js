@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.24'
+const CACHE_VERSION = 'V3.1.25'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -173,17 +173,30 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url ?? '/'
+
+  // Bygg absolutt URL — sikrer at anker-URL-er (#kommentarer osv.) fungerer
+  // korrekt selv om data.url er en relativ path.
+  const target = new URL(event.notification.data?.url ?? '/', self.location.origin).href
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
       for (const client of clientList) {
-        if (client.url && 'navigate' in client) {
-          return client.navigate(url).then(() => client.focus())
+        // Allerede på riktig URL: bare fokuser, ikke naviger på nytt
+        if (client.url === target) {
+          return client.focus()
         }
-        if ('focus' in client) return client.focus()
+        // Prøv navigate() først. På iOS PWA feiler dette stille, så vi
+        // fanger feilen og faller tilbake på openWindow() i stedet. Se #233.
+        if ('navigate' in client) {
+          try {
+            const navigert = await client.navigate(target)
+            if (navigert) return navigert.focus()
+          } catch {
+            // navigate() ikke støttet — fall igjennom til openWindow()
+          }
+        }
       }
-      return clients.openWindow(url)
+      return clients.openWindow(target)
     })
   )
 })

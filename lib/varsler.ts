@@ -512,7 +512,9 @@ async function hentScopeInnhold(
       .single()
     return {
       tittel: `Chat: ${data?.tittel ?? 'et arrangement'}`,
-      url: `${BASE_URL}/arrangementer/${scope.id}`,
+      // #kommentarer-ankeret scroller direkte til chat-seksjonen på
+      // arrangement-siden — brukeren trenger ikke lete etter chatten. Se #233.
+      url: `${BASE_URL}/arrangementer/${scope.id}#kommentarer`,
       knappTekst: 'Åpne chatten',
     }
   }
