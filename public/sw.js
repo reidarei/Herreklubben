@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.25'
+const CACHE_VERSION = 'V3.1.26'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -173,30 +173,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-
-  // Bygg absolutt URL — sikrer at anker-URL-er (#kommentarer osv.) fungerer
-  // korrekt selv om data.url er en relativ path.
+  // Appen er mobil-PWA. På iOS standalone fokuserer openWindow() PWA-en og
+  // navigerer i ett steg — uten matchAll/navigate-quirksene som tidligere
+  // sendte brukeren til feil side (#233).
   const target = new URL(event.notification.data?.url ?? '/', self.location.origin).href
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
-      for (const client of clientList) {
-        // Allerede på riktig URL: bare fokuser, ikke naviger på nytt
-        if (client.url === target) {
-          return client.focus()
-        }
-        // Prøv navigate() først. På iOS PWA feiler dette stille, så vi
-        // fanger feilen og faller tilbake på openWindow() i stedet. Se #233.
-        if ('navigate' in client) {
-          try {
-            const navigert = await client.navigate(target)
-            if (navigert) return navigert.focus()
-          } catch {
-            // navigate() ikke støttet — fall igjennom til openWindow()
-          }
-        }
-      }
-      return clients.openWindow(target)
-    })
-  )
+  event.waitUntil(clients.openWindow(target))
 })
