@@ -25,6 +25,7 @@ import {
   type ChatProfil,
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
+import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -241,6 +242,14 @@ export default function Chat({
     })
   }, [])
 
+  // Sjekker om brukeren befinner seg nær bunnen av siden.
+  // Kjøres kun klient-side (window er undefined under SSR).
+  function erNaerBunn(terskel = CHAT_NAER_BUNN_TERSKEL_PX) {
+    if (typeof window === 'undefined') return true
+    const rest = document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+    return rest <= terskel
+  }
+
   // Scroll til bunn ved første mount (instant), og når nye meldinger
   // dukker opp i bunnen (smooth). Ikke ved paginering (store diff)
   // eller når listen krymper.
@@ -259,8 +268,13 @@ export default function Chat({
       }
       return
     }
-    // Bare scroll hvis nye meldinger dukker opp i bunnen (positive diff <= 3)
-    if (autoScrollTilBunn && diff > 0 && diff <= 3) scrollTilBunn()
+    if (autoScrollTilBunn && diff > 0 && diff <= 3) {
+      const sisteEgen = meldinger[meldinger.length - 1]?.profil_id === brukerId
+      // Egen melding: alltid scroll (forventet at vi ser det vi sendte).
+      // Andres melding: scroll bare hvis brukeren står nær bunnen — ellers
+      // er det irriterende å bli kastet ned mens han leser eldre. Se #238.
+      if (sisteEgen || erNaerBunn()) scrollTilBunn()
+    }
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
   // Tastatur-høyde via visualViewport. Når iOS-tastaturet åpner med

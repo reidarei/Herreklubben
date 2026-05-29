@@ -39,3 +39,8 @@ export const TIDLIGERE_SIDESTOERRELSE = 30
 // Maks antall bilder per melding-innlegg. Cap forhindrer at én melding
 // dominerer feeden visuelt og begrenser R2-opplastinger per POST.
 export const MELDING_MAKS_BILDER = 10
+
+// Terskel i piksler fra bunnen av siden for å regne brukeren som «nær
+// bunn» i chatten. Under terskelen auto-scroller vi når andres melding
+// kommer inn; over terskelen lar vi ham være i fred. Se #238.
+export const CHAT_NAER_BUNN_TERSKEL_PX = 150
