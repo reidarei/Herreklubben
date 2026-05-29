@@ -27,11 +27,12 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Bisect-test 3/N etter regresjon i #215 / PR #242: + smal deviceSizes.
-    // Mobile-only: kapp ned fra default 8 bredder til 3.
+    // Bisect-test 4/N etter regresjon i #215 / PR #242: + smal imageSizes.
+    // Hvis bildene brekker her, vet vi at imageSizes-listen er skyldig.
     minimumCacheTTL: 60 * 60 * 24 * 31,
     formats: ['image/webp'],
     deviceSizes: [640, 828, 1200],
+    imageSizes: [64, 128, 256],
     remotePatterns: [
       {
         protocol: 'https',
