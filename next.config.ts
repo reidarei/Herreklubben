@@ -27,10 +27,10 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    // Bisect-test 1/N etter regresjon i #215 / PR #242: bare lang cache-TTL.
-    // Skal ikke kunne brekke bilder — endrer kun hvor lenge Vercel cacher.
-    // Vi lager alltid unike filnavn (R2) så det er trygt med 31 dager.
+    // Bisect-test 2/N etter regresjon i #215 / PR #242: cache-TTL + formats.
+    // formats: ['image/webp'] er Next 15 default — skal være no-op.
     minimumCacheTTL: 60 * 60 * 24 * 31,
+    formats: ['image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
