@@ -39,13 +39,15 @@ export function useChatScrollV2({
   const [visNyMeldingPille, setVisNyMeldingPille] = useState(false)
 
   const scrollTilBunn = useCallback((instant = false) => {
-    const container = containerRef.current
-    if (!container) return
-    container.scrollTo({
-      top: container.scrollHeight,
+    // bunnenRef.scrollIntoView er mer robust enn scrollTo(scrollHeight):
+    // scrollHeight er ustabil mens bilder/video laster, så vi kunne lande
+    // "midt i" chatten. scrollIntoView mot en faktisk DOM-node finner alltid
+    // den nye bunnen, også når layout endrer seg rett etter mount.
+    bunnenRef.current?.scrollIntoView({
+      block: 'end',
       behavior: instant ? 'auto' : 'smooth',
     })
-  }, [containerRef])
+  }, [])
 
   function erNaerBunn() {
     const c = containerRef.current
@@ -76,7 +78,17 @@ export function useChatScrollV2({
     if (!harMountet.current) {
       harMountet.current = true
       if (autoScrollTilBunn) {
-        requestAnimationFrame(() => scrollTilBunn(true))
+        // Scroll til bunn i flere bølger: rett etter mount (instant), så etter
+        // 100ms og 500ms for å fange opp at bilder/video kan endre layout-
+        // høyden mens vi er i ferd med å rendre. Instant så brukeren ikke
+        // ser et hopp fra topp til bunn.
+        scrollTilBunn(true)
+        const t1 = setTimeout(() => scrollTilBunn(true), 100)
+        const t2 = setTimeout(() => scrollTilBunn(true), 500)
+        return () => {
+          clearTimeout(t1)
+          clearTimeout(t2)
+        }
       }
       return
     }
