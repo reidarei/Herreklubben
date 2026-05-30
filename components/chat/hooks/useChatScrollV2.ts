@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
 import type { ChatMelding } from '../types'
 
@@ -60,6 +60,35 @@ export function useChatScrollV2({
     // containerRef.current kan endre seg, men ref-objektet er stabilt — ok
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef])
+
+  // Scroll-anchor for prepend (paginering): når eldre meldinger settes inn
+  // øverst, må vi flytte scroll-posisjonen ned med samme høyde som ble lagt
+  // til, så brukeren visuelt forblir på samme melding. Uten dette ender han
+  // på toppen av den nye batchen og sentinel trigger umiddelbar ny fetch =
+  // flikk-loop. Se #210 / Reidars rapport på PR 1.
+  const forsteId = useRef<string | undefined>(meldinger[0]?.id)
+  const prevScrollHeight = useRef<number>(0)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const nyForsteId = meldinger[0]?.id
+    if (
+      nyForsteId &&
+      forsteId.current &&
+      nyForsteId !== forsteId.current &&
+      container.scrollTop > 0
+    ) {
+      // Prepend: kompenser scroll slik at synlig innhold ikke hopper
+      const diff = container.scrollHeight - prevScrollHeight.current
+      container.scrollTop += diff
+    }
+    forsteId.current = nyForsteId
+    prevScrollHeight.current = container.scrollHeight
+    // meldinger er bevisst brukt som avhengighet (ikke bare lengde) fordi vi
+    // trenger å lese meldinger[0]?.id — vi ser etter id-skifte, ikke bare lengdeendring.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meldinger])
 
   // Scroll ved mount og ved nye meldinger. Logikk speiler useChatScroll,
   // men opererer på container-scroll i stedet for window.
