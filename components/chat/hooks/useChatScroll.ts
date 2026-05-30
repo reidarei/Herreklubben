@@ -13,8 +13,6 @@ type UseChatScrollProps = {
 type UseChatScrollReturn = {
   bunnenRef: React.RefObject<HTMLDivElement | null>
   keyboardOffset: number
-  scrollTilBunn: (instant?: boolean) => void
-  erNaerBunn: (terskel?: number) => boolean
 }
 
 export function useChatScroll({ meldinger, brukerId, autoScrollTilBunn }: UseChatScrollProps): UseChatScrollReturn {
@@ -100,5 +98,5 @@ export function useChatScroll({ meldinger, brukerId, autoScrollTilBunn }: UseCha
     }
   }, [])
 
-  return { bunnenRef, keyboardOffset, scrollTilBunn, erNaerBunn }
+  return { bunnenRef, keyboardOffset }
 }

@@ -82,7 +82,7 @@ export default function Chat({
     konfig,
   } = useChatData({ scope, brukerId, initialMeldinger })
 
-  const { bunnenRef, keyboardOffset, scrollTilBunn: _scrollTilBunn, erNaerBunn: _erNaerBunn } = useChatScroll({
+  const { bunnenRef, keyboardOffset } = useChatScroll({
     meldinger,
     brukerId,
     autoScrollTilBunn,
@@ -119,9 +119,6 @@ export default function Chat({
   const andreProfiler = useRef(
     profiler.filter(p => p.id !== brukerId && p.navn),
   ).current
-
-  // konfigFor brukes for charLimit i JSX — konfig fra hook er identisk.
-  // kanalNavn og tabell håndteres av hooken; her trengs kun konfig.charLimit.
 
   // Frigjør blob-URL når preview byttes
   useEffect(() => {

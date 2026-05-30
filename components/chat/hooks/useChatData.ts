@@ -399,6 +399,7 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
           prev.map(m => (m.id === id ? { ...m, innhold: meldingFoer.innhold } : m)),
         )
       }
+      // kaster så Chat.tsx hopper over avbrytEdit() — selve rollback er allerede gjort over
       throw new Error('oppdater feilet')
     }
   }
