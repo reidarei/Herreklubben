@@ -72,9 +72,6 @@ export default function ChatV2({
     meldinger,
     reaksjoner,
     reaksjonerPerMelding,
-    harMerEldre,
-    henterEldre,
-    lastEldre,
     send,
     slett,
     redigerMelding,
@@ -83,7 +80,6 @@ export default function ChatV2({
   } = useChatData({ scope, brukerId, initialMeldinger })
 
   // scrollContainerRef peker på den indre scroll-div-en.
-  // Sendes ned til useChatScrollV2 og IntersectionObserver.
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   const { bunnenRef, visNyMeldingPille, scrollTilBunn } = useChatScrollV2({
@@ -111,16 +107,6 @@ export default function ChatV2({
   const [lagrerEdit, setLagrerEdit] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  // Sentinel-div øverst i meldingslisten. IntersectionObserver trigges når
-  // den scrolles inn i scroll-containeren (ikke viewport) — oppgi root
-  // eksplisitt i observer-options, ellers brukes window og sentinel-en
-  // er alltid «synlig» siden containeren er utenfor viewport. Se #210.
-  const toppSentinelRef = useRef<HTMLDivElement>(null)
-  // Gating: vi starter ikke auto-load eldre meldinger før brukeren faktisk
-  // har scrollet. 300ms delay etter mount hindrer at siden laster eldre
-  // meldinger allerede ved initial render på korte chatter.
-  // I ChatV2 lytter vi på container-scroll (ikke window-scroll).
-  const harBrukerScrolletRef = useRef(false)
 
   const profilMap = useRef(
     new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent'])),
@@ -142,59 +128,9 @@ export default function ChatV2({
     }
   }, [bildePreview])
 
-  // Sett harBrukerScrolletRef etter 300ms, lyt på container-scroll (ikke
-  // window) slik at vi vet at brukeren faktisk har scrollet i chatten.
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-    // container er ikke-null her (sjekket over), men TypeScript mister
-    // narrowing inn i setTimeout-callback — eksplisitt capture i lokal const.
-    const el = container
-    const timer = setTimeout(() => {
-      function onScroll() {
-        harBrukerScrolletRef.current = true
-        el.removeEventListener('scroll', onScroll)
-      }
-      el.addEventListener('scroll', onScroll, { passive: true })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // IntersectionObserver: kall lastEldre() automatisk når toppSentinelRef
-  // scrolles inn i scroll-containeren. Bevisst minimal `useEffect`-dep
-  // ([harMerEldre]) for å unngå at observer remountes ved hver meldinger-
-  // endring — det er nettopp det som tidligere ga flikk-loop fordi en ny
-  // observer øyeblikkelig fyrer hvis sentinel synes innenfor rootMargin
-  // (#210 PR 3 fant scroll-anchor-bug, PR 4 fant remount-bug).
-  //
-  // For å holde callback'en oppdatert uten å være dep, leser vi siste
-  // lastEldre via ref. Reset av observer skjer KUN når harMerEldre toggles
-  // (true → false når alle gamle meldinger er hentet).
-  const lastEldreRef = useRef(lastEldre)
-  useEffect(() => {
-    lastEldreRef.current = lastEldre
-  }, [lastEldre])
-
-  useEffect(() => {
-    if (!harMerEldre) return
-    const sentinel = toppSentinelRef.current
-    const container = scrollContainerRef.current
-    if (!sentinel || !container) return
-
-    const observer = new IntersectionObserver(
-      entries => {
-        if (!entries[0]?.isIntersecting) return
-        if (!harBrukerScrolletRef.current) return
-        lastEldreRef.current()
-      },
-      {
-        root: container,
-        rootMargin: '200px 0px 0px 0px',
-      },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [harMerEldre])
+  // Paginering ble fjernet i #210 PR 5: vi henter alle meldinger ved
+  // initial-load (~300 i klubb-chatten = ~60 KB). Det fjernet hele klassen
+  // av flikk-bugs som kom fra IntersectionObserver + scroll-anchor + iOS.
 
   async function velgBilde(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
@@ -347,37 +283,6 @@ export default function ChatV2({
             sender headerSlot slik at /chat-siden kan kontrollere innholdet
             uten at ChatV2 trenger å vite om breadcrumb / privatmelding-lenke. */}
         {headerSlot}
-
-        {/* Laster eldre — progress-pille mens henting pågår */}
-        {henterEldre && (
-          <div style={{ textAlign: 'center', marginBottom: 14 }}>
-            <span
-              style={{
-                display: 'inline-block',
-                padding: '6px 14px',
-                background: 'transparent',
-                border: '0.5px solid var(--border)',
-                borderRadius: 999,
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                letterSpacing: '1.4px',
-                textTransform: 'uppercase',
-                opacity: 0.5,
-              }}
-            >
-              Henter eldre…
-            </span>
-          </div>
-        )}
-        {/* Usynlig sentinel øverst i meldingslisten. IntersectionObserver
-            (useEffect over) kaller lastEldre() når den scrolles inn.
-            Beholdes mountet hele tiden mens harMerEldre er true — pillen
-            over rendres ved siden av. root er scrollContainerRef slik at
-            vi observerer mot containeren, ikke mot viewporten. */}
-        {harMerEldre && (
-          <div ref={toppSentinelRef} style={{ height: 1 }} />
-        )}
 
         {/* Meldingsliste */}
         <div

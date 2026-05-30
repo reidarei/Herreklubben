@@ -22,12 +22,14 @@ export default async function KlubbChatSide({
     searchParams,
   ])
 
-  const [{ data: siste }, { data: profiler }] = await Promise.all([
+  // Henter ALLE meldinger på initial-load. Klubb-chatten er ~300 meldinger
+  // totalt (~60 KB), så det er trivielt å unngå paginering helt — det fjerner
+  // IntersectionObserver, scroll-anchor og hele bug-klassen (#210 PR 5).
+  const [{ data: alle }, { data: profiler }] = await Promise.all([
     supabase
       .from('klubb_chat')
       .select('id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook')
-      .order('opprettet', { ascending: false })
-      .limit(30),
+      .order('opprettet', { ascending: true }),
     supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),
   ])
 
@@ -36,7 +38,7 @@ export default async function KlubbChatSide({
   markerChatSett().catch(() => {})
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const initialMeldinger = [...(siste ?? [])].reverse()
+  const initialMeldinger = alle ?? []
 
   // Kill-switch: CHAT_LEGACY_FALLBACK (env) eller ?legacy=1 i URL tvinger
   // gammel Chat.tsx. Fjernes i PR 3 etter at ChatV2 er bekreftet stabil.
