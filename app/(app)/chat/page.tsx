@@ -1,36 +1,25 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker, getProfil } from '@/lib/auth-cache'
 import Chat from '@/components/chat/Chat'
-import ChatV2 from '@/components/chat/ChatV2'
 import ChatAutoScrollScript from '@/components/chat/ChatAutoScrollScript'
 import { kanAdministrere } from '@/lib/roller'
 import { markerChatSett } from '@/lib/actions/ulest'
-import { CHAT_LEGACY_FALLBACK } from '@/lib/config'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
-// Henter alle meldinger ved initial-load. Klubb-chatten er ~300 meldinger
-// totalt — paginering er fjernet (#210 PR 5) for å lukke en bug-klasse
-// som kom fra IntersectionObserver + scroll-anchor på iOS Safari.
-export default async function KlubbChatSide({
-  searchParams,
-}: {
-  searchParams: Promise<{ legacy?: string }>
-}) {
-  const [supabase, user, profil, { legacy }] = await Promise.all([
+// Initial-last er siste 30 meldinger; «Vis eldre»-knappen henter flere.
+export default async function KlubbChatSide() {
+  const [supabase, user, profil] = await Promise.all([
     createServerClient(),
     getInnloggetBruker(),
     getProfil(),
-    searchParams,
   ])
 
-  // Henter ALLE meldinger på initial-load. Klubb-chatten er ~300 meldinger
-  // totalt (~60 KB), så det er trivielt å unngå paginering helt — det fjerner
-  // IntersectionObserver, scroll-anchor og hele bug-klassen (#210 PR 5).
-  const [{ data: alle }, { data: profiler }] = await Promise.all([
+  const [{ data: siste }, { data: profiler }] = await Promise.all([
     supabase
       .from('klubb_chat')
       .select('id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook')
-      .order('opprettet', { ascending: true }),
+      .order('opprettet', { ascending: false })
+      .limit(30),
     supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),
   ])
 
@@ -39,15 +28,8 @@ export default async function KlubbChatSide({
   markerChatSett().catch(() => {})
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const initialMeldinger = alle ?? []
+  const initialMeldinger = [...(siste ?? [])].reverse()
 
-  // Kill-switch: CHAT_LEGACY_FALLBACK (env) eller ?legacy=1 i URL tvinger
-  // gammel Chat.tsx. Fjernes i PR 3 etter at ChatV2 er bekreftet stabil.
-  const brukLegacy = CHAT_LEGACY_FALLBACK || legacy === '1'
-
-  // Header-blokken — breadcrumb + tittel + privatmelding-lenke.
-  // I ChatV2 sender vi dette som headerSlot slik at det scroller med
-  // meldingslisten (iMessage-aktig). I legacy-modus legges det direkte i siden.
   const headerBlokk = (
     <div style={{ padding: '12px 4px 22px' }}>
       <div
@@ -82,33 +64,19 @@ export default async function KlubbChatSide({
     </div>
   )
 
-  if (brukLegacy) {
-    return (
-      <div style={{ padding: '0 20px 20px' }}>
-        <ChatAutoScrollScript />
-        {headerBlokk}
-        <Chat
-          scope={{ type: 'klubb' }}
-          brukerId={user!.id}
-          erAdmin={erAdmin}
-          initialMeldinger={initialMeldinger}
-          profiler={profiler ?? []}
-          visSeksjonsLabel={false}
-          autoScrollTilBunn
-        />
-      </div>
-    )
-  }
-
   return (
-    <ChatV2
-      scope={{ type: 'klubb' }}
-      brukerId={user!.id}
-      erAdmin={erAdmin}
-      initialMeldinger={initialMeldinger}
-      profiler={profiler ?? []}
-      autoScrollTilBunn
-      headerSlot={headerBlokk}
-    />
+    <div style={{ padding: '0 20px 20px' }}>
+      <ChatAutoScrollScript />
+      {headerBlokk}
+      <Chat
+        scope={{ type: 'klubb' }}
+        brukerId={user!.id}
+        erAdmin={erAdmin}
+        initialMeldinger={initialMeldinger}
+        profiler={profiler ?? []}
+        visSeksjonsLabel={false}
+        autoScrollTilBunn
+      />
+    </div>
   )
 }

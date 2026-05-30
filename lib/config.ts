@@ -37,12 +37,6 @@ export const R2_PUBLIC_URL = (
 export const GITHUB_REPO = 'reidarei/Herreklubben'
 export const GITHUB_ONSKE_LABEL = 'ønske'
 
-// Kill-switch: sett CHAT_LEGACY_FALLBACK=true i Vercel env for å rulle
-// tilbake til gammel Chat.tsx uten kode-deploy. Fjernes i PR 3 etter
-// at ChatV2 er bekreftet stabil på iPhone. Ingen NEXT_PUBLIC_-prefiks
-// (server-only; vi trenger ikke sende dette til klienten).
-export const CHAT_LEGACY_FALLBACK = process.env.CHAT_LEGACY_FALLBACK === 'true'
-
 // Bygg GitHub Issues-list URL med ønske-label og gitt state.
 export function githubIssuesUrl(params: {
   state: 'open' | 'closed' | 'all'
