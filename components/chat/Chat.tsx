@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback } from 'react'
 import { type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
 import { formaterDato, erSammeNorskeDag, formaterDatoSkille } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
@@ -106,6 +106,13 @@ export default function Chat({
   const [lagrerEdit, setLagrerEdit] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Sentinel-div øverst i meldingslisten — IntersectionObserver trigges når
+  // den scrolles inn i view, og utløser lastEldre(). Se useEffect under.
+  const toppSentinelRef = useRef<HTMLDivElement>(null)
+  // Gating: vi starter ikke auto-load eldre meldinger før brukeren faktisk har
+  // scrollet selv (300ms delay etter mount). Hindrer at siden laster inn eldre
+  // meldinger allerede ved initial render på korte chatter.
+  const harBrukerScrolletRef = useRef(false)
 
   const profilMap = useRef(
     new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent'])),
@@ -126,6 +133,44 @@ export default function Chat({
       if (bildePreview) URL.revokeObjectURL(bildePreview)
     }
   }, [bildePreview])
+
+  // Sett harBrukerScrolletRef etter 300ms så auto-load ikke trigges ved
+  // initial render. Registrer scroll-lytter på window for å fange brukerscroll.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      function onScroll() {
+        harBrukerScrolletRef.current = true
+        window.removeEventListener('scroll', onScroll)
+      }
+      window.addEventListener('scroll', onScroll, { passive: true })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // IntersectionObserver: kall lastEldre() automatisk når toppSentinelRef
+  // scrolles inn i viewport (200px forhåndsmargin). Aktiv bare når
+  // harMerEldre === true og brukeren har scrollet (harBrukerScrolletRef).
+  // lastEldre() er idempotent via intern ref-lock, så observer-callback kan
+  // kalle den direkte uten ekstra guards her.
+  const lastEldreCallback = useCallback(() => {
+    if (!harBrukerScrolletRef.current) return
+    lastEldre()
+  }, [lastEldre])
+
+  useEffect(() => {
+    if (!harMerEldre) return
+    const sentinel = toppSentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) lastEldreCallback()
+      },
+      { rootMargin: '200px 0px 0px 0px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [harMerEldre, lastEldreCallback])
 
   async function velgBilde(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
@@ -254,14 +299,12 @@ export default function Chat({
         </SectionLabel>
       )}
 
-      {/* Vis eldre-knapp */}
-      {harMerEldre && meldinger.length > 0 && (
+      {/* Laster eldre — progress-pille mens henting pågår */}
+      {henterEldre && (
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
-          <button
-            type="button"
-            onClick={lastEldre}
-            disabled={henterEldre}
+          <span
             style={{
+              display: 'inline-block',
               padding: '6px 14px',
               background: 'transparent',
               border: '0.5px solid var(--border)',
@@ -271,13 +314,17 @@ export default function Chat({
               fontSize: 10,
               letterSpacing: '1.4px',
               textTransform: 'uppercase',
-              cursor: henterEldre ? 'wait' : 'pointer',
-              opacity: henterEldre ? 0.5 : 1,
+              opacity: 0.5,
             }}
           >
-            {henterEldre ? 'Henter…' : 'Vis eldre'}
-          </button>
+            Henter eldre…
+          </span>
         </div>
+      )}
+      {/* Usynlig sentinel øverst i meldingslisten. IntersectionObserver
+          (useEffect over) kaller lastEldre() når den scrolles inn. */}
+      {harMerEldre && !henterEldre && (
+        <div ref={toppSentinelRef} style={{ height: 1 }} />
       )}
 
       {/* Meldingsliste — padding-bottom må romme input-pillen så ingen
