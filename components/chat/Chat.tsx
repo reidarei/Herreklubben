@@ -136,6 +136,9 @@ export default function Chat({
 
   // Sett harBrukerScrolletRef etter 300ms så auto-load ikke trigges ved
   // initial render. Registrer scroll-lytter på window for å fange brukerscroll.
+  // Kjent svakhet: window-scroll-lytteren er skjør på iOS når sticky-elementer
+  // eller virtual-keyboard endrer viewport — PR 2 (intern scroll-container)
+  // løser dette ved konstruksjon, så vi lever med det inntil videre.
   useEffect(() => {
     const timer = setTimeout(() => {
       function onScroll() {
@@ -322,8 +325,12 @@ export default function Chat({
         </div>
       )}
       {/* Usynlig sentinel øverst i meldingslisten. IntersectionObserver
-          (useEffect over) kaller lastEldre() når den scrolles inn. */}
-      {harMerEldre && !henterEldre && (
+          (useEffect over) kaller lastEldre() når den scrolles inn.
+          Beholdes mountet hele tiden mens harMerEldre er true — pillen
+          over rendres ved siden av. Mindre DOM-juggling og stabilere
+          observer (vi unngår at sentinelen forsvinner/dukker opp og
+          dermed avmonteres/remonteres mellom henter-syklusene). */}
+      {harMerEldre && (
         <div ref={toppSentinelRef} style={{ height: 1 }} />
       )}
 
