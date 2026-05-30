@@ -886,11 +886,12 @@ export default function ChatV2({
         <div
           style={{
             position: 'absolute',
-            bottom: 'calc(var(--input-bar-h, 56px) + env(safe-area-inset-bottom) + 8px)',
+            // 56px = input-pille (~48px) + flex-wrapper-padding. env() i tillegg for safe-area.
+            bottom: 'calc(56px + env(safe-area-inset-bottom) + 8px)',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 25,
-            animation: 'fadeIn 200ms ease',
+            animation: 'page-fadein 200ms ease',
           }}
         >
           <button
