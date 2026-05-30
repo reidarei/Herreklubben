@@ -8,8 +8,9 @@ import { markerChatSett } from '@/lib/actions/ulest'
 import { CHAT_LEGACY_FALLBACK } from '@/lib/config'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
-// Initial-last er siste 30 meldinger (i desc-rekkefølge fra DB, reversert til
-// ascending for UI). «Vis eldre»-knappen i felleskomponenten henter flere.
+// Henter alle meldinger ved initial-load. Klubb-chatten er ~300 meldinger
+// totalt — paginering er fjernet (#210 PR 5) for å lukke en bug-klasse
+// som kom fra IntersectionObserver + scroll-anchor på iOS Safari.
 export default async function KlubbChatSide({
   searchParams,
 }: {
@@ -22,12 +23,14 @@ export default async function KlubbChatSide({
     searchParams,
   ])
 
-  const [{ data: siste }, { data: profiler }] = await Promise.all([
+  // Henter ALLE meldinger på initial-load. Klubb-chatten er ~300 meldinger
+  // totalt (~60 KB), så det er trivielt å unngå paginering helt — det fjerner
+  // IntersectionObserver, scroll-anchor og hele bug-klassen (#210 PR 5).
+  const [{ data: alle }, { data: profiler }] = await Promise.all([
     supabase
       .from('klubb_chat')
       .select('id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook')
-      .order('opprettet', { ascending: false })
-      .limit(30),
+      .order('opprettet', { ascending: true }),
     supabase.from('profiles').select('id, navn, bilde_url, rolle').eq('aktiv', true),
   ])
 
@@ -36,7 +39,7 @@ export default async function KlubbChatSide({
   markerChatSett().catch(() => {})
 
   const erAdmin = kanAdministrere(profil?.rolle)
-  const initialMeldinger = [...(siste ?? [])].reverse()
+  const initialMeldinger = alle ?? []
 
   // Kill-switch: CHAT_LEGACY_FALLBACK (env) eller ?legacy=1 i URL tvinger
   // gammel Chat.tsx. Fjernes i PR 3 etter at ChatV2 er bekreftet stabil.
