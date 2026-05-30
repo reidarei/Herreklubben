@@ -1,14 +1,23 @@
 'use client'
 
-import { Fragment, useState, useEffect, useRef, useCallback } from 'react'
-import { type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import {
+  sendChatMelding,
+  oppdaterChatMelding,
+  slettChatMelding,
+  leggTilReaksjon,
+  fjernReaksjon,
+} from '@/lib/actions/chat'
+import { konfigFor, type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
 import { formaterDato, erSammeNorskeDag, formaterDatoSkille } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
 import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import BildeLightbox from '@/components/ui/BildeLightbox'
 import MessengerBadge from '@/components/ui/MessengerBadge'
-import { komprimer } from '@/lib/bilde-utils'
+import { komprimer, genererFilnavn } from '@/lib/bilde-utils'
+import { lastOppBilde, slettBilde } from '@/lib/actions/bilde-opplasting'
 import {
   beregnMentionSøk,
   velgMentionTekst,
@@ -16,20 +25,34 @@ import {
   type ChatProfil,
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
-import { useChatData } from './hooks/useChatData'
-import { useChatScroll } from './hooks/useChatScroll'
-import type { ChatMelding as ChatMeldingType } from './types'
+import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
 export type ChatScope = ChatScopeKonfig
 
-export type ChatMelding = ChatMeldingType
+export type ChatMelding = {
+  id: string
+  profil_id: string
+  innhold: string | null
+  bilde_url: string | null
+  video_url: string | null
+  opprettet: string
+  // fra_facebook finnes kun på klubb_chat-tabellen — markerer meldinger
+  // som er importert fra Messenger. Valgfritt så typen kan brukes i alle
+  // chat-scopes uten å late som om feltet eksisterer overalt.
+  fra_facebook?: boolean
+}
 
 // ChatProfil-typen ligger i lib/mention.ts — importer derfra direkte.
 
+// Antall meldinger som lastes first-batch og per "Vis eldre"-klikk
+const SIDE_STORRELSE = 30
+
 // Emojis tilgjengelige i reaksjons-picker
 const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as const
+
+type Reaksjon = { melding_id: string; profil_id: string; emoji: string }
 
 function renderMedMentions(tekst: string | null) {
   if (!tekst) return null
@@ -68,25 +91,10 @@ export default function Chat({
   visSeksjonsLabel = true,
   autoScrollTilBunn = false,
 }: Props) {
-  const {
-    meldinger,
-    reaksjoner,
-    reaksjonerPerMelding,
-    harMerEldre,
-    henterEldre,
-    lastEldre,
-    send,
-    slett,
-    redigerMelding,
-    toggleReaksjon: toggleReaksjonHook,
-    konfig,
-  } = useChatData({ scope, brukerId, initialMeldinger })
-
-  const { bunnenRef, keyboardOffset } = useChatScroll({
-    meldinger,
-    brukerId,
-    autoScrollTilBunn,
-  })
+  // initialMeldinger kommer som de siste N meldingene i stigende rekkefølge
+  const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
+  const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
+  const [henterEldre, setHenterEldre] = useState(false)
 
   const [tekst, setTekst] = useState('')
   const [sender, setSender] = useState(false)
@@ -98,6 +106,10 @@ export default function Chat({
   const bildeInputRef = useRef<HTMLInputElement>(null)
   // Lightbox-visning av bilder
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  // Reaksjoner — flat liste hentet fra chat_reaksjoner. Grupperes per melding
+  // i render. En Map er raskere for hot-paths men flat liste er lettere å
+  // oppdatere atomisk via realtime.
+  const [reaksjoner, setReaksjoner] = useState<Reaksjon[]>([])
   // Hvilken melding viser picker. Null = ingen.
   const [pickerFor, setPickerFor] = useState<string | null>(null)
   // Hvilken melding redigeres. Null = ingen. editTekst holder editert innhold.
@@ -105,14 +117,8 @@ export default function Chat({
   const [editTekst, setEditTekst] = useState('')
   const [lagrerEdit, setLagrerEdit] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bunnenRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  // Sentinel-div øverst i meldingslisten — IntersectionObserver trigges når
-  // den scrolles inn i view, og utløser lastEldre(). Se useEffect under.
-  const toppSentinelRef = useRef<HTMLDivElement>(null)
-  // Gating: vi starter ikke auto-load eldre meldinger før brukeren faktisk har
-  // scrollet selv (300ms delay etter mount). Hindrer at siden laster inn eldre
-  // meldinger allerede ved initial render på korte chatter.
-  const harBrukerScrolletRef = useRef(false)
 
   const profilMap = useRef(
     new Map(profiler.map(p => [p.id, p.navn ?? 'Ukjent'])),
@@ -126,6 +132,57 @@ export default function Chat({
   const andreProfiler = useRef(
     profiler.filter(p => p.id !== brukerId && p.navn),
   ).current
+  const supabase = useRef(createClient()).current
+
+  // CHAT_KONFIG-lookup samler tabell/kanal/charLimit per scope. Erstatter
+  // 5 paralle switch-kjeder som tidligere måtte holdes synk her, i hentMeldinger,
+  // i realtime-oppsett og i input-validering.
+  const konfig = konfigFor(scope)
+  const tabell = konfig.tabell
+  const kanalNavn = konfig.kanalNavn(scope)
+
+  // Ekstraherte scope-felter — flate verdier slik at react-hooks/exhaustive-deps
+  // kan analysere deps-arrayene under uten "complex expression"-warnings.
+  const scopeType = scope.type
+  const arrangementId = scope.type === 'arrangement' ? scope.arrangementId : ''
+  const pollId = scope.type === 'poll' ? scope.pollId : ''
+  const meldingId = scope.type === 'melding' ? scope.meldingId : ''
+  const samtaleId = scope.type === 'privat' ? scope.samtaleId : ''
+
+  // Helper — henter meldinger med riktig scope-filter. Returnerer i
+  // *stigende* rekkefølge (eldste først) siden det er det UI-et ønsker.
+  // Bruker CHAT_KONFIG til å slå opp tabell + FK-filter — ingen scope-
+  // spesifikke grener her.
+  const hentMeldinger = useCallback(
+    async (forTidspunkt?: string): Promise<ChatMelding[]> => {
+      // klubb_chat har i tillegg `fra_facebook` for å vise Messenger-badge på
+      // historisk-importerte meldinger. Andre chat-tabeller har ikke kolonnen.
+      // UPDATE-handleren (under) tar bevisst kun innhold, så endring av
+      // fra_facebook på en eksisterende rad slår ikke gjennom i UI — i
+      // praksis er flagget skrivebeskyttet etter import.
+      const select =
+        tabell === 'klubb_chat'
+          ? 'id, profil_id, innhold, bilde_url, video_url, opprettet, fra_facebook'
+          : 'id, profil_id, innhold, bilde_url, video_url, opprettet'
+      let q = supabase
+        .from(konfig.tabell)
+        .select(select)
+        .order('opprettet', { ascending: false })
+        .limit(SIDE_STORRELSE)
+      const fkVerdi = konfig.scopeId(scope)
+      if (konfig.fkFelt && fkVerdi) {
+        q = q.eq(konfig.fkFelt, fkVerdi)
+      }
+      if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+      const { data } = await q
+      return data ? ([...data].reverse() as unknown as ChatMelding[]) : []
+    },
+    // konfig/scope/tabell utelates bevisst — de er rent utledet av scope-feltene over,
+    // og parent sender inline scope-objekter (ny identitet per render) som ville trigget
+    // unødvendige re-fetches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scopeType, arrangementId, pollId, meldingId, samtaleId, supabase],
+  )
 
   // Frigjør blob-URL når preview byttes
   useEffect(() => {
@@ -133,47 +190,6 @@ export default function Chat({
       if (bildePreview) URL.revokeObjectURL(bildePreview)
     }
   }, [bildePreview])
-
-  // Sett harBrukerScrolletRef etter 300ms så auto-load ikke trigges ved
-  // initial render. Registrer scroll-lytter på window for å fange brukerscroll.
-  // Kjent svakhet: window-scroll-lytteren er skjør på iOS når sticky-elementer
-  // eller virtual-keyboard endrer viewport — PR 2 (intern scroll-container)
-  // løser dette ved konstruksjon, så vi lever med det inntil videre.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      function onScroll() {
-        harBrukerScrolletRef.current = true
-        window.removeEventListener('scroll', onScroll)
-      }
-      window.addEventListener('scroll', onScroll, { passive: true })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [])
-
-  // IntersectionObserver: kall lastEldre() automatisk når toppSentinelRef
-  // scrolles inn i viewport (200px forhåndsmargin). Aktiv bare når
-  // harMerEldre === true og brukeren har scrollet (harBrukerScrolletRef).
-  // lastEldre() er idempotent via intern ref-lock, så observer-callback kan
-  // kalle den direkte uten ekstra guards her.
-  const lastEldreCallback = useCallback(() => {
-    if (!harBrukerScrolletRef.current) return
-    lastEldre()
-  }, [lastEldre])
-
-  useEffect(() => {
-    if (!harMerEldre) return
-    const sentinel = toppSentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0]?.isIntersecting) lastEldreCallback()
-      },
-      { rootMargin: '200px 0px 0px 0px' },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [harMerEldre, lastEldreCallback])
 
   async function velgBilde(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
@@ -210,11 +226,327 @@ export default function Chat({
     inputRef.current?.focus()
   }
 
+  const scrollTilBunn = useCallback((instant = false) => {
+    // window.scrollTo (ikke scrollIntoView) fordi vi vil ha hele siden
+    // til bunnen, ikke kun bunnen av meldingsblokken. Sticky input-pill
+    // under bunnenRef gir naturlig avstand.
+    //
+    // Initial-mount-scroll håndteres nå av <ChatAutoScrollScript /> i
+    // sidens markup (kjører før hydrering, eliminerer flikket fra #209).
+    // Denne useCallback brukes fortsatt for realtime-INSERT-grenen og som
+    // defense-in-depth-fallback hvis inline-scriptet blokkeres.
+    if (typeof window === 'undefined') return
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: instant ? 'auto' : 'smooth',
+    })
+  }, [])
+
+  // Sjekker om brukeren befinner seg nær bunnen av siden.
+  // Kjøres kun klient-side (window er undefined under SSR).
+  function erNaerBunn(terskel = CHAT_NAER_BUNN_TERSKEL_PX) {
+    if (typeof window === 'undefined') return true
+    const rest = document.documentElement.scrollHeight - window.scrollY - window.innerHeight
+    return rest <= terskel
+  }
+
+  // Scroll til bunn ved første mount (instant), og når nye meldinger
+  // dukker opp i bunnen (smooth). Ikke ved paginering (store diff)
+  // eller når listen krymper.
+  const forrigeLengde = useRef(meldinger.length)
+  const harMountet = useRef(false)
+  useEffect(() => {
+    const lengdeForDenneEffekten = meldinger.length
+    const diff = lengdeForDenneEffekten - forrigeLengde.current
+    forrigeLengde.current = lengdeForDenneEffekten
+
+    if (!harMountet.current) {
+      harMountet.current = true
+      if (autoScrollTilBunn) {
+        // requestAnimationFrame så DOM er rendret før vi måler/scroller
+        requestAnimationFrame(() => scrollTilBunn(true))
+      }
+      return
+    }
+    if (autoScrollTilBunn && diff > 0 && diff <= 3) {
+      const sisteEgen = meldinger[meldinger.length - 1]?.profil_id === brukerId
+      // Egen melding: alltid scroll (forventet at vi ser det vi sendte).
+      // Andres melding: scroll bare hvis brukeren står nær bunnen — ellers
+      // er det irriterende å bli kastet ned mens han leser eldre. Se #238.
+      if (sisteEgen || erNaerBunn()) scrollTilBunn()
+    }
+  }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
+
+  // Tastatur-høyde via visualViewport. Når iOS-tastaturet åpner med
+  // interactiveWidget='overlays-content' (jf. app/layout.tsx, valgt for å
+  // unngå dock-bug-klassen) endrer ikke window.innerHeight seg, men
+  // visualViewport.height krymper. Differansen er omtrent tastatur-høyden.
+  // keyboardOffset brukes KUN til layout: løfter input-pillen (sticky-pill
+  // bottom) og vokser paddingBottom på meldingslisten. Ingen scroll-side-
+  // effekter — terskel-basert auto-scroll fjernet fordi bounce-quirk (#222)
+  // på iOS PWA var ikke robust å skille fra ekte tastatur-åpning. Se #236.
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return
+    const vv = window.visualViewport
+    function oppdater() {
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setKeyboardOffset(offset)
+    }
+    vv.addEventListener('resize', oppdater)
+    vv.addEventListener('scroll', oppdater)
+    oppdater()
+    return () => {
+      vv.removeEventListener('resize', oppdater)
+      vv.removeEventListener('scroll', oppdater)
+    }
+  }, [])
+
+  // Realtime-subscription — én kanal per scope
+  useEffect(() => {
+    let cancelled = false
+
+    async function startSubscription() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled || !session) return
+
+      supabase.realtime.setAuth(session.access_token)
+
+      const channel = supabase.channel(kanalNavn)
+
+      // Filter på FK-kolonnen hvis scope har en (alle utenom klubb).
+      const fkVerdi = konfig.scopeId(scope)
+      const insertConfig =
+        konfig.fkFelt && fkVerdi
+          ? {
+              event: 'INSERT' as const,
+              schema: 'public',
+              table: tabell,
+              filter: `${konfig.fkFelt}=eq.${fkVerdi}`,
+            }
+          : { event: 'INSERT' as const, schema: 'public', table: tabell }
+
+      const deleteConfig = { event: 'DELETE' as const, schema: 'public', table: tabell }
+      const updateConfig = { event: 'UPDATE' as const, schema: 'public', table: tabell }
+
+      channel
+        .on('postgres_changes', insertConfig, payload => {
+          const ny = payload.new as ChatMelding
+          setMeldinger(prev => {
+            if (prev.some(m => m.id === ny.id)) return prev
+            // Fjern KUN ÉN matching temp-rad (eldste først), så samme melding
+            // sendt to ganger på rad ikke fører til at begge temp-rader
+            // forsvinner ved første INSERT.
+            const tempIdx = prev.findIndex(
+              m =>
+                m.id.startsWith('temp-') &&
+                m.profil_id === ny.profil_id &&
+                m.innhold === ny.innhold,
+            )
+            const utenTemp =
+              tempIdx === -1 ? prev : prev.filter((_, i) => i !== tempIdx)
+            // Frigjør blob-URL fra temp-raden hvis den hadde en
+            if (tempIdx !== -1) {
+              const fjernet = prev[tempIdx]
+              if (fjernet.bilde_url?.startsWith('blob:')) {
+                URL.revokeObjectURL(fjernet.bilde_url)
+              }
+            }
+            return [...utenTemp, ny]
+          })
+        })
+        .on('postgres_changes', deleteConfig, payload => {
+          const slettetId = (payload.old as { id: string }).id
+          setMeldinger(prev => prev.filter(m => m.id !== slettetId))
+        })
+        .on('postgres_changes', updateConfig, payload => {
+          const oppdatert = payload.new as ChatMelding
+          setMeldinger(prev =>
+            prev.map(m => (m.id === oppdatert.id ? { ...m, innhold: oppdatert.innhold } : m)),
+          )
+        })
+        .subscribe()
+
+      return channel
+    }
+
+    let channelRef: ReturnType<typeof supabase.channel> | undefined
+    startSubscription().then(ch => {
+      channelRef = ch
+    })
+
+    return () => {
+      cancelled = true
+      if (channelRef) supabase.removeChannel(channelRef)
+    }
+    // kanalNavn/konfig/scope/tabell utelates bevisst — alle utledet av scope-feltene over,
+    // og parent sender inline scope-objekter (ny identitet per render) som ville trigget
+    // unødvendige re-subscribes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeType, arrangementId, pollId, meldingId, samtaleId, supabase])
+
+  // Hent reaksjoner — kun for meldings-ID-er vi ikke har hentet før. På
+  // mount: fetch for alle. Ved scrollback (Vis eldre): fetch for nye
+  // gamle IDer. Når en ny melding kommer inn via send/realtime: fetcher
+  // for den ene IDen — typisk 0 rader, men billig og holder logikken
+  // homogen. Realtime-subscription under fanger nye reaksjoner uansett.
+  //
+  // Tidligere mønster fetch'et HELE settet hver gang meldinger.length
+  // endret seg, og erstattet reaksjons-state komplett → re-render av
+  // alle chat-bobler. Det dro INP merkbart.
+  const fetchedReaksjonsIder = useRef(new Set<string>())
+  useEffect(() => {
+    const synlige = meldinger.map(m => m.id).filter(id => !id.startsWith('temp-'))
+    const nye = synlige.filter(id => !fetchedReaksjonsIder.current.has(id))
+    if (nye.length === 0) return
+    for (const id of nye) fetchedReaksjonsIder.current.add(id)
+
+    let cancelled = false
+    supabase
+      .from('chat_reaksjoner')
+      .select('melding_id, profil_id, emoji')
+      .in('melding_id', nye)
+      .then(({ data }) => {
+        if (cancelled || !data || data.length === 0) return
+        setReaksjoner(prev => {
+          // Slå sammen — fjerne dubletter for samme (melding_id, profil_id, emoji)
+          const eksisterende = new Set(
+            prev.map(r => `${r.melding_id}|${r.profil_id}|${r.emoji}`),
+          )
+          const nye = (data as Reaksjon[]).filter(
+            r => !eksisterende.has(`${r.melding_id}|${r.profil_id}|${r.emoji}`),
+          )
+          return nye.length > 0 ? [...prev, ...nye] : prev
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meldinger.length])
+
+  // Reaksjoner gruppert per melding_id — kalkuleres én gang per
+  // render, ikke i hver boble. Sparer O(N×R) → O(N+R) når N meldinger
+  // og R reaksjoner.
+  const reaksjonerPerMelding = useMemo(() => {
+    const map = new Map<string, Reaksjon[]>()
+    for (const r of reaksjoner) {
+      const liste = map.get(r.melding_id)
+      if (liste) liste.push(r)
+      else map.set(r.melding_id, [r])
+    }
+    return map
+  }, [reaksjoner])
+
+  // Realtime for reaksjoner — egen kanal siden vi ikke har filter per scope
+  // (reaksjoner har ingen scope-kolonne; vi stoler på at bare synlige meldinger
+  // får reaksjoner oppdatert via postfiltering).
+  useEffect(() => {
+    let cancelled = false
+    let channelRef: ReturnType<typeof supabase.channel> | undefined
+
+    async function start() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (cancelled || !session) return
+      supabase.realtime.setAuth(session.access_token)
+
+      const channel = supabase.channel('chat-reaksjoner')
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'chat_reaksjoner' },
+          payload => {
+            const ny = payload.new as Reaksjon
+            setReaksjoner(prev => {
+              if (prev.some(r =>
+                r.melding_id === ny.melding_id &&
+                r.profil_id === ny.profil_id &&
+                r.emoji === ny.emoji
+              )) return prev
+              return [...prev, ny]
+            })
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'chat_reaksjoner' },
+          payload => {
+            const gml = payload.old as Partial<Reaksjon>
+            setReaksjoner(prev =>
+              prev.filter(r =>
+                !(
+                  r.melding_id === gml.melding_id &&
+                  r.profil_id === gml.profil_id &&
+                  r.emoji === gml.emoji
+                ),
+              ),
+            )
+          },
+        )
+        .subscribe()
+      channelRef = channel
+    }
+
+    start()
+    return () => {
+      cancelled = true
+      if (channelRef) supabase.removeChannel(channelRef)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Re-fetch ved visibilitychange (iOS PWA dropper WebSocket i bakgrunnen).
+  // Henter de siste SIDE_STORRELSE for å fylle manglende meldinger.
+  useEffect(() => {
+    async function reFetch() {
+      if (document.visibilityState !== 'visible') return
+      const nyeste = await hentMeldinger()
+      if (nyeste.length === 0) return
+      setMeldinger(prev => {
+        // Behold eventuelle eldre meldinger brukeren allerede har lastet
+        const eldste = nyeste[0].opprettet
+        const eldre = prev.filter(m => m.opprettet < eldste)
+        return [...eldre, ...nyeste]
+      })
+    }
+
+    document.addEventListener('visibilitychange', reFetch)
+    return () => document.removeEventListener('visibilitychange', reFetch)
+  }, [hentMeldinger])
+
+  async function lastEldre() {
+    if (henterEldre || !harMerEldre || meldinger.length === 0) return
+    setHenterEldre(true)
+    try {
+      const eldstKjentTid = meldinger[0].opprettet
+      const eldre = await hentMeldinger(eldstKjentTid)
+      if (eldre.length > 0) {
+        setMeldinger(prev => [...eldre, ...prev])
+      }
+      if (eldre.length < SIDE_STORRELSE) setHarMerEldre(false)
+    } finally {
+      setHenterEldre(false)
+    }
+  }
+
   async function handleSend() {
     const melding = tekst.trim() || null
     const harBilde = !!bildeFil
     if (!melding && !harBilde) return
     if (sender) return
+
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const optimistisk: ChatMelding = {
+      id: tempId,
+      profil_id: brukerId,
+      innhold: melding,
+      bilde_url: bildePreview, // viser blob-URL midlertidig
+      video_url: null,
+      opprettet: new Date().toISOString(),
+      fra_facebook: false,
+    }
+    setMeldinger(prev => [...prev, optimistisk])
 
     setTekst('')
     setMentionSøk(null)
@@ -224,14 +556,34 @@ export default function Chat({
     setBildeFil(null)
     setBildePreview(null) // ikke revoke ennå — optimistisk rad bruker den
 
+    let bildeUrl: string | null = null
     try {
-      await send(melding, filUploadKopi, previewUrlKopi)
-    } catch {
+      // Last opp bilde til R2 først hvis valgt
+      if (filUploadKopi) {
+        const fd = new FormData()
+        fd.append('fil', filUploadKopi)
+        fd.append('filnavn', genererFilnavn(filUploadKopi))
+        fd.append('kategori', 'chat')
+        const res = await lastOppBilde(fd)
+        bildeUrl = res.url
+      }
+
+      await sendChatMelding(scope, melding, bildeUrl)
+    } catch (err) {
+      console.error('Send feilet:', err)
+      setMeldinger(prev => prev.filter(m => m.id !== tempId))
       setBildeFeil('Kunne ikke sende meldingen')
+      // Rydd opp R2-fil hvis upload lyktes men insert feilet (best effort —
+      // bedre å ha en orphan enn å feile uten tilbakemelding).
+      if (bildeUrl) slettBilde(bildeUrl).catch(() => {})
+      // Frigjør blob-URL siden den optimistiske raden ble fjernet
+      if (previewUrlKopi) URL.revokeObjectURL(previewUrlKopi)
     } finally {
       setSender(false)
       inputRef.current?.focus()
     }
+    // Merk: blob-URL beholdes ved suksess til realtime INSERT bytter ut
+    // optimistisk-raden. Cleanup skjer i useEffect under når raden er borte.
   }
 
   function startLongPress(meldingId: string) {
@@ -254,8 +606,45 @@ export default function Chat({
   }
 
   async function toggleReaksjon(meldingId: string, emoji: string) {
+    const alleredePaa = reaksjoner.some(
+      r => r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji,
+    )
+    // Optimistisk oppdatering
+    if (alleredePaa) {
+      setReaksjoner(prev =>
+        prev.filter(
+          r => !(r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji),
+        ),
+      )
+    } else {
+      setReaksjoner(prev => [
+        ...prev,
+        { melding_id: meldingId, profil_id: brukerId, emoji },
+      ])
+    }
     setPickerFor(null)
-    await toggleReaksjonHook(meldingId, emoji)
+
+    try {
+      if (alleredePaa) {
+        await fjernReaksjon(meldingId, emoji)
+      } else {
+        await leggTilReaksjon(meldingId, emoji)
+      }
+    } catch {
+      // Rollback ved feil
+      if (alleredePaa) {
+        setReaksjoner(prev => [
+          ...prev,
+          { melding_id: meldingId, profil_id: brukerId, emoji },
+        ])
+      } else {
+        setReaksjoner(prev =>
+          prev.filter(
+            r => !(r.melding_id === meldingId && r.profil_id === brukerId && r.emoji === emoji),
+          ),
+        )
+      }
+    }
   }
 
   function startEdit(meldingId: string, naavarende: string) {
@@ -279,11 +668,18 @@ export default function Chat({
       return
     }
     setLagrerEdit(true)
+    // Optimistisk oppdatering
+    setMeldinger(prev => prev.map(m => (m.id === id ? { ...m, innhold: ny } : m)))
     try {
-      await redigerMelding(id, ny)
+      await oppdaterChatMelding(scope, id, ny)
       avbrytEdit()
     } catch {
-      // Rollback skjer inne i useChatData.redigerMelding — ingenting å gjøre her.
+      // Rull tilbake ved feil
+      if (forrige) {
+        setMeldinger(prev =>
+          prev.map(m => (m.id === id ? { ...m, innhold: forrige.innhold } : m)),
+        )
+      }
     } finally {
       setLagrerEdit(false)
     }
@@ -291,7 +687,14 @@ export default function Chat({
 
   async function handleSlett(id: string) {
     if (!confirm('Slette denne meldingen?')) return
-    await slett(id)
+    setMeldinger(prev => prev.filter(m => m.id !== id))
+    try {
+      await slettChatMelding(scope, id)
+    } catch {
+      // Ved feil: last inn de siste N på nytt
+      const nyeste = await hentMeldinger()
+      setMeldinger(nyeste)
+    }
   }
 
   return (
@@ -302,12 +705,14 @@ export default function Chat({
         </SectionLabel>
       )}
 
-      {/* Laster eldre — progress-pille mens henting pågår */}
-      {henterEldre && (
+      {/* Vis eldre-knapp */}
+      {harMerEldre && meldinger.length > 0 && (
         <div style={{ textAlign: 'center', marginBottom: 14 }}>
-          <span
+          <button
+            type="button"
+            onClick={lastEldre}
+            disabled={henterEldre}
             style={{
-              display: 'inline-block',
               padding: '6px 14px',
               background: 'transparent',
               border: '0.5px solid var(--border)',
@@ -317,21 +722,13 @@ export default function Chat({
               fontSize: 10,
               letterSpacing: '1.4px',
               textTransform: 'uppercase',
-              opacity: 0.5,
+              cursor: henterEldre ? 'wait' : 'pointer',
+              opacity: henterEldre ? 0.5 : 1,
             }}
           >
-            Henter eldre…
-          </span>
+            {henterEldre ? 'Henter…' : 'Vis eldre'}
+          </button>
         </div>
-      )}
-      {/* Usynlig sentinel øverst i meldingslisten. IntersectionObserver
-          (useEffect over) kaller lastEldre() når den scrolles inn.
-          Beholdes mountet hele tiden mens harMerEldre er true — pillen
-          over rendres ved siden av. Mindre DOM-juggling og stabilere
-          observer (vi unngår at sentinelen forsvinner/dukker opp og
-          dermed avmonteres/remonteres mellom henter-syklusene). */}
-      {harMerEldre && (
-        <div ref={toppSentinelRef} style={{ height: 1 }} />
       )}
 
       {/* Meldingsliste — padding-bottom må romme input-pillen så ingen
