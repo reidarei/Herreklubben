@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 /**
  * Finn eller opprett samtalen mellom innlogget bruker og motpart.
@@ -60,6 +61,10 @@ export async function markerSamtaleLest(samtaleId: string) {
     .eq('samtale_id', samtaleId)
     .neq('profil_id', user.id)
     .eq('lest', false)
+
+  // Profil-siden viser uleste-badge på Privatmeldinger-lenken (#210 PR 3).
+  // Uten revalidate vil tilbakenavigasjon til /profil vise gammel telling.
+  revalidatePath('/profil')
 }
 
 // Send/oppdater/slett private meldinger går via sendChatMelding /

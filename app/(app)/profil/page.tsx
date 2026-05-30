@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { getInnloggetBruker } from '@/lib/auth-cache'
 import { norskAar } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
+import Icon from '@/components/ui/Icon'
 import SectionLabel from '@/components/ui/SectionLabel'
 import VarslerInnstillinger from '@/components/VarslerInnstillinger'
 import VarslerListe from '@/components/profil/VarslerListe'
@@ -24,6 +25,7 @@ export default async function Profil() {
     { data: varsler },
     { count: antallUlesteVarsler },
     { data: passInfo },
+    { count: ulestPrivat },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -71,7 +73,16 @@ export default async function Profil() {
       .select('nummer, utloper')
       .eq('profil_id', user!.id)
       .maybeSingle(),
+    // Antall uleste privatmeldinger til meg. Brukes på privatmeldinger-lenken
+    // øverst i profil-siden (flyttet hit fra /chat-headeren, #210).
+    supabase
+      .from('samtale_chat')
+      .select('id', { count: 'exact', head: true })
+      .eq('lest', false)
+      .neq('profil_id', user!.id),
   ])
+
+  const ulest = ulestPrivat ?? 0
 
   const navn = profil?.navn ?? 'Ukjent'
   const rolle = tittelFor(profil?.rolle)
@@ -228,6 +239,56 @@ export default async function Profil() {
           ))}
         </div>
       </div>
+
+      {/* Privatmeldinger — flyttet hit fra /chat-headeren (#210 PR 3) */}
+      <Link
+        href="/samtaler"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 14px',
+          marginBottom: 24,
+          background: 'var(--bg-elevated)',
+          border: '0.5px solid var(--border)',
+          borderRadius: 'var(--radius-card)',
+          textDecoration: 'none',
+          color: 'inherit',
+        }}
+      >
+        <Icon name="message" size={18} color="var(--accent)" strokeWidth={1.6} />
+        <span
+          style={{
+            flex: 1,
+            fontFamily: 'var(--font-body)',
+            fontSize: 14,
+            color: 'var(--text-primary)',
+          }}
+        >
+          Privatmeldinger
+        </span>
+        {ulest > 0 && (
+          <span
+            style={{
+              minWidth: 20,
+              height: 20,
+              padding: '0 7px',
+              borderRadius: 999,
+              background: 'var(--accent)',
+              color: '#0a0a0a',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {ulest}
+          </span>
+        )}
+        <Icon name="chevron" size={14} color="var(--text-tertiary)" />
+      </Link>
 
       {/* Arrangøransvar */}
       {ansvar && ansvar.length > 0 && (
