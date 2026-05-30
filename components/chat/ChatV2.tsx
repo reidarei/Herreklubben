@@ -260,7 +260,11 @@ export default function ChatV2({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: 'calc(100dvh - var(--top-header-h, 60px))',
+        // 100dvh minus TopHeader (--top-header-h) OG safe-area-inset-top
+        // (notch på iPhone). Tidligere trakk vi bare fra --top-header-h
+        // og endte ~47px under viewport-bunn på iPhone Pro — input-pillen
+        // forsvant utenfor skjermen.
+        height: 'calc(100dvh - var(--top-header-h, 60px) - env(safe-area-inset-top))',
         // position: relative slik at «Ny melding»-pillen (absolutt-posisjonert
         // lenger ned) plasseres relativt til denne wrapperen, ikke til body.
         position: 'relative',
