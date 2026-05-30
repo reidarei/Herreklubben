@@ -8,8 +8,9 @@ import { markerChatSett } from '@/lib/actions/ulest'
 import { CHAT_LEGACY_FALLBACK } from '@/lib/config'
 
 // Klubb-chat: én felles kronologisk tråd for hele herreklubben.
-// Initial-last er siste 30 meldinger (i desc-rekkefølge fra DB, reversert til
-// ascending for UI). «Vis eldre»-knappen i felleskomponenten henter flere.
+// Henter alle meldinger ved initial-load. Klubb-chatten er ~300 meldinger
+// totalt — paginering er fjernet (#210 PR 5) for å lukke en bug-klasse
+// som kom fra IntersectionObserver + scroll-anchor på iOS Safari.
 export default async function KlubbChatSide({
   searchParams,
 }: {
