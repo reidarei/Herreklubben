@@ -42,6 +42,10 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
   const [meldinger, setMeldinger] = useState<ChatMelding[]>(initialMeldinger)
   const [harMerEldre, setHarMerEldre] = useState(initialMeldinger.length >= SIDE_STORRELSE)
   const [henterEldre, setHenterEldre] = useState(false)
+  // Ref-basert lock mot parallelle lastEldre()-kall. Sjekkes synkront før
+  // await slik at doble IntersectionObserver-triggers ikke sender to samtidige
+  // DB-kall (state-oppdateringer er asynkrone og ville ikke fanget det).
+  const henterEldreRef = useRef(false)
 
   // Reaksjoner — flat liste hentet fra chat_reaksjoner. Grupperes per melding
   // i render. En Map er raskere for hot-paths men flat liste er lettere å
@@ -70,7 +74,7 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
   // Bruker CHAT_KONFIG til å slå opp tabell + FK-filter — ingen scope-
   // spesifikke grener her.
   const hentMeldinger = useCallback(
-    async (forTidspunkt?: string): Promise<ChatMelding[]> => {
+    async (cursor?: { opprettet: string; id: string }): Promise<ChatMelding[]> => {
       // klubb_chat har i tillegg `fra_facebook` for å vise Messenger-badge på
       // historisk-importerte meldinger. Andre chat-tabeller har ikke kolonnen.
       // UPDATE-handleren (under) tar bevisst kun innhold, så endring av
@@ -84,12 +88,26 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
         .from(konfig.tabell)
         .select(select)
         .order('opprettet', { ascending: false })
+        .order('id', { ascending: false })
         .limit(SIDE_STORRELSE)
       const fkVerdi = konfig.scopeId(scope)
       if (konfig.fkFelt && fkVerdi) {
         q = q.eq(konfig.fkFelt, fkVerdi)
       }
-      if (forTidspunkt) q = q.lt('opprettet', forTidspunkt)
+      if (cursor) {
+        // Tuple-cursor: hent rader eldre enn cursor-tidspunktet, eller
+        // eldre ID-er på nøyaktig samme tidspunkt. Utnytter composite-indeksene
+        // (opprettet DESC, id DESC) som ble lagt til i migrasjon 093 (se issue #239).
+        // cursor-verdier er trygge å konkatenere — timestamptz/uuid inneholder
+        // ikke komma/parenteser som ville brutt PostgREST sin or()-syntaks.
+        // id.lt er leksikografisk byte-orden, ikke tids-orden — fungerer som
+        // deterministisk tiebreaker, men sier ikke noe om hvilken rad som
+        // faktisk kom først ved kollisjon på opprettet.
+        q = q.or(
+          'opprettet.lt.' + cursor.opprettet +
+          ',and(opprettet.eq.' + cursor.opprettet + ',id.lt.' + cursor.id + ')'
+        )
+      }
       const { data } = await q
       return data ? ([...data].reverse() as unknown as ChatMelding[]) : []
     },
@@ -302,10 +320,14 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
       const nyeste = await hentMeldinger()
       if (nyeste.length === 0) return
       setMeldinger(prev => {
-        // Behold eventuelle eldre meldinger brukeren allerede har lastet
-        const eldste = nyeste[0].opprettet
-        const eldre = prev.filter(m => m.opprettet < eldste)
-        return [...eldre, ...nyeste]
+        // Id-basert dedup ved merge: nyeste overstyrer evt. eksisterende
+        // rader med samme id, og vi unngår å miste meldinger som har samme
+        // opprettet-timestamp som første rad i nyeste-batchen (timestamp-
+        // basert filter ville droppet dem som "for nye"). Beholder rekkefølge:
+        // alle prev som ikke er i nyeste-settet, deretter nyeste-batchen.
+        const nyesteIder = new Set(nyeste.map(m => m.id))
+        const beholdt = prev.filter(m => !nyesteIder.has(m.id))
+        return [...beholdt, ...nyeste]
       })
     }
 
@@ -313,20 +335,27 @@ export function useChatData({ scope, brukerId, initialMeldinger }: UseChatDataPr
     return () => document.removeEventListener('visibilitychange', reFetch)
   }, [hentMeldinger])
 
-  async function lastEldre() {
-    if (henterEldre || !harMerEldre || meldinger.length === 0) return
+  // useCallback: identiteten skal være stabil så lenge harMerEldre, meldinger
+  // og hentMeldinger er det — slik at IntersectionObserver-useEffect i Chat.tsx
+  // (som har lastEldre som dep) ikke re-setter observeren på hver render.
+  const lastEldre = useCallback(async () => {
+    // Synkron ref-sjekk fanger doble kall (f.eks. IntersectionObserver-triggers)
+    // selv om state-oppdateringer ikke har rukket å propagere ennå.
+    if (henterEldreRef.current || !harMerEldre || meldinger.length === 0) return
+    henterEldreRef.current = true
     setHenterEldre(true)
     try {
-      const eldstKjentTid = meldinger[0].opprettet
-      const eldre = await hentMeldinger(eldstKjentTid)
+      const eldstKjent = meldinger[0]
+      const eldre = await hentMeldinger({ opprettet: eldstKjent.opprettet, id: eldstKjent.id })
       if (eldre.length > 0) {
         setMeldinger(prev => [...eldre, ...prev])
       }
       if (eldre.length < SIDE_STORRELSE) setHarMerEldre(false)
     } finally {
+      henterEldreRef.current = false
       setHenterEldre(false)
     }
-  }
+  }, [harMerEldre, meldinger, hentMeldinger])
 
   async function send(innhold: string | null, bildeFil: File | null, bildePreviewUrl: string | null) {
     const harBilde = !!bildeFil
