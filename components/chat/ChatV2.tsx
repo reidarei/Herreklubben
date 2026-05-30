@@ -5,7 +5,7 @@
 // Erstatter Chat.tsx på /chat-ruten når CHAT_LEGACY_FALLBACK=false (default).
 // Se issue #210 for bakgrunn og PR 2 for denne implementasjonen.
 
-import { Fragment, useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { Fragment, useState, useEffect, useRef, type ReactNode } from 'react'
 import { type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
 import { formaterDato, erSammeNorskeDag, formaterDatoSkille } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
