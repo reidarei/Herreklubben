@@ -320,6 +320,9 @@ export default function ChatV2({
         display: 'flex',
         flexDirection: 'column',
         height: 'calc(100dvh - var(--top-header-h, 60px))',
+        // position: relative slik at «Ny melding»-pillen (absolutt-posisjonert
+        // lenger ned) plasseres relativt til denne wrapperen, ikke til body.
+        position: 'relative',
       }}
     >
       {/* Indre scroll-container — tar all ledig plass, scroller internt.
