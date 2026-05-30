@@ -5,7 +5,7 @@
 // Erstatter Chat.tsx på /chat-ruten når CHAT_LEGACY_FALLBACK=false (default).
 // Se issue #210 for bakgrunn og PR 2 for denne implementasjonen.
 
-import { Fragment, useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { Fragment, useState, useEffect, useRef, type ReactNode } from 'react'
 import { type ChatScope as ChatScopeKonfig } from '@/lib/chat-konfig'
 import { formaterDato, erSammeNorskeDag, formaterDatoSkille } from '@/lib/dato'
 import Avatar from '@/components/ui/Avatar'
@@ -161,15 +161,18 @@ export default function ChatV2({
   }, [])
 
   // IntersectionObserver: kall lastEldre() automatisk når toppSentinelRef
-  // scrolles inn i scroll-containeren (root = containerRef.current).
-  // 200px forhåndsmargin trigger hentingen litt før sentinelen er fullt
-  // synlig — seamless paginering. Aktiv bare når harMerEldre === true og
-  // brukeren har scrollet (harBrukerScrolletRef).
-  // lastEldre() er idempotent via intern ref-lock, så observer-callback
-  // kan kalle den direkte uten ekstra guards her.
-  const lastEldreCallback = useCallback(() => {
-    if (!harBrukerScrolletRef.current) return
-    lastEldre()
+  // scrolles inn i scroll-containeren. Bevisst minimal `useEffect`-dep
+  // ([harMerEldre]) for å unngå at observer remountes ved hver meldinger-
+  // endring — det er nettopp det som tidligere ga flikk-loop fordi en ny
+  // observer øyeblikkelig fyrer hvis sentinel synes innenfor rootMargin
+  // (#210 PR 3 fant scroll-anchor-bug, PR 4 fant remount-bug).
+  //
+  // For å holde callback'en oppdatert uten å være dep, leser vi siste
+  // lastEldre via ref. Reset av observer skjer KUN når harMerEldre toggles
+  // (true → false når alle gamle meldinger er hentet).
+  const lastEldreRef = useRef(lastEldre)
+  useEffect(() => {
+    lastEldreRef.current = lastEldre
   }, [lastEldre])
 
   useEffect(() => {
@@ -180,7 +183,9 @@ export default function ChatV2({
 
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0]?.isIntersecting) lastEldreCallback()
+        if (!entries[0]?.isIntersecting) return
+        if (!harBrukerScrolletRef.current) return
+        lastEldreRef.current()
       },
       {
         root: container,
@@ -189,7 +194,7 @@ export default function ChatV2({
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [harMerEldre, lastEldreCallback])
+  }, [harMerEldre])
 
   async function velgBilde(e: React.ChangeEvent<HTMLInputElement>) {
     const fil = e.target.files?.[0]
