@@ -76,12 +76,17 @@ export function useChatScrollV2({
     if (
       nyForsteId &&
       forsteId.current &&
-      nyForsteId !== forsteId.current &&
-      container.scrollTop > 0
+      nyForsteId !== forsteId.current
     ) {
-      // Prepend: kompenser scroll slik at synlig innhold ikke hopper
+      // Prepend: kompenser scroll slik at synlig innhold ikke hopper.
+      // VIKTIG: Vi må kompensere også når scrollTop=0 (brukeren er på topp).
+      // Uten det forblir sentinel synlig etter prepend → IntersectionObserver
+      // trigger umiddelbart → flikk-loop til alt er hentet. Etter
+      // kompensasjon ser brukeren samme melding som før (de nye eldre ligger
+      // over, må scrolle opp for å se dem). Tidligere `scrollTop > 0`-guard
+      // var feil — den hindret nettopp kompensasjonen som lukker loopen.
       const diff = container.scrollHeight - prevScrollHeight.current
-      container.scrollTop += diff
+      if (diff > 0) container.scrollTop += diff
     }
     forsteId.current = nyForsteId
     prevScrollHeight.current = container.scrollHeight
