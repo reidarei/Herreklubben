@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 /**
  * Finn eller opprett samtalen mellom innlogget bruker og motpart.
@@ -60,6 +61,9 @@ export async function markerSamtaleLest(samtaleId: string) {
     .eq('samtale_id', samtaleId)
     .neq('profil_id', user.id)
     .eq('lest', false)
+
+  // Oppdater ulest-tellingen som nå vises på profil-siden (#256)
+  revalidatePath('/profil')
 }
 
 // Send/oppdater/slett private meldinger går via sendChatMelding /
