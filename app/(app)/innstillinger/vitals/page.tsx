@@ -43,7 +43,7 @@ function formater(metric: string, verdi: number): string {
 }
 
 type Props = {
-  searchParams: Promise<{ dager?: string; device?: string }>
+  searchParams: Promise<{ dager?: string }>
 }
 
 export default async function VitalsAdmin({ searchParams }: Props) {
@@ -51,20 +51,17 @@ export default async function VitalsAdmin({ searchParams }: Props) {
   if (!kanAdministrere(profil?.rolle)) notFound()
 
   const dager = Math.min(parseInt(sp.dager ?? '7'), 90)
-  const device = sp.device === 'mobile' || sp.device === 'desktop' ? sp.device : null
 
   const admin = createAdminClient()
   const fra = new Date(Date.now() - dager * 24 * 60 * 60 * 1000).toISOString()
 
-  let q = admin
+  // Vi bryr oss kun om mobil — appen er en PWA og brukes ikke på desktop i praksis.
+  const { data: rader } = await admin
     .from('vitals_logg')
     .select('rute, metric, verdi, device_type')
     .gte('opprettet', fra)
+    .eq('device_type', 'mobile')
     .limit(20_000)
-
-  if (device) q = q.eq('device_type', device)
-
-  const { data: rader } = await q
 
   // Grupper (rute, metric) → verdier
   const grupper = new Map<string, { rute: string; metric: string; verdier: number[] }>()
@@ -105,23 +102,17 @@ export default async function VitalsAdmin({ searchParams }: Props) {
           marginTop: 6, fontFamily: 'var(--font-body)', fontSize: 13,
           color: 'var(--text-secondary)',
         }}>
-          {totalSamples} målinger siste {dager} dag(er)
-          {device ? ` · ${device === 'mobile' ? 'mobil' : 'desktop'}` : ' · alle enheter'}
+          {totalSamples} målinger siste {dager} dag(er) · mobil
         </div>
       </header>
 
       {/* Filter-knapper */}
       <section style={{ marginBottom: 24 }}>
-        <SectionLabel>Filter</SectionLabel>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-          {[1, 7, 30].map(d => (
-            <FilterLenke key={d} aktiv={dager === d} href={`/innstillinger/vitals?dager=${d}${device ? `&device=${device}` : ''}`} label={`${d} d`} />
-          ))}
-        </div>
+        <SectionLabel>Periode</SectionLabel>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <FilterLenke aktiv={device === null} href={`/innstillinger/vitals?dager=${dager}`} label="Alle enheter" />
-          <FilterLenke aktiv={device === 'mobile'} href={`/innstillinger/vitals?dager=${dager}&device=mobile`} label="Mobil" />
-          <FilterLenke aktiv={device === 'desktop'} href={`/innstillinger/vitals?dager=${dager}&device=desktop`} label="Desktop" />
+          {[1, 7, 30].map(d => (
+            <FilterLenke key={d} aktiv={dager === d} href={`/innstillinger/vitals?dager=${d}`} label={`${d} d`} />
+          ))}
         </div>
       </section>
 
@@ -273,11 +264,20 @@ export default async function VitalsAdmin({ searchParams }: Props) {
             fontFamily: 'var(--font-body)',
             fontSize: 11.5,
             color: 'var(--text-tertiary)',
-            lineHeight: 1.45,
+            lineHeight: 1.5,
           }}
         >
-          Fargene følger Googles terskler — grønt er bra, gult er sånn passe,
-          rødt bør fikses. p75 = 75 % av brukerne hadde det bedre eller likt.
+          <strong style={{ color: 'var(--text-secondary)' }}>p75 og p90 (persentiler)</strong>
+          {' '}er måten å beskrive «typisk» ytelse uten å la enkelte utslag dra snittet.
+          Sorter alle målinger fra raskest til tregest: p75 er verdien der 75 % av målingene
+          er like raske eller raskere — altså den 25 % tregeste opplever <em>denne verdien eller verre</em>.
+          p90 er strengere: kun 10 % av målingene er tregere enn denne.
+          <br /><br />
+          Eksempel: hvis LCP p75 = 1800 ms, betyr det at 3 av 4 sidelastinger var ferdig
+          på 1,8 sekunder eller mindre. Google bruker p75 som standard fordi det fanger
+          opplevelsen til de fleste, men ignorerer ekstreme uteliggere (dårlig 3G ett sted, etc.).
+          <br /><br />
+          Fargene følger Googles terskler — grønt er bra, gult er sånn passe, rødt bør fikses.
         </div>
       </section>
     </div>
