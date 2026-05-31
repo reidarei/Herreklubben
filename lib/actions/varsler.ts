@@ -24,3 +24,23 @@ export async function markerAlleVarslerLest() {
   if (error) throw new Error(error.message)
   revalidatePath('/profil', 'layout')
 }
+
+/**
+ * Marker ett enkelt varsel som lest. Kalles fra varsel-detalj-siden via
+ * en liten klient-komponent som trigger ved mount — ikke fra render —
+ * fordi revalidatePath ikke er lov under Server Component-render.
+ * RLS sørger for at vi kun rører egne rader. Se #261 for kontekst.
+ */
+export async function markerVarselSomLest(varselId: string) {
+  const { supabase, user } = await ensureInnlogget()
+
+  const { error } = await supabase
+    .from('varsel_logg')
+    .update({ lest: true })
+    .eq('id', varselId)
+    .eq('profil_id', user.id)
+    .eq('lest', false)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/profil', 'layout')
+}
