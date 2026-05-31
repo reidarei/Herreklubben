@@ -1,6 +1,7 @@
-// Én sannhet for Chat-tab'ens omfang — brukes av både TopHeader (for å
-// markere taben aktiv) og DraNedForOppdater (for å deaktivere pull-to-refresh
-// på chat-ruter). Se #231 for bakgrunn.
+// Én sannhet for Chat-tab'ens omfang — brukes av DraNedForOppdater (for å
+// deaktivere pull-to-refresh på chat-ruter). TopHeader bruker ikke lenger
+// denne listen etter #256 — /samtaler aktiverer ikke chat-tabben visuelt.
+// Se #231 for bakgrunn.
 
 export const CHAT_TAB_PREFIKSER = ['/chat', '/samtaler'] as const
 
