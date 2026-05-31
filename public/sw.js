@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.56'
+const CACHE_VERSION = 'V3.1.57'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -173,9 +173,6 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  // Appen er mobil-PWA. På iOS standalone fokuserer openWindow() PWA-en og
-  // navigerer i ett steg — uten matchAll/navigate-quirksene som tidligere
-  // sendte brukeren til feil side (#233).
   // Begrenser til same-origin så en ugyldig eller ekstern URL i payload aldri
   // kan åpne ekstern side eller krasje handleren.
   let target = '/'
@@ -185,5 +182,22 @@ self.addEventListener('notificationclick', (event) => {
   } catch {
     // Ugyldig URL — fall til '/'
   }
-  event.waitUntil(clients.openWindow(target))
+
+  // iOS PWA-quirk: openWindow() er en no-op når PWA-en allerede er åpen
+  // (#262). Vi må først lete etter et eksisterende vindu, fokusere det,
+  // og be klient-siden navigere via window.location. client.navigate()
+  // har tidligere bommet på iOS (#233), så vi bruker postMessage for å
+  // unngå hele SW-navigate-API-en.
+  event.waitUntil((async () => {
+    const klienter = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    for (const klient of klienter) {
+      if (klient.url.startsWith(self.location.origin)) {
+        klient.postMessage({ type: 'navigate', url: target })
+        if ('focus' in klient) await klient.focus()
+        return
+      }
+    }
+    // Ingen åpen klient — åpne nytt vindu (PWA cold-start).
+    if (clients.openWindow) await clients.openWindow(target)
+  })())
 })
