@@ -275,6 +275,10 @@ export default function Chat({
       // er det irriterende å bli kastet ned mens han leser eldre. Se #238.
       if (sisteEgen || erNaerBunn()) scrollTilBunn()
     }
+    // Bevisst: vi vil kun trigge på lengde-endring, ikke når meldinger-arrayen
+    // får ny referanse av andre grunner. brukerId/meldinger leses inne i effekten
+    // men er stabile innenfor det øyeblikket lengden endres. Se #260.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meldinger.length, scrollTilBunn, autoScrollTilBunn])
 
   // Tastatur-høyde via visualViewport. Når iOS-tastaturet åpner med
