@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.57'
+const CACHE_VERSION = 'V3.1.58'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -171,6 +171,13 @@ self.addEventListener('push', (event) => {
   )
 })
 
+// Husk siste klikkede URL i SW-minnet. Brukes som "pending nav" — klienten
+// poller dette ved hver visibility-change og navigerer hvis det finnes en
+// fersk (< 30 s) ventende URL. Mønsteret eksisterer fordi iOS PWA dropper
+// postMessage som sendes mens vinduet fortsatt er frosset etter focus()
+// (#264). Lagring + polling fjerner timing-racet helt.
+let pendingNav = null
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   // Begrenser til same-origin så en ugyldig eller ekstern URL i payload aldri
@@ -183,21 +190,34 @@ self.addEventListener('notificationclick', (event) => {
     // Ugyldig URL — fall til '/'
   }
 
-  // iOS PWA-quirk: openWindow() er en no-op når PWA-en allerede er åpen
-  // (#262). Vi må først lete etter et eksisterende vindu, fokusere det,
-  // og be klient-siden navigere via window.location. client.navigate()
-  // har tidligere bommet på iOS (#233), så vi bruker postMessage for å
-  // unngå hele SW-navigate-API-en.
+  // Lagre uansett — klienten plukker den opp ved neste visibility-event.
+  pendingNav = { url: target, ts: Date.now() }
+
   event.waitUntil((async () => {
     const klienter = await clients.matchAll({ type: 'window', includeUncontrolled: true })
     for (const klient of klienter) {
       if (klient.url.startsWith(self.location.origin)) {
-        klient.postMessage({ type: 'navigate', url: target })
+        // Fokuser først så vinduet er aktivt før postMessage. Vi sender også
+        // postMessage som "best effort" — selv om iOS dropper den, vil
+        // visibilitychange-handleren i klienten polle pendingNav like etter.
         if ('focus' in klient) await klient.focus()
+        klient.postMessage({ type: 'navigate', url: target })
         return
       }
     }
     // Ingen åpen klient — åpne nytt vindu (PWA cold-start).
     if (clients.openWindow) await clients.openWindow(target)
   })())
+})
+
+// Klienten spør om det finnes en ventende navigasjon (ved mount og hver
+// gang vinduet blir synlig). Hvis ja, og den er fersk, send URL-en og
+// nullstill. 30 s-vinduet hindrer at gamle klikk re-trigger ved en senere
+// app-åpning.
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'check-pending-nav') return
+  if (pendingNav && Date.now() - pendingNav.ts < 30_000) {
+    event.source?.postMessage({ type: 'navigate', url: pendingNav.url })
+    pendingNav = null
+  }
 })
