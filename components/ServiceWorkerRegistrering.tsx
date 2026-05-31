@@ -53,12 +53,20 @@ export default function ServiceWorkerRegistrering() {
 
     navigator.serviceWorker.addEventListener('message', handterMelding)
     document.addEventListener('visibilitychange', handterVisibility)
-    // Sjekk ved mount også — dekker cold-start der PWA åpnes fra lukket.
-    sjekkPendingNav()
+
+    // Race: ved cold-start (PWA åpnes fra lukket via notifikasjon) kan
+    // klienten mounte FØR SW har rukket å behandle notificationclick og
+    // lagre pendingNav. Polle flere ganger med stigende delay dekker
+    // dette uten å spamme SW unødvendig hvis vi finner svaret tidlig.
+    // navigerTil kalles av handteren ovenfor; den vil avslutte siden
+    // umiddelbart, så ekstra poller blir aldri synlige etter første treff.
+    const forsoek = [0, 200, 800, 2000]
+    const timers = forsoek.map(ms => window.setTimeout(sjekkPendingNav, ms))
 
     return () => {
       navigator.serviceWorker.removeEventListener('message', handterMelding)
       document.removeEventListener('visibilitychange', handterVisibility)
+      timers.forEach(t => window.clearTimeout(t))
     }
   }, [])
   return null

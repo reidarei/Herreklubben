@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.59'
+const CACHE_VERSION = 'V3.1.60'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -195,15 +195,19 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil((async () => {
     const klienter = await clients.matchAll({ type: 'window', includeUncontrolled: true })
-    for (const klient of klienter) {
-      if (klient.url.startsWith(self.location.origin)) {
-        // Fokuser først så vinduet er aktivt før postMessage. Vi sender også
-        // postMessage som "best effort" — selv om iOS dropper den, vil
-        // visibilitychange-handleren i klienten polle pendingNav like etter.
-        if ('focus' in klient) await klient.focus()
-        klient.postMessage({ type: 'navigate', url: target })
-        return
-      }
+    const sameOrigin = klienter.filter(k => k.url.startsWith(self.location.origin))
+
+    // Broadcast til ALLE same-origin-klienter — ikke bare den vi fokuserer.
+    // Dekker tilfeller der flere vinduer finnes, og er "best effort" mot
+    // iOS-drop. Pollingen i klienten er den robuste fallback'en.
+    for (const klient of sameOrigin) {
+      klient.postMessage({ type: 'navigate', url: target })
+    }
+
+    if (sameOrigin.length > 0) {
+      const forste = sameOrigin[0]
+      if ('focus' in forste) await forste.focus()
+      return
     }
     // Ingen åpen klient — åpne nytt vindu (PWA cold-start).
     if (clients.openWindow) await clients.openWindow(target)
