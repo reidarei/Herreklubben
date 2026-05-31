@@ -17,8 +17,12 @@ export default function ServiceWorkerRegistrering() {
     function handterMelding(event: MessageEvent) {
       const data = event.data
       if (!data || data.type !== 'navigate' || typeof data.url !== 'string') return
+      navigerTil(data.url)
+    }
+
+    function navigerTil(raw: string) {
       try {
-        const url = new URL(data.url, window.location.origin)
+        const url = new URL(raw, window.location.origin)
         if (url.origin !== window.location.origin) return
         window.location.assign(url.href)
       } catch {
@@ -26,8 +30,21 @@ export default function ServiceWorkerRegistrering() {
       }
     }
 
-    function sjekkPendingNav() {
-      navigator.serviceWorker.controller?.postMessage({ type: 'check-pending-nav' })
+    // Bruker MessageChannel for direkte to-veis kommunikasjon. Grunnen:
+    // ved cold-start er navigator.serviceWorker.controller null (siden ble
+    // lastet før SW tok kontroll), så vanlig postMessage til controller
+    // går i tomgang. registration.active fungerer uavhengig av kontroll-
+    // status, og MessageChannel garanterer at SW kan svare tilbake.
+    async function sjekkPendingNav() {
+      const reg = await navigator.serviceWorker.ready
+      if (!reg.active) return
+      const channel = new MessageChannel()
+      channel.port1.onmessage = (event) => {
+        const data = event.data
+        if (!data || data.type !== 'navigate' || typeof data.url !== 'string') return
+        navigerTil(data.url)
+      }
+      reg.active.postMessage({ type: 'check-pending-nav' }, [channel.port2])
     }
 
     function handterVisibility() {
@@ -37,7 +54,7 @@ export default function ServiceWorkerRegistrering() {
     navigator.serviceWorker.addEventListener('message', handterMelding)
     document.addEventListener('visibilitychange', handterVisibility)
     // Sjekk ved mount også — dekker cold-start der PWA åpnes fra lukket.
-    navigator.serviceWorker.ready.then(() => sjekkPendingNav())
+    sjekkPendingNav()
 
     return () => {
       navigator.serviceWorker.removeEventListener('message', handterMelding)

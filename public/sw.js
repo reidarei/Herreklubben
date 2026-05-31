@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.1.58'
+const CACHE_VERSION = 'V3.1.59'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -217,7 +217,15 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data?.type !== 'check-pending-nav') return
   if (pendingNav && Date.now() - pendingNav.ts < 30_000) {
-    event.source?.postMessage({ type: 'navigate', url: pendingNav.url })
+    // Foretrekk MessageChannel-port (fungerer selv når klienten ikke er
+    // kontrollert av SW, f.eks. ved cold-start). Fallback til event.source
+    // for nettlesere som ikke sender port med.
+    const port = event.ports[0]
+    if (port) {
+      port.postMessage({ type: 'navigate', url: pendingNav.url })
+    } else if (event.source) {
+      event.source.postMessage({ type: 'navigate', url: pendingNav.url })
+    }
     pendingNav = null
   }
 })
