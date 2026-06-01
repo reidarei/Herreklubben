@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { purreAnsvarlig } from '@/lib/actions/arrangoransvar'
 import { PURRING_MAKS_LENGDE } from '@/lib/konstanter'
 
@@ -16,6 +16,9 @@ export default function PurreKnapp({
   const [feil, setFeil] = useState('')
   const [modalAapen, setModalAapen] = useState(false)
   const [melding, setMelding] = useState('')
+  // Synkron guard mot dobbeltklikk: settes før startTransition rekker å
+  // markere isPending. Uten dette kan to rask-klikk gi to server-kall.
+  const sendingRef = useRef(false)
 
   function aapneModal() {
     if (sendt || isPending) return
@@ -25,10 +28,13 @@ export default function PurreKnapp({
   }
 
   function lukkModal() {
+    if (isPending) return
     setModalAapen(false)
   }
 
   function handleSend() {
+    if (sendingRef.current) return
+    sendingRef.current = true
     startTransition(async () => {
       try {
         // Sender hilsen kun hvis den ikke er tom etter trimming
@@ -37,9 +43,27 @@ export default function PurreKnapp({
         setModalAapen(false)
       } catch (err) {
         setFeil(err instanceof Error ? err.message : 'Kunne ikke purre')
+      } finally {
+        sendingRef.current = false
       }
     })
   }
+
+  // Lukk modalen med Escape og lås body-scroll mens den er åpen.
+  // body-overflow forhindrer scroll-chain bak modalen, særlig på iOS.
+  useEffect(() => {
+    if (!modalAapen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !isPending) setModalAapen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    const forrigeOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = forrigeOverflow
+    }
+  }, [modalAapen, isPending])
 
   const label = sendt ? 'Purret' : isPending ? 'Sender…' : 'Purre'
 
@@ -97,6 +121,9 @@ export default function PurreKnapp({
         >
           {/* Stopp klikk-propagasjon slik at klikk på selve kortet ikke lukker */}
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Purre på ${arrangementNavn}`}
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
@@ -141,6 +168,7 @@ export default function PurreKnapp({
                 maxLength={PURRING_MAKS_LENGDE}
                 placeholder="Valgfritt: en kort hilsen til arrangøren…"
                 rows={3}
+                autoFocus
                 style={{
                   fontFamily: 'var(--font-body)',
                   fontSize: 14,

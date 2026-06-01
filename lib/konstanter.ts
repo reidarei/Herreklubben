@@ -46,6 +46,7 @@ export const MELDING_MAKS_BILDER = 10
 export const CHAT_NAER_BUNN_TERSKEL_PX = 150
 
 // Maks tegn i valgfri hilsen ved purring av arrangøransvarlig.
-// Speiler CHAT_MAKS_LENGDE men er definert separat fordi hilsenen ikke
-// lagres i DB — den går rett inn i sendVarsel-meldingen. Se #267.
+// Tilfeldigvis samme verdi som CHAT_MAKS_LENGDE, men definert separat
+// fordi hilsenen ikke lagres i DB — den går rett inn i sendVarsel-
+// meldingen. De to grensene kan utvikle seg uavhengig. Se #267.
 export const PURRING_MAKS_LENGDE = 500
