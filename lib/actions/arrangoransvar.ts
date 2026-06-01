@@ -175,8 +175,38 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
     .maybeSingle()
 
   if (!ansvar) throw new Error('Fant ikke ansvar')
-  if (!ansvar.ansvarlig_id) throw new Error('Ingen ansvarlig å purre på')
   if (ansvar.arrangement_id) throw new Error('Arrangementet er allerede lagt inn')
+
+  // Hent ALLE søsken-rader med samme (aar, arrangement_navn) som har en
+  // ansvarlig_id — purring på arrangement-nivå treffer alle medansvarlige,
+  // ikke bare den raden man klikket på. Se #268 og Policy: Arrangøransvar-kobling.
+  // arrangement_id is null: purring gir bare mening når arrangementet ikke
+  // er opprettet. Eksplisitt filter beskytter også mot race med koble() som
+  // kan fylle arrangement_id mellom guard-sjekken over og denne spørringen.
+  const { data: soeskenRader, error: soeskenFeil } = await admin
+    .from('arrangoransvar')
+    .select('ansvarlig_id')
+    .eq('aar', ansvar.aar)
+    .eq('arrangement_navn', ansvar.arrangement_navn)
+    .is('arrangement_id', null)
+    .not('ansvarlig_id', 'is', null)
+
+  // Skill DB-feil fra tom mottakerliste — ellers ville en spørringsfeil
+  // bli feiltolket som «ingen ansvarlig å purre på» og villede brukeren.
+  if (soeskenFeil) throw new Error(`Kunne ikke hente medansvarlige: ${soeskenFeil.message}`)
+
+  // Defensiv dedup: sendVarsel dedup'er også internt, men vi gjør det
+  // eksplisitt her slik at koden er selvforklarende på kall-stedet.
+  // Typesikkert filter på null framfor `as string` — ansvarlig_id er nullable
+  // i skjemaet selv om .not('is', null) i praksis luker dem ut.
+  const mottakere = [
+    ...new Set(
+      (soeskenRader ?? [])
+        .map(r => r.ansvarlig_id)
+        .filter((id): id is string => !!id)
+    ),
+  ]
+  if (mottakere.length === 0) throw new Error('Ingen ansvarlig å purre på')
 
   const { data: purrer } = await admin
     .from('profiles')
@@ -191,7 +221,7 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
     : `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`
 
   await sendVarsel({
-    mottakere: [ansvar.ansvarlig_id],
+    mottakere,
     tittel: `Purring: ${ansvar.arrangement_navn}`,
     melding,
     url: '/arrangoransvar',
