@@ -25,6 +25,19 @@ export async function sendEpost({ til, emne, html }: { til: string; emne: string
 // automatisk for brukere med dark mode (Apple Mail, Gmail, Outlook).
 const AKSENT = '#d4a853'
 
+// Escaper brukerinput før den interpoleres i HTML. Sentral i e-postmalene
+// så vi ikke risikerer at en hilsen som «<a href=…>klikk</a>» rendres som
+// HTML i innboksen. Push- og in-app-varsler bruker ren tekst og trenger
+// ikke escaping — derfor gjøres dette her, ikke i sendVarsel.
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function arrangementEpostHtml({
   tittel,
   tekst,
@@ -36,6 +49,13 @@ export function arrangementEpostHtml({
   url: string
   knappTekst: string
 }) {
+  // Tittel, tekst og knappetekst kan inneholde brukerinput (f.eks. hilsen i
+  // purring) — escapes her. URL-en konstrueres alltid av oss fra trygge kilder
+  // (BASE_URL + varsel-id), men vi escaper attribute-konteksten for sikkerhets skyld.
+  const tittelEsc = escapeHtml(tittel)
+  const tekstEsc = escapeHtml(tekst)
+  const urlEsc = escapeHtml(url)
+  const knappTekstEsc = escapeHtml(knappTekst)
   return `
 <!DOCTYPE html>
 <html lang="no">
@@ -49,11 +69,11 @@ export function arrangementEpostHtml({
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
         <tr><td style="padding:32px;">
           <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">Mortensrud Herreklubb</p>
-          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;">${tittel}</h1>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">${tekst}</p>
+          <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;">${tittelEsc}</h1>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;white-space:pre-wrap;">${tekstEsc}</p>
           <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;">
             <tr><td bgcolor="${AKSENT}" style="background:${AKSENT};border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:12px 24px;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;">${knappTekst}</a>
+              <a href="${urlEsc}" style="display:inline-block;padding:12px 24px;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;">${knappTekstEsc}</a>
             </td></tr>
           </table>
         </td></tr>
@@ -77,6 +97,12 @@ export function velkommenEpostHtml({
 }) {
   const deler = navn.trim().split(/\s+/)
   const etternavn = deler.length > 1 ? deler[deler.length - 1] : deler[0]
+  // Navn settes av admin og er lavrisiko, men vi escaper konsekvent slik at
+  // en bokstavelig «<» i navnet ikke ender opp som markup.
+  const etternavnEsc = escapeHtml(etternavn)
+  const epostEsc = escapeHtml(epost)
+  const passordEsc = escapeHtml(passord)
+  const loggInnUrlEsc = escapeHtml(loggInnUrl)
   return `
 <!DOCTYPE html>
 <html lang="no">
@@ -90,21 +116,21 @@ export function velkommenEpostHtml({
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
         <tr><td style="padding:32px;">
           <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">Mortensrud Herreklubb</p>
-          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Velkommen herr ${etternavn}!</h1>
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Velkommen herr ${etternavnEsc}!</h1>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">Du er lagt til som medlem i Mortensrud Herreklubb. Under finner du innloggingsinfoen din.</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
             <tr><td style="padding:6px 0;">
               <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Brukernavn</p>
-              <p style="margin:0;font-size:14px;font-family:Menlo,Consolas,monospace;word-break:break-all;">${epost}</p>
+              <p style="margin:0;font-size:14px;font-family:Menlo,Consolas,monospace;word-break:break-all;">${epostEsc}</p>
             </td></tr>
             <tr><td style="padding:6px 0;">
               <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Midlertidig passord</p>
-              <p style="margin:0;font-size:14px;font-family:Menlo,Consolas,monospace;font-weight:700;">${passord}</p>
+              <p style="margin:0;font-size:14px;font-family:Menlo,Consolas,monospace;font-weight:700;">${passordEsc}</p>
             </td></tr>
           </table>
           <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;">
             <tr><td bgcolor="${AKSENT}" style="background:${AKSENT};border-radius:8px;">
-              <a href="${loggInnUrl}" style="display:inline-block;padding:12px 24px;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;">Logg inn</a>
+              <a href="${loggInnUrlEsc}" style="display:inline-block;padding:12px 24px;color:#0a0a0a;text-decoration:none;font-weight:600;font-size:14px;">Logg inn</a>
             </td></tr>
           </table>
           <p style="margin:24px 0 0;font-size:13px;line-height:1.6;opacity:0.7;">Når du er logget inn kan du sette ditt eget passord under <strong>Profil</strong>. Installer gjerne appen på mobilen via «Legg til på Hjem-skjerm».</p>

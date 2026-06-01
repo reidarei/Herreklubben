@@ -197,6 +197,23 @@ export default function PurreKnapp({
               </span>
             </div>
 
+            {/* Feilmelding inne i modalen — uten denne ble feil rendret kun
+                utenfor og dermed skjult bak overlayen mens modalen sto åpen. */}
+            {feil && (
+              <p
+                role="alert"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13,
+                  color: 'var(--danger)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                {feil}
+              </p>
+            )}
+
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 type="button"
