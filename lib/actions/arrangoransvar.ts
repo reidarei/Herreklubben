@@ -175,8 +175,20 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
     .maybeSingle()
 
   if (!ansvar) throw new Error('Fant ikke ansvar')
-  if (!ansvar.ansvarlig_id) throw new Error('Ingen ansvarlig å purre på')
   if (ansvar.arrangement_id) throw new Error('Arrangementet er allerede lagt inn')
+
+  // Hent ALLE søsken-rader med samme (aar, arrangement_navn) som har en
+  // ansvarlig_id — purring på arrangement-nivå treffer alle medansvarlige,
+  // ikke bare den raden man klikket på. Se #268 og Policy: Arrangøransvar-kobling.
+  const { data: soeskenRader } = await admin
+    .from('arrangoransvar')
+    .select('ansvarlig_id')
+    .eq('aar', ansvar.aar)
+    .eq('arrangement_navn', ansvar.arrangement_navn)
+    .not('ansvarlig_id', 'is', null)
+
+  const mottakere = (soeskenRader ?? []).map(r => r.ansvarlig_id as string)
+  if (mottakere.length === 0) throw new Error('Ingen ansvarlig å purre på')
 
   const { data: purrer } = await admin
     .from('profiles')
@@ -191,7 +203,7 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
     : `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`
 
   await sendVarsel({
-    mottakere: [ansvar.ansvarlig_id],
+    mottakere,
     tittel: `Purring: ${ansvar.arrangement_navn}`,
     melding,
     url: '/arrangoransvar',
