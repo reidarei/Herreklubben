@@ -180,14 +180,20 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
   // Hent ALLE søsken-rader med samme (aar, arrangement_navn) som har en
   // ansvarlig_id — purring på arrangement-nivå treffer alle medansvarlige,
   // ikke bare den raden man klikket på. Se #268 og Policy: Arrangøransvar-kobling.
+  // arrangement_id is null: purring gir bare mening når arrangementet ikke
+  // er opprettet. Eksplisitt filter beskytter også mot race med koble() som
+  // kan fylle arrangement_id mellom guard-sjekken over og denne spørringen.
   const { data: soeskenRader } = await admin
     .from('arrangoransvar')
     .select('ansvarlig_id')
     .eq('aar', ansvar.aar)
     .eq('arrangement_navn', ansvar.arrangement_navn)
+    .is('arrangement_id', null)
     .not('ansvarlig_id', 'is', null)
 
-  const mottakere = (soeskenRader ?? []).map(r => r.ansvarlig_id as string)
+  // Defensiv dedup: sendVarsel dedup'er også internt, men vi gjør det
+  // eksplisitt her slik at koden er selvforklarende på kall-stedet.
+  const mottakere = [...new Set((soeskenRader ?? []).map(r => r.ansvarlig_id as string))]
   if (mottakere.length === 0) throw new Error('Ingen ansvarlig å purre på')
 
   const { data: purrer } = await admin
