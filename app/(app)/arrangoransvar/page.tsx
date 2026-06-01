@@ -258,7 +258,9 @@ export default async function Arrangoransvar() {
                       />
                     )}
                   </div>
-                  {kanPurres && forsteAnsvarId && <PurreKnapp ansvarId={forsteAnsvarId} />}
+                  {kanPurres && forsteAnsvarId && (
+                    <PurreKnapp ansvarId={forsteAnsvarId} arrangementNavn={navn} />
+                  )}
                 </div>
               )
             })}
