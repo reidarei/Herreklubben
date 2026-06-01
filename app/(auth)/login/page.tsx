@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Ordsky from '@/components/Ordsky'
+import Image from 'next/image'
 import Button from '@/components/ui/Button'
 
 const inputStil: React.CSSProperties = {
@@ -84,10 +84,19 @@ export default function LoginSide() {
 
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--bg)' }}>
-      {/* Toppbanner med ordsky */}
-      <div className="relative w-full px-2 pt-4 pb-2">
-        <Ordsky className="w-full" style={{ maxHeight: '160px' }} />
-        <div className="text-center mt-14">
+      {/* Toppbanner med klubblogo */}
+      <div className="relative w-full px-2 pt-8 pb-2">
+        <div className="flex justify-center">
+          <Image
+            src="/icon-512.png"
+            alt="Mortensrud Herreklubb"
+            width={160}
+            height={160}
+            priority
+            style={{ borderRadius: 24 }}
+          />
+        </div>
+        <div className="text-center mt-6">
           <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
             Herreklubben
           </h1>
