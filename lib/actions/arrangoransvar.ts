@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendVarsel } from '@/lib/varsler'
 import { ensureAdmin, ensureInnlogget } from '@/lib/auth'
+import { PURRING_MAKS_LENGDE } from '@/lib/konstanter'
 
 // Slå opp purredato fra arrangementmaler og sett riktig år. Mal-raden
 // har år=2000 som sentinel (kun mnd+dag teller), så vi bytter ut til aar.
@@ -154,10 +155,19 @@ export async function fjernAnsvarlig(ansvarId: string) {
 }
 
 // Purre ansvarlig — kalles av et vanlig medlem. Sender varsel via sendVarsel
-// (som respekterer push_aktiv/epost_aktiv). Dedup unngår purre-spam.
-export async function purreAnsvarlig(ansvarId: string) {
+// (som respekterer push_aktiv/epost_aktiv). hilsen er valgfri fritekst fra
+// den som purrer; uten hilsen brukes standardteksten. Se #267.
+export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
   const { user } = await ensureInnlogget()
   const admin = createAdminClient()
+
+  // Server-side validering av hilsen-lengde (klienten håndhever maks via
+  // maxLength, men vi validerer også her mot manipulasjon).
+  const trimmetHilsen = hilsen?.trim()
+  if (trimmetHilsen && trimmetHilsen.length > PURRING_MAKS_LENGDE) {
+    throw new Error(`Hilsen kan ikke være lengre enn ${PURRING_MAKS_LENGDE} tegn`)
+  }
+
   const { data: ansvar } = await admin
     .from('arrangoransvar')
     .select('id, aar, arrangement_navn, ansvarlig_id, arrangement_id')
@@ -176,10 +186,14 @@ export async function purreAnsvarlig(ansvarId: string) {
 
   const fraNavn = purrer?.visningsnavn || purrer?.navn || 'En gutt'
 
+  const melding = trimmetHilsen
+    ? `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar} og skriver: «${trimmetHilsen}»`
+    : `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`
+
   await sendVarsel({
     mottakere: [ansvar.ansvarlig_id],
     tittel: `Purring: ${ansvar.arrangement_navn}`,
-    melding: `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`,
+    melding,
     url: '/arrangoransvar',
     knappTekst: 'Åpne arrangøransvar',
     type: 'purring_ansvar',
