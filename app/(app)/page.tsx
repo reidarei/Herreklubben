@@ -14,6 +14,7 @@ import InnspillKnapp from '@/components/agenda/InnspillKnapp'
 import PollKort from '@/components/agenda/PollKort'
 import MeldingKort from '@/components/agenda/MeldingKort'
 import NyFAB from '@/components/agenda/NyFAB'
+import RsvpInline from '@/components/agenda/RsvpInline'
 import type { KommentarKortData } from '@/components/agenda/KommentarerPaaKort'
 import {
   byggAgenda,
@@ -413,7 +414,7 @@ export default async function Forside() {
     bilde_url: a.bilde_url ?? coverPerArrangement.get(a.id) ?? null,
   }))
 
-  const { meldinger, idag, kommende, tidligere } = byggAgenda({
+  const { ubesvarte, meldinger, idag, kommende, tidligere } = byggAgenda({
     arrangementer: arrangementerBerikt,
     ansvar: (ansvar ?? []) as unknown as UtkastRaad[],
     profilerMedBursdag: (profilerMedBursdag ?? []) as ProfilMedBursdag[],
@@ -478,6 +479,48 @@ export default async function Forside() {
       </header>
 
       <PushPaaminnelse />
+
+      {/* Ubesvarte fremtidige arrangementer — vises øverst som påminnelse (#271).
+          Hvert kort er en vanlig <Link> med en RsvpInline-rad rett under.
+          RsvpInline ligger *utenfor* <Link> for å unngå nested-button-i-link-feil.
+          Arrangementet forsvinner herfra (og dukker opp i Kommende/I kveld) så
+          snart revalidatePath('/') kjøres etter at svaret er lagret. */}
+      {ubesvarte.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <SectionLabel>Ikke svart ennå</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {ubesvarte.map(i => {
+              if (i.kind !== 'arrangement') return null
+              return (
+                // Wrapper med overflow:hidden klipper bort bunnavrunding på kortet
+                // og lar RsvpInline fylle ut bunnen — de to elementene ser da ut
+                // som ett sammenhengende kort (#271).
+                <div
+                  key={i.data.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: 'var(--radius-card)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <ArrangementKort
+                    arr={i.data}
+                    kommentarer={kommentarerPerArr.get(i.data.id) ?? []}
+                    totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0}
+                    profiler={chatProfiler}
+                    brukerId={user!.id}
+                  />
+                  {/* RsvpInline sitter utenfor <Link> i ArrangementKort slik at
+                      knapp-klikk ikke trigger navigasjon. Wrapperens overflow:hidden
+                      sørger for at bunnavrundingen kuttes riktig. */}
+                  <RsvpInline arrangementId={i.data.id} />
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Levende meldinger — fjerde element-type, øverst på agenda */}
       {meldinger.length > 0 && (

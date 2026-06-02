@@ -167,6 +167,10 @@ export type TidligereItem =
   | { kind: 'melding'; sortIso: string; data: MeldingKortData }
 
 export type Agenda = {
+  // Ubesvarte fremtidige arrangementer — øverst, over «I kveld» (#271).
+  // Et arrangement er ubesvart når innlogget bruker ikke har status i paameldinger.
+  // Disse ekskluderes fra idag/kommende for å unngå duplikat.
+  ubesvarte: AgendaItem[]
   // Levende meldinger — øverst på agenda, sortert etter sist_aktivitet
   meldinger: AgendaItem[]
   idag: AgendaItem[]
@@ -458,8 +462,35 @@ export function byggAgenda(input: {
   // Samlet kandidat-liste for «I kveld» + «Kommende». Arrangementer tas kun
   // med hvis de enten er i fremtiden eller samme norske dag (dekker kveld
   // som begynner før midnatt UTC men går over i neste UTC-dag).
+  //
+  // Ubesvarte fremtidige arrangementer (#271): arrangement der innlogget bruker
+  // (meg) ikke har noen rad i paameldinger. Disse plasseres i en egen seksjon
+  // øverst og ekskluderes fra idag/kommende for å unngå duplikat.
+  // «I kveld»-arrangementer som er ubesvart, vises likevel i ubesvart-seksjonen
+  // (ikke som highlight) — brukeren skal svare, ikke «glede seg» til kvelden.
+  const ubesvarte: AgendaItem[] = arrangementer
+    .filter(a => {
+      // Bare fremtidige (eller dagens) arrangementer er relevante
+      if (a.start_tidspunkt < nowIso && !erSammeNorskeDag(a.start_tidspunkt, naa)) return false
+      // Ubesvart = ingen rad i paameldinger for meg, eller status er null
+      const min = a.paameldinger.find(p => p.profil_id === meg)
+      return !min || !min.status
+    })
+    .sort((a, b) => a.start_tidspunkt.localeCompare(b.start_tidspunkt))
+    .map(a => ({
+      kind: 'arrangement' as const,
+      sortIso: a.start_tidspunkt,
+      data: tilKort(a, meg),
+    }))
+
+  // Sett med id-er som allerede er i ubesvart — ekskluderes fra idag/kommende
+  const ubesvarteIds = new Set(ubesvarte.map(i => i.data.id))
+
   const arrItems: AgendaItem[] = arrangementer
-    .filter(a => a.start_tidspunkt >= nowIso || erSammeNorskeDag(a.start_tidspunkt, naa))
+    .filter(a => {
+      if (ubesvarteIds.has(a.id)) return false // allerede i ubesvart
+      return a.start_tidspunkt >= nowIso || erSammeNorskeDag(a.start_tidspunkt, naa)
+    })
     .map(a => {
       const erIdag = erSammeNorskeDag(a.start_tidspunkt, naa)
       // I kveld → highlight-variant, ellers kompakt kort
@@ -533,5 +564,5 @@ export function byggAgenda(input: {
       return a.sortIso.localeCompare(b.sortIso)
     })
 
-  return { meldinger, idag, kommende, tidligere }
+  return { ubesvarte, meldinger, idag, kommende, tidligere }
 }
