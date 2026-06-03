@@ -61,9 +61,11 @@ type Props = {
   profiler?: ChatProfil[]
   /** Innlogget brukers id — ekskluderes fra mention-forslag. */
   brukerId?: string
+  /** Vis kommentar-blokken. Default true. Sett false (f.eks. i ubesvart-seksjonen) for å skjule — se #274. */
+  visKommentarer?: boolean
 }
 
-export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId }: Props) {
+export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId, visKommentarer = true }: Props) {
   const iso = arr.start_tidspunkt
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
@@ -71,10 +73,14 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
   const aar = aarHvisAvvik(iso)
   const scene = sceneFor(arr.type)
 
-  const siste = kommentarer[kommentarer.length - 1]
+  // Beregn kun kollaps-flagg når blokken faktisk skal vises (sparer Date-arbeid på hver render i ubesvart-seksjonen).
+  const visKommentarBlokk = !tidligere && visKommentarer
+  const siste = visKommentarBlokk ? kommentarer[kommentarer.length - 1] : undefined
   const alderMs = siste ? Date.now() - new Date(siste.opprettet).getTime() : 0
   const skalKollapse =
-    kommentarer.length > 0 && alderMs > KOMMENTARER_KOLLAPS_DAGER * 24 * 60 * 60 * 1000
+    visKommentarBlokk &&
+    kommentarer.length > 0 &&
+    alderMs > KOMMENTARER_KOLLAPS_DAGER * 24 * 60 * 60 * 1000
 
   return (
     <Link
@@ -257,8 +263,8 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
         </div>
         </div>
 
-        {/* Kommentarer — inne i kortet, kollapsbart, med inline input */}
-        {!tidligere && (
+        {/* Kommentarer — inne i kortet, kollapsbart, med inline input; se #274 for visKommentarer-flagg */}
+        {visKommentarBlokk && (
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'arrangement', id: arr.id }}

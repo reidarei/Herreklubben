@@ -506,10 +506,7 @@ export default async function Forside() {
                 >
                   <ArrangementKort
                     arr={i.data}
-                    kommentarer={kommentarerPerArr.get(i.data.id) ?? []}
-                    totaltKommentarer={totaltPerArr.get(i.data.id) ?? 0}
-                    profiler={chatProfiler}
-                    brukerId={user!.id}
+                    visKommentarer={false}
                   />
                   {/* RsvpInline sitter utenfor <Link> i ArrangementKort slik at
                       knapp-klikk ikke trigger navigasjon. Wrapperens overflow:hidden
