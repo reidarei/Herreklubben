@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
-import Avatar from '@/components/ui/Avatar'
 import Placeholder from '@/components/ui/Placeholder'
 import SladdetFelt from '@/components/SladdetFelt'
 import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
 import PassListe, { type PassListeDeltaker } from '@/components/arrangement/PassListe'
+import PaameldteListe from '@/components/arrangement/PaameldteListe'
 import AlbumSeksjon from '@/components/album/AlbumSeksjon'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
@@ -500,71 +500,44 @@ export default async function ArrangementDetaljer({
           </>
         )}
 
-        {/* Påmeldt-seksjon */}
-        {jaListe.length > 0 && (
-          <>
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: 14,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontWeight: 600,
-              }}
-            >
-              <span>Påmeldt</span>
-              <span style={{ color: 'var(--text-secondary)' }}>{jaListe.length}</span>
-              <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: 32,
-                flexWrap: 'wrap',
-              }}
-            >
-              {jaListe.slice(0, 7).map((p, i) => (
-                <Link
-                  key={p.profil_id}
-                  href={`/klubbinfo/medlemmer/${p.profil_id}`}
-                  style={{
-                    marginLeft: i === 0 ? 0 : -8,
-                    zIndex: 20 - i,
-                    border: '2px solid var(--bg)',
-                    borderRadius: '50%',
-                    position: 'relative',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <Avatar
-                    name={p.profiles?.navn ?? '?'}
-                    size={32}
-                    src={p.profiles?.bilde_url}
-                    rolle={p.profiles?.rolle}
-                  />
-                </Link>
-              ))}
-              {jaListe.length > 7 && (
-                <span
-                  style={{
-                    marginLeft: 12,
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  + {jaListe.length - 7} til
-                </span>
-              )}
-            </div>
-          </>
-        )}
+        {/* Påmeldt-seksjon.
+            Bygg den filtrerte listen FØR vi tegner — slik at antall-badgen i headeren og
+            antall avatarer i raden alltid stemmer overens (se review-funn til #272). */}
+        {(() => {
+          const paameldteMedNavn = jaListe
+            .filter(p => p.profiles?.navn)
+            .map(p => ({
+              profil_id: p.profil_id,
+              navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing — filter over sikrer at den aldri trigger
+              bilde_url: p.profiles?.bilde_url ?? null,
+              rolle: p.profiles?.rolle ?? null,
+            }));
+          if (paameldteMedNavn.length === 0) return null;
+          return (
+            <>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  color: 'var(--text-tertiary)',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  marginBottom: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontWeight: 600,
+                }}
+              >
+                <span>Påmeldt</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{paameldteMedNavn.length}</span>
+                <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+              </div>
+              {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272). */}
+              <PaameldteListe paameldinger={paameldteMedNavn} />
+            </>
+          );
+        })()}
 
         {/* Pass-info for deltakere — kun for arrangør på kommende tur */}
         {visPassListe && passDeltakere.length > 0 && (
