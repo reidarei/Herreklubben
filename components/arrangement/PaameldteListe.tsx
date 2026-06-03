@@ -1,10 +1,10 @@
 'use client'
 
 // PaameldteListe — viser avatar-rad over påmeldte (status=ja).
-// Hvis alle får plass i raden: hver avatar er en <Link> direkte til medlemsprofilen
-// (samme oppførsel som før #272). Hvis det er overflow ("+ N til"), blir hele raden
-// én knapp som åpner modal med komplett alfabetisk liste — det er først DA modal-
-// affordansen gir mening. Brukeren skal aldri få en modal med kun én oppføring.
+// Hver avatar er en <Link> direkte til medlemsprofilen. Ved siden av står en
+// «Vis liste»-knapp som åpner modal med komplett alfabetisk liste — alltid
+// tilgjengelig uavhengig av antall påmeldte (#280). Tidligere ble knappen
+// kun rendret ved overflow, men det skjulte navnelisten på små arrangementer.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -66,15 +66,27 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
   const antallSkjult = jaListe.length - MAKS_I_RAD
   const harOverflow = antallSkjult > 0
 
-  // Hjelper: render selve avatar-stabelen. Brukes både som lenker (uten overflow)
-  // og som ikke-interaktive elementer inni knappen (med overflow).
-  function renderAvatarRad(somLenker: boolean) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {synligeAvatarer.map((p, i) => {
-          const innhold = (
-            <div
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+          marginBottom: 32,
+        }}
+      >
+        {/* Avatar-rad: per-avatar Link til medlemsprofil. */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {synligeAvatarer.map((p, i) => (
+            <Link
+              key={p.profil_id}
+              href={`/klubbinfo/medlemmer/${p.profil_id}`}
+              aria-label={p.navn}
               style={{
+                display: 'block',
+                textDecoration: 'none',
                 marginLeft: i === 0 ? 0 : -12,
                 zIndex: MAKS_I_RAD - i,
                 border: '3px solid var(--bg)',
@@ -84,61 +96,12 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
               }}
             >
               <Avatar name={p.navn} size={44} src={p.bilde_url} rolle={p.rolle} />
-            </div>
-          )
-          if (somLenker) {
-            return (
-              <Link
-                key={p.profil_id}
-                href={`/klubbinfo/medlemmer/${p.profil_id}`}
-                aria-label={p.navn}
-                style={{ display: 'block', textDecoration: 'none' }}
-              >
-                {innhold}
-              </Link>
-            )
-          }
-          return <div key={p.profil_id}>{innhold}</div>
-        })}
-      </div>
-    )
-  }
-
-  return (
-    <>
-      {!harOverflow ? (
-        // Liten liste: per-avatar lenker direkte til profil, ingen modal.
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
-            marginBottom: 32,
-          }}
-        >
-          {renderAvatarRad(true)}
+            </Link>
+          ))}
         </div>
-      ) : (
-        // Overflow: hele raden er én knapp som åpner modalen.
-        <button
-          type="button"
-          onClick={() => setModalAapen(true)}
-          aria-label={`Se alle ${jaListe.length} påmeldte`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            flexWrap: 'wrap',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            cursor: 'pointer',
-            marginBottom: 32,
-            minHeight: 48, // klikk-mål-minimum
-          }}
-        >
-          {renderAvatarRad(false)}
+
+        {/* «+ N til»-pill kun ved overflow. */}
+        {harOverflow && (
           <span
             style={{
               fontFamily: 'var(--font-body)',
@@ -148,21 +111,32 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
           >
             + {antallSkjult} til
           </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 10,
-              color: 'var(--text-tertiary)',
-              letterSpacing: '1px',
-              marginLeft: 4,
-            }}
-          >
-            Se alle
-          </span>
-        </button>
-      )}
+        )}
 
-      {/* Modal: alfabetisk liste over alle påmeldte. Kun tilgjengelig når overflow finnes. */}
+        {/* «Vis liste»-knapp alltid synlig — uavhengig av antall (#280). */}
+        <button
+          type="button"
+          onClick={() => setModalAapen(true)}
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 10,
+            letterSpacing: '1.2px',
+            textTransform: 'uppercase',
+            color: 'var(--accent)',
+            background: 'transparent',
+            border: '0.5px solid var(--border)',
+            borderRadius: 999,
+            padding: '8px 14px',
+            cursor: 'pointer',
+            minHeight: 36,
+            marginLeft: 4,
+          }}
+        >
+          Vis liste
+        </button>
+      </div>
+
+      {/* Modal: alfabetisk liste over alle påmeldte. Alltid tilgjengelig via «Vis liste». */}
       {modalAapen && (
         // Backdrop — klikk utenfor kortet lukker modalen
         <div
