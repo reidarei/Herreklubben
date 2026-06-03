@@ -200,7 +200,9 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
               outline: 'none',
             }}
           >
-            {/* Modal-header */}
+            {/* Modal-header med eksplisitt Lukk-knapp.
+                Escape og klikk-utenfor lukker også, men en synlig knapp er nødvendig
+                for tastaturbrukere og touch-brukere som ikke kjenner gesten. */}
             <div
               style={{
                 padding: '18px 20px 14px',
@@ -211,9 +213,40 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
                 color: 'var(--text-primary)',
                 borderBottom: '0.5px solid var(--border-subtle)',
                 flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
               }}
             >
-              Påmeldt ({jaListe.length})
+              <span style={{ flex: 1 }}>Påmeldt ({jaListe.length})</span>
+              <button
+                type="button"
+                onClick={() => setModalAapen(false)}
+                aria-label="Lukk"
+                style={{
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  flexShrink: 0,
+                  padding: 0,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 4l10 10M14 4L4 14"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
             </div>
 
             {/* Scrollbar liste */}

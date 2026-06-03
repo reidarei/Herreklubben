@@ -500,41 +500,44 @@ export default async function ArrangementDetaljer({
           </>
         )}
 
-        {/* Påmeldt-seksjon */}
-        {jaListe.length > 0 && (
-          <>
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                marginBottom: 14,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontWeight: 600,
-              }}
-            >
-              <span>Påmeldt</span>
-              <span style={{ color: 'var(--text-secondary)' }}>{jaListe.length}</span>
-              <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
-            </div>
-            {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272).
-                Filtrér ut rader uten navn FØR map så vi ikke sender placeholder-navn videre. */}
-            <PaameldteListe
-              paameldinger={jaListe
-                .filter(p => p.profiles?.navn)
-                .map(p => ({
-                  profil_id: p.profil_id,
-                  navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing — filter over sikrer at den aldri trigger
-                  bilde_url: p.profiles?.bilde_url ?? null,
-                  rolle: p.profiles?.rolle ?? null,
-                }))}
-            />
-          </>
-        )}
+        {/* Påmeldt-seksjon.
+            Bygg den filtrerte listen FØR vi tegner — slik at antall-badgen i headeren og
+            antall avatarer i raden alltid stemmer overens (se review-funn til #272). */}
+        {(() => {
+          const paameldteMedNavn = jaListe
+            .filter(p => p.profiles?.navn)
+            .map(p => ({
+              profil_id: p.profil_id,
+              navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing — filter over sikrer at den aldri trigger
+              bilde_url: p.profiles?.bilde_url ?? null,
+              rolle: p.profiles?.rolle ?? null,
+            }));
+          if (paameldteMedNavn.length === 0) return null;
+          return (
+            <>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  color: 'var(--text-tertiary)',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  marginBottom: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontWeight: 600,
+                }}
+              >
+                <span>Påmeldt</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{paameldteMedNavn.length}</span>
+                <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
+              </div>
+              {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272). */}
+              <PaameldteListe paameldinger={paameldteMedNavn} />
+            </>
+          );
+        })()}
 
         {/* Pass-info for deltakere — kun for arrangør på kommende tur */}
         {visPassListe && passDeltakere.length > 0 && (
