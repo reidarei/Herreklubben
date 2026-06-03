@@ -502,6 +502,9 @@ export default async function Forside() {
                     flexDirection: 'column',
                     borderRadius: 'var(--radius-card)',
                     overflow: 'hidden',
+                    // Accent-outline + halo signaliserer "her må du gjøre noe" (#275)
+                    border: '1px solid var(--accent)',
+                    boxShadow: '0 0 0 4px var(--accent-soft)',
                   }}
                 >
                   <ArrangementKort

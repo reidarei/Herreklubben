@@ -52,15 +52,12 @@ export default function RsvpInline({ arrangementId }: { arrangementId: string })
       style={{
         display: 'flex',
         gap: 8,
-        padding: '10px 12px 12px',
+        padding: '14px 14px 16px',
         // Henger visuelt sammen med ArrangementKort over: samme bakgrunn,
-        // border på sidene og bunn, flat topp (kortet har border-bottom allerede).
+        // svak separator mot kortet (accent-outline er på wrapper, ikke her — #275).
         background: 'var(--bg-elevated)',
-        border: '1px solid var(--border)',
-        borderTop: 'none',
+        borderTop: '0.5px solid var(--border-subtle)',
         borderRadius: '0 0 var(--radius-card) var(--radius-card)',
-        // Kompenser for at kortet allerede bruker overflow:hidden — vi er et
-        // separat DOM-element, så vi trenger ikke ekstra margin-top-justering.
       }}
     >
       {knapper.map(k => {
@@ -86,22 +83,26 @@ export default function RsvpInline({ arrangementId }: { arrangementId: string })
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              // Minste touch-mål 44px (Apple HIG)
-              minHeight: 44,
+              // Minste touch-mål 48px — litt rausere enn Apple HIG-minimum (44px)
+              // fordi dette er primær-handlingen brukeren må gjøre (#275)
+              minHeight: 48,
               borderRadius: 10,
+              // Uvalgt: sterkere border + lett bakgrunn gjør knappene mer synlige
+              // Valgt Ja: fylt accent (uendret)
+              // Valgt Kanskje/Nei: accent-soft bakgrunn + accent-border (#275)
               border: erValgt
                 ? erJa
                   ? 'none'
-                  : '0.5px solid var(--border-strong)'
-                : '0.5px solid var(--border)',
+                  : '1px solid var(--accent)'
+                : '1px solid var(--border-strong)',
               background: erValgt
                 ? erJa
                   ? 'var(--accent)'
-                  : 'var(--bg-elevated)'
-                : 'transparent',
+                  : 'var(--accent-soft)'
+                : 'rgba(255,255,255,0.04)',
               color: erValgt && erJa ? '#0a0a0a' : 'var(--text-primary)',
               fontFamily: 'var(--font-body)',
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: 600,
               cursor: isPending ? 'wait' : 'pointer',
               opacity: isPending ? 0.6 : 1,
@@ -110,7 +111,7 @@ export default function RsvpInline({ arrangementId }: { arrangementId: string })
           >
             <RsvpGlyph
               name={k.ikon}
-              size={13}
+              size={15}
               color={
                 erValgt && erJa
                   ? '#0a0a0a'
