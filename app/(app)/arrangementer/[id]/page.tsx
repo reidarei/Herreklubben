@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Icon from '@/components/ui/Icon'
-import Avatar from '@/components/ui/Avatar'
 import Placeholder from '@/components/ui/Placeholder'
 import SladdetFelt from '@/components/SladdetFelt'
 import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
 import PassListe, { type PassListeDeltaker } from '@/components/arrangement/PassListe'
+import PaameldteListe from '@/components/arrangement/PaameldteListe'
 import AlbumSeksjon from '@/components/album/AlbumSeksjon'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
@@ -521,48 +521,16 @@ export default async function ArrangementDetaljer({
               <span style={{ color: 'var(--text-secondary)' }}>{jaListe.length}</span>
               <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: 32,
-                flexWrap: 'wrap',
-              }}
-            >
-              {jaListe.slice(0, 7).map((p, i) => (
-                <Link
-                  key={p.profil_id}
-                  href={`/klubbinfo/medlemmer/${p.profil_id}`}
-                  style={{
-                    marginLeft: i === 0 ? 0 : -8,
-                    zIndex: 20 - i,
-                    border: '2px solid var(--bg)',
-                    borderRadius: '50%',
-                    position: 'relative',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <Avatar
-                    name={p.profiles?.navn ?? '?'}
-                    size={32}
-                    src={p.profiles?.bilde_url}
-                    rolle={p.profiles?.rolle}
-                  />
-                </Link>
-              ))}
-              {jaListe.length > 7 && (
-                <span
-                  style={{
-                    marginLeft: 12,
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 13,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  + {jaListe.length - 7} til
-                </span>
-              )}
-            </div>
+            {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272) */}
+            <PaameldteListe
+              paameldinger={jaListe.map(p => ({
+                profil_id: p.profil_id,
+                status: 'ja' as const,
+                navn: p.profiles?.navn ?? '?',
+                bilde_url: p.profiles?.bilde_url ?? null,
+                rolle: p.profiles?.rolle ?? null,
+              }))}
+            />
           </>
         )}
 
