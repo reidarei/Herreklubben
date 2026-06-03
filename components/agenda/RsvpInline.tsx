@@ -53,10 +53,11 @@ export default function RsvpInline({ arrangementId }: { arrangementId: string })
         display: 'flex',
         gap: 8,
         padding: '14px 14px 16px',
-        // Henger visuelt sammen med ArrangementKort over: samme bakgrunn,
-        // svak separator mot kortet (accent-outline er på wrapper, ikke her — #275).
+        // Henger visuelt sammen med ArrangementKort over: samme bakgrunn.
+        // Ingen egen borderTop — ArrangementKort har allerede en bunn-border
+        // som fungerer som separator. Å legge på borderTop her ga dobbel
+        // strek + avkuttet kort-innramming (#275 review-funn).
         background: 'var(--bg-elevated)',
-        borderTop: '0.5px solid var(--border-subtle)',
         borderRadius: '0 0 var(--radius-card) var(--radius-card)',
       }}
     >
