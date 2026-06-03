@@ -61,9 +61,11 @@ type Props = {
   profiler?: ChatProfil[]
   /** Innlogget brukers id — ekskluderes fra mention-forslag. */
   brukerId?: string
+  /** Skjul kommentar-blokken — brukes for «ikke svart ennå»-seksjonen (#274). */
+  visKommentarer?: boolean
 }
 
-export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId }: Props) {
+export default function ArrangementKort({ arr, tidligere = false, kommentarer = [], totaltKommentarer, profiler, brukerId, visKommentarer = true }: Props) {
   const iso = arr.start_tidspunkt
   const mnd = formaterDato(iso, 'MMM').toUpperCase()
   const dag = formaterDato(iso, 'd')
@@ -257,8 +259,8 @@ export default function ArrangementKort({ arr, tidligere = false, kommentarer = 
         </div>
         </div>
 
-        {/* Kommentarer — inne i kortet, kollapsbart, med inline input */}
-        {!tidligere && (
+        {/* Kommentarer — inne i kortet, kollapsbart, med inline input; se #274 for visKommentarer-flagg */}
+        {!tidligere && visKommentarer && (
           <KommentarerPaaKort
             kommentarer={kommentarer}
             scope={{ type: 'arrangement', id: arr.id }}
