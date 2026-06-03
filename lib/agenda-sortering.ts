@@ -470,8 +470,9 @@ export function byggAgenda(input: {
   // (ikke som highlight) — brukeren skal svare, ikke «glede seg» til kvelden.
   const ubesvarte: AgendaItem[] = arrangementer
     .filter(a => {
-      // Bare fremtidige (eller dagens) arrangementer er relevante
-      if (a.start_tidspunkt < nowIso && !erSammeNorskeDag(a.start_tidspunkt, naa)) return false
+      // Kun arrangementer som ennå ikke har startet — etter start_tidspunkt
+      // er det for sent å si Ja, så da forsvinner det fra «Ikke svart».
+      if (a.start_tidspunkt < nowIso) return false
       // Ubesvart = ingen rad i paameldinger for meg, eller status er null
       const min = a.paameldinger.find(p => p.profil_id === meg)
       return !min || !min.status

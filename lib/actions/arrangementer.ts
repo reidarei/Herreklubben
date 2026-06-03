@@ -80,6 +80,18 @@ export async function opprettArrangement(data: ArrangementInput) {
 
   if (error) throw new Error(error.message)
 
+  // Oppretteren har implisitt sagt Ja — sett påmelding automatisk så
+  // arrangementet ikke dukker opp i hans egen «Ikke svart»-seksjon (#271).
+  // Best-effort: hvis det feiler stopper vi ikke opprettelsen.
+  await supabase
+    .from('paameldinger')
+    .insert({
+      arrangement_id: arrangement.id,
+      profil_id: user.id,
+      status: 'ja',
+      oppdatert: naa(),
+    })
+
   await koble(supabase, arrangement.id, data.mal_navn, data.aar)
 
   revalidatePath('/')
