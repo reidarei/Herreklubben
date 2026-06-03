@@ -82,15 +82,23 @@ export async function opprettArrangement(data: ArrangementInput) {
 
   // Oppretteren har implisitt sagt Ja — sett påmelding automatisk så
   // arrangementet ikke dukker opp i hans egen «Ikke svart»-seksjon (#271).
-  // Best-effort: hvis det feiler stopper vi ikke opprettelsen.
-  await supabase
+  // Upsert er idempotent og takler PK-konflikt (arrangement_id, profil_id) rent.
+  // Best-effort: vi logger feil men kaster ikke — opprettelsen skal gå gjennom
+  // selv om auto-RSVP glipper. Tidligere swallowing skjulte ekte RLS-glipp.
+  const { error: rsvpError } = await supabase
     .from('paameldinger')
-    .insert({
-      arrangement_id: arrangement.id,
-      profil_id: user.id,
-      status: 'ja',
-      oppdatert: naa(),
-    })
+    .upsert(
+      {
+        arrangement_id: arrangement.id,
+        profil_id: user.id,
+        status: 'ja',
+        oppdatert: naa(),
+      },
+      { onConflict: 'arrangement_id,profil_id' },
+    )
+  if (rsvpError) {
+    console.error('[opprettArrangement] auto-RSVP feilet:', rsvpError)
+  }
 
   await koble(supabase, arrangement.id, data.mal_navn, data.aar)
 

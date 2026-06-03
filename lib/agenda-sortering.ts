@@ -473,9 +473,11 @@ export function byggAgenda(input: {
       // Kun arrangementer som ennå ikke har startet — etter start_tidspunkt
       // er det for sent å si Ja, så da forsvinner det fra «Ikke svart».
       if (a.start_tidspunkt < nowIso) return false
-      // Ubesvart = ingen rad i paameldinger for meg, eller status er null
+      // Ubesvart = ingen rad i paameldinger for meg. DB-kolonnen status er
+      // NOT NULL, så !min.status ville maskert evt. ugyldige rader heller enn
+      // å rapportere dem — vi sjekker kun rad-eksistens her.
       const min = a.paameldinger.find(p => p.profil_id === meg)
-      return !min || !min.status
+      return !min
     })
     .sort((a, b) => a.start_tidspunkt.localeCompare(b.start_tidspunkt))
     .map(a => ({
