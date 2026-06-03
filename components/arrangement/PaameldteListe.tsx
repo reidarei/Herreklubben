@@ -1,33 +1,46 @@
 'use client'
 
-// PaameldteListe — klikk på avatar-raden åpner modal med alfabetisk navneliste.
-// Erstatter inline avatar-rad i arrangementer/[id]/page.tsx (#272).
+// PaameldteListe — viser avatar-rad over påmeldte (status=ja).
+// Hvis alle får plass i raden: hver avatar er en <Link> direkte til medlemsprofilen
+// (samme oppførsel som før #272). Hvis det er overflow ("+ N til"), blir hele raden
+// én knapp som åpner modal med komplett alfabetisk liste — det er først DA modal-
+// affordansen gir mening. Brukeren skal aldri få en modal med kun én oppføring.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Avatar from '@/components/ui/Avatar'
 
 export type PaameldtPerson = {
   profil_id: string
-  status: 'ja' | 'kanskje' | 'nei'
   navn: string
   bilde_url: string | null
   rolle: string | null
 }
 
-// Maks antall avatarer som vises i raden. Resten oppsummeres som "+ N til".
+// Maks antall avatarer som vises i raden. Resten oppsummeres som "+ N til" og
+// trigger modal-modus. Holdes lokal — vurdert flyttet til lib/konstanter.ts, men
+// brukes kun her og er tett knyttet til layout-valg i denne komponenten.
 const MAKS_I_RAD = 6
 
 export default function PaameldteListe({ paameldinger }: { paameldinger: PaameldtPerson[] }) {
   const [modalAapen, setModalAapen] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
 
-  // Filtrér til kun ja-svar, sortér alfabetisk — samme subset som vises i UI.
-  const jaListe = [...paameldinger]
-    .filter(p => p.status === 'ja')
-    .sort((a, b) => a.navn.localeCompare(b.navn, 'nb'))
+  // Intl.Collator er raskere enn localeCompare i loop og gir konsistent sortering
+  // på tvers av kall. Sekundær-sort på profil_id sikrer stabil rekkefølge ved like navn.
+  const collator = useMemo(() => new Intl.Collator('nb'), [])
+  const jaListe = useMemo(() => {
+    return [...paameldinger].sort((a, b) => {
+      const cmp = collator.compare(a.navn, b.navn)
+      return cmp !== 0 ? cmp : a.profil_id.localeCompare(b.profil_id)
+    })
+  }, [paameldinger, collator])
 
   // Escape-tast lukker modalen. body-overflow hindrer scroll bak modalen,
   // særlig viktig på iOS hvor scroll-chain lett lekker gjennom overlay.
+  // Fokus flyttes inn i dialogen ved åpning og tilbake til triggeren ved lukking,
+  // i tråd med WAI-ARIA modal-mønster.
   useEffect(() => {
     if (!modalAapen) return
     function onKey(e: KeyboardEvent) {
@@ -36,9 +49,14 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
     document.addEventListener('keydown', onKey)
     const forrigeOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // Lagre forrige fokus og flytt fokus til dialogen
+    triggerRef.current = document.activeElement as HTMLElement | null
+    dialogRef.current?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = forrigeOverflow
+      // Returnér fokus til triggeren (typisk knappen som åpnet modalen)
+      triggerRef.current?.focus?.()
     }
   }, [modalAapen])
 
@@ -46,29 +64,16 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
 
   const synligeAvatarer = jaListe.slice(0, MAKS_I_RAD)
   const antallSkjult = jaListe.length - MAKS_I_RAD
+  const harOverflow = antallSkjult > 0
 
-  return (
-    <>
-      {/* Klikk på raden åpner modal — hele flaten er interaktiv */}
-      <button
-        type="button"
-        onClick={() => setModalAapen(true)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          marginBottom: 32,
-        }}
-      >
-        {/* Stablet avatar-rad med negativ margin for overlapp */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          {synligeAvatarer.map((p, i) => (
+  // Hjelper: render selve avatar-stabelen. Brukes både som lenker (uten overflow)
+  // og som ikke-interaktive elementer inni knappen (med overflow).
+  function renderAvatarRad(somLenker: boolean) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {synligeAvatarer.map((p, i) => {
+          const innhold = (
             <div
-              key={p.profil_id}
               style={{
                 marginLeft: i === 0 ? 0 : -12,
                 zIndex: MAKS_I_RAD - i,
@@ -80,11 +85,60 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
             >
               <Avatar name={p.navn} size={44} src={p.bilde_url} rolle={p.rolle} />
             </div>
-          ))}
-        </div>
+          )
+          if (somLenker) {
+            return (
+              <Link
+                key={p.profil_id}
+                href={`/klubbinfo/medlemmer/${p.profil_id}`}
+                aria-label={p.navn}
+                style={{ display: 'block', textDecoration: 'none' }}
+              >
+                {innhold}
+              </Link>
+            )
+          }
+          return <div key={p.profil_id}>{innhold}</div>
+        })}
+      </div>
+    )
+  }
 
-        {/* "+ N til" hvis flere enn MAKS_I_RAD er påmeldt */}
-        {antallSkjult > 0 && (
+  return (
+    <>
+      {!harOverflow ? (
+        // Liten liste: per-avatar lenker direkte til profil, ingen modal.
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+            marginBottom: 32,
+          }}
+        >
+          {renderAvatarRad(true)}
+        </div>
+      ) : (
+        // Overflow: hele raden er én knapp som åpner modalen.
+        <button
+          type="button"
+          onClick={() => setModalAapen(true)}
+          aria-label={`Se alle ${jaListe.length} påmeldte`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            flexWrap: 'wrap',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            marginBottom: 32,
+            minHeight: 48, // klikk-mål-minimum
+          }}
+        >
+          {renderAvatarRad(false)}
           <span
             style={{
               fontFamily: 'var(--font-body)',
@@ -94,23 +148,21 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
           >
             + {antallSkjult} til
           </span>
-        )}
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 10,
+              color: 'var(--text-tertiary)',
+              letterSpacing: '1px',
+              marginLeft: 4,
+            }}
+          >
+            Se alle
+          </span>
+        </button>
+      )}
 
-        {/* Ekstra affordance — synlig oppfordring til å trykke */}
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 10,
-            color: 'var(--text-tertiary)',
-            letterSpacing: '1px',
-            marginLeft: 4,
-          }}
-        >
-          Se alle
-        </span>
-      </button>
-
-      {/* Modal: alfabetisk liste over alle påmeldte */}
+      {/* Modal: alfabetisk liste over alle påmeldte. Kun tilgjengelig når overflow finnes. */}
       {modalAapen && (
         // Backdrop — klikk utenfor kortet lukker modalen
         <div
@@ -126,11 +178,14 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
             padding: '0 20px',
           }}
         >
-          {/* Stopp propagasjon så klikk på selve kortet ikke lukker */}
+          {/* Stopp propagasjon så klikk på selve kortet ikke lukker. tabIndex=-1
+              gjør at .focus() kan flyttes hit programmatisk uten å gjøre kortet tab-bart. */}
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Påmeldte"
+            tabIndex={-1}
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%',
@@ -142,6 +197,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
+              outline: 'none',
             }}
           >
             {/* Modal-header */}

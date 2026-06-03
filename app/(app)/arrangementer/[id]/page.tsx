@@ -521,15 +521,17 @@ export default async function ArrangementDetaljer({
               <span style={{ color: 'var(--text-secondary)' }}>{jaListe.length}</span>
               <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
             </div>
-            {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272) */}
+            {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272).
+                Filtrér ut rader uten navn FØR map så vi ikke sender placeholder-navn videre. */}
             <PaameldteListe
-              paameldinger={jaListe.map(p => ({
-                profil_id: p.profil_id,
-                status: 'ja' as const,
-                navn: p.profiles?.navn ?? '?',
-                bilde_url: p.profiles?.bilde_url ?? null,
-                rolle: p.profiles?.rolle ?? null,
-              }))}
+              paameldinger={jaListe
+                .filter(p => p.profiles?.navn)
+                .map(p => ({
+                  profil_id: p.profil_id,
+                  navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing — filter over sikrer at den aldri trigger
+                  bilde_url: p.profiles?.bilde_url ?? null,
+                  rolle: p.profiles?.rolle ?? null,
+                }))}
             />
           </>
         )}
