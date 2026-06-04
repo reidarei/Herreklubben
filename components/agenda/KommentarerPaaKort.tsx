@@ -19,7 +19,8 @@ import MentionVelger from '@/components/agenda/MentionVelger'
 
 export type KommentarKortData = {
   id: string
-  innhold: string
+  innhold: string | null
+  bilde_url?: string | null
   opprettet: string
   avsender: {
     navn: string
@@ -33,10 +34,20 @@ export type KommentarScope =
   | { type: 'poll'; id: string }
   | { type: 'melding'; id: string }
 
-function snippet(tekst: string, maks = 90): string {
+function snippet(tekst: string | null, maks = 90): string {
+  if (!tekst) return ''
   const rensket = tekst.replace(/\s+/g, ' ').trim()
   if (rensket.length <= maks) return rensket
   return rensket.slice(0, maks - 1) + '…'
+}
+
+// Brukes når en kommentar kun har bilde og ingen tekst — uten dette ble raden
+// helt blank, og før null-guarden i snippet krasjet hele forsiden. Se #281.
+function visningstekst(k: { innhold: string | null; bilde_url?: string | null }): string {
+  const tekst = snippet(k.innhold)
+  if (tekst) return tekst
+  if (k.bilde_url) return '📷 Bilde'
+  return ''
 }
 
 function relativTid(iso: string): string {
@@ -241,7 +252,7 @@ export default function KommentarerPaaKort({
                     lineHeight: 1.4,
                   }}
                 >
-                  {snippet(k.innhold)}
+                  {visningstekst(k)}
                 </div>
               </div>
             </div>

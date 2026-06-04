@@ -97,7 +97,7 @@ export default async function Forside() {
     supabase
       .from('arrangement_chat')
       .select(
-        `id, innhold, opprettet, arrangement_id,
+        `id, innhold, bilde_url, opprettet, arrangement_id,
          profiles (navn, bilde_url, rolle)`,
       )
       .gte('opprettet', cutoffIso)
@@ -106,7 +106,7 @@ export default async function Forside() {
     supabase
       .from('poll_chat')
       .select(
-        `id, innhold, opprettet, poll_id,
+        `id, innhold, bilde_url, opprettet, poll_id,
          profiles (navn, bilde_url, rolle)`,
       )
       .gte('opprettet', cutoffIso)
@@ -146,7 +146,7 @@ export default async function Forside() {
     supabase
       .from('melding_chat')
       .select(
-        'id, innhold, opprettet, melding_id, profiles!melding_chat_profil_id_fkey (navn, bilde_url, rolle)',
+        'id, innhold, bilde_url, opprettet, melding_id, profiles!melding_chat_profil_id_fkey (navn, bilde_url, rolle)',
       )
       .gte('opprettet', cutoffIso)
       .order('opprettet', { ascending: false })
@@ -230,20 +230,22 @@ export default async function Forside() {
   // kommentarene i kronologisk rekkefølge).
   type RawArrKomm = {
     id: string
-    innhold: string
+    innhold: string | null
+    bilde_url: string | null
     opprettet: string
     arrangement_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
   }
   type RawPollKomm = {
     id: string
-    innhold: string
+    innhold: string | null
+    bilde_url: string | null
     opprettet: string
     poll_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
   }
 
-  function grupperKommentarer<T extends { id: string; innhold: string; opprettet: string; profiles: RawArrKomm['profiles'] }>(
+  function grupperKommentarer<T extends { id: string; innhold: string | null; bilde_url: string | null; opprettet: string; profiles: RawArrKomm['profiles'] }>(
     rader: T[],
     nokkel: (r: T) => string,
   ): Map<string, KommentarKortData[]> {
@@ -256,6 +258,7 @@ export default async function Forside() {
       list.push({
         id: r.id,
         innhold: r.innhold,
+        bilde_url: r.bilde_url,
         opprettet: r.opprettet,
         avsender: {
           navn: r.profiles.navn ?? 'Ukjent',
@@ -282,7 +285,8 @@ export default async function Forside() {
   // === Meldinger: bygg MeldingRaad med reaksjoner og kommentar-antall =
   type RawMeldKomm = {
     id: string
-    innhold: string
+    innhold: string | null
+    bilde_url: string | null
     opprettet: string
     melding_id: string
     profiles: { navn: string | null; bilde_url: string | null; rolle: string | null } | null
