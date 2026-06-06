@@ -285,6 +285,11 @@ export async function sendOppdatertVarsler({
 }) {
   const dato = formaterDatoKlokke(startTidspunkt)
   const trimmet = hilsen?.trim()
+  // Defensiv: hilsen uten avsender ville falle stille tilbake til standardteksten
+  // og forvirre fremtidige kallere. Krev at de oppgis sammen.
+  if (trimmet && !fraNavn) {
+    throw new Error('fraNavn må oppgis sammen med hilsen')
+  }
   // Med hilsen: personlig melding med avsender og tekst.
   // Uten hilsen: standard stille oppdateringsmelding (bakoverkompatibel).
   const melding = trimmet && fraNavn
