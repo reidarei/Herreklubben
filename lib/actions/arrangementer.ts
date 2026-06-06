@@ -8,6 +8,7 @@ import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
 import { naa } from '@/lib/dato'
 import { r2StiFraUrl, slettR2 } from '@/lib/r2'
+import { VARSLE_MAKS_LENGDE } from '@/lib/konstanter'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -170,10 +171,18 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
   revalidatePath('/arrangoransvar')
 }
 
-export async function varslOmArrangement(arrangementId: string) {
+// hilsen er valgfri fri tekst fra avsender — valideres server-side mot
+// VARSLE_MAKS_LENGDE slik at klient-maxLength aldri er eneste sperre. Se #282.
+export async function varslOmArrangement(arrangementId: string, hilsen?: string) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Ikke innlogget')
+
+  const trimmetHilsen = hilsen?.trim()
+
+  if (trimmetHilsen && trimmetHilsen.length > VARSLE_MAKS_LENGDE) {
+    throw new Error(`Hilsen kan ikke være lengre enn ${VARSLE_MAKS_LENGDE} tegn`)
+  }
 
   const { data: arrangement } = await supabase
     .from('arrangementer')
@@ -189,11 +198,25 @@ export async function varslOmArrangement(arrangementId: string) {
   const erOpprettet = arrangement.opprettet_av === user.id
   if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
 
-  // Send én oppdatert-varsling til alle
+  // Hent avsenders visningsnavn hvis hilsen er oppgitt — samme mønster
+  // som purreAnsvarlig i lib/actions/arrangoransvar.ts
+  let fraNavn: string | undefined
+  if (trimmetHilsen) {
+    const { data: avsender } = await supabase
+      .from('profiles')
+      .select('navn, visningsnavn')
+      .eq('id', user.id)
+      .single()
+    fraNavn = avsender?.visningsnavn || avsender?.navn || 'En gutt'
+  }
+
+  // Send én oppdatert-varsling til alle — med eller uten hilsen
   await sendOppdatertVarsler({
     arrangementId: arrangement.id,
     tittel: arrangement.tittel,
     startTidspunkt: arrangement.start_tidspunkt,
+    fraNavn,
+    hilsen: trimmetHilsen,
   })
 
   revalidatePath(`/arrangementer/${arrangementId}`)

@@ -271,15 +271,28 @@ export async function sendOppdatertVarsler({
   arrangementId,
   tittel,
   startTidspunkt,
+  fraNavn,
+  hilsen,
 }: {
   arrangementId: string
   tittel: string
   startTidspunkt: string
+  // Valgfri avsender og hilsen — satt når admin/arrangør varsler manuelt
+  // via VarsleNuKnapp-modalen (#282). Uten disse to beholdes dagens
+  // stille «Arrangement oppdatert»-melding.
+  fraNavn?: string
+  hilsen?: string
 }) {
   const dato = formaterDatoKlokke(startTidspunkt)
+  const trimmet = hilsen?.trim()
+  // Med hilsen: personlig melding med avsender og tekst.
+  // Uten hilsen: standard stille oppdateringsmelding (bakoverkompatibel).
+  const melding = trimmet && fraNavn
+    ? `${fraNavn} varsler om ${tittel} (${dato}) og skriver: «${trimmet}»`
+    : `${tittel} — ${dato}`
   await sendVarsel({
     tittel: 'Arrangement oppdatert',
-    melding: `${tittel} — ${dato}`,
+    melding,
     url: `${BASE_URL}/arrangementer/${arrangementId}`,
     type: 'oppdatert',
     arrangementId,
