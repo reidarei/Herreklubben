@@ -268,7 +268,7 @@ export default async function ArrangementDetaljer({
             gap: 8,
           }}
         >
-          {kanRedigere && <VarsleNuKnapp arrangementId={id} />}
+          {kanRedigere && <VarsleNuKnapp arrangementId={id} arrangementTittel={arr.tittel} />}
           {kanRedigere && (
             <Link
               href={`/arrangementer/${id}/rediger`}

@@ -50,3 +50,8 @@ export const CHAT_NAER_BUNN_TERSKEL_PX = 150
 // fordi hilsenen ikke lagres i DB — den går rett inn i sendVarsel-
 // meldingen. De to grensene kan utvikle seg uavhengig. Se #267.
 export const PURRING_MAKS_LENGDE = 500
+
+// Maks tegn i valgfri hilsen ved varsling om arrangement.
+// Tilfeldigvis samme verdi som PURRING_MAKS_LENGDE — semantisk separat
+// så de to grensene kan utvikle seg uavhengig. Se #282.
+export const VARSLE_MAKS_LENGDE = 500
