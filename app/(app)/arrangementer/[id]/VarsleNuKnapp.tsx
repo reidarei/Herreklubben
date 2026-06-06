@@ -21,6 +21,15 @@ export default function VarsleNuKnapp({
   // Synkron guard mot dobbeltklikk: settes før startTransition rekker å
   // markere isPending. Uten dette kan to raske klikk gi to server-kall.
   const sendingRef = useRef(false)
+  // Ref på utløser-knappen for focus-retur når modalen lukkes. Sentralt
+  // håndtert i useEffect-cleanup nedenfor slik at alle lukke-veier
+  // (Escape, overlay-klikk, Avbryt-knapp, suksess) treffes samtidig.
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  // Holder siste isPending-verdi tilgjengelig inne i onKey uten å måtte
+  // legge isPending i useEffect-deps (som ville trigget cleanup ved hver
+  // pending-endring og dermed feilaktig focus-retur mens modalen er åpen).
+  const isPendingRef = useRef(isPending)
+  isPendingRef.current = isPending
 
   function aapneModal() {
     if (sendt || isPending) return
@@ -51,21 +60,30 @@ export default function VarsleNuKnapp({
     })
   }
 
-  // Lukk modalen med Escape og lås body-scroll mens den er åpen.
-  // body-overflow forhindrer scroll-chain bak modalen, særlig på iOS.
+  // Lukk modalen med Escape, lås body-scroll mens den er åpen, og returner
+  // fokus til utløser-knappen ved lukking. Sentral cleanup dekker alle
+  // lukke-veier (Escape, overlay, Avbryt, suksess) i én slag.
   useEffect(() => {
     if (!modalAapen) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !isPending) setModalAapen(false)
+      if (e.key === 'Escape' && !isPendingRef.current) setModalAapen(false)
     }
     document.addEventListener('keydown', onKey)
     const forrigeOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // Snapshot trigger ved effekt-start — trigger-knappen forblir mounted
+    // gjennom modalens levetid, så referansen er stabil. Snapshotting
+    // tilfredsstiller react-hooks/exhaustive-deps-linteren.
+    const triggerNode = triggerRef.current
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = forrigeOverflow
+      // Focus-retur til trigger — viktig for tastatur- og skjermleser-
+      // brukere som ellers mister fokus til <body> etter at modalen
+      // forsvinner fra DOM.
+      triggerNode?.focus()
     }
-  }, [modalAapen, isPending])
+  }, [modalAapen])
 
   const tekst = sendt ? 'Varslet' : isPending ? 'Sender…' : 'Varsle'
   const len = melding.length
@@ -73,6 +91,8 @@ export default function VarsleNuKnapp({
   return (
     <>
       <button
+        ref={triggerRef}
+        type="button"
         onClick={aapneModal}
         disabled={sendt || isPending}
         style={{
