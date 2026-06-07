@@ -1,28 +1,55 @@
 'use client'
 
-// PaameldteListe — viser avatar-rad over påmeldte (status=ja).
-// Hver avatar er en <Link> direkte til medlemsprofilen. Ved siden av står en
-// «Vis liste»-knapp som åpner modal med komplett alfabetisk liste — alltid
-// tilgjengelig uavhengig av antall påmeldte (#280). Tidligere ble knappen
-// kun rendret ved overflow, men det skjulte navnelisten på små arrangementer.
+// PaameldteListe — viser avatar-rad over påmeldte (status=ja) og en «Vis liste»-knapp
+// som åpner modal med ALLE aktive medlemmer gruppert etter RSVP-status (#285).
+// Avatar-raden er uendret — den viser kun ja-folk via jaListe-prop.
+// Modal-innholdet drives av alleSvar-prop som inkluderer ikke-svart.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import Avatar from '@/components/ui/Avatar'
+import RsvpGlyph from '@/components/arrangement/RsvpGlyph'
+
+export type RsvpStatus = 'ja' | 'kanskje' | 'nei' | 'ikke_svart'
 
 export type PaameldtPerson = {
   profil_id: string
   navn: string
   bilde_url: string | null
   rolle: string | null
+  status: RsvpStatus
 }
 
-// Maks antall avatarer som vises i raden. Resten oppsummeres som "+ N til" og
-// trigger modal-modus. Holdes lokal — vurdert flyttet til lib/konstanter.ts, men
-// brukes kun her og er tett knyttet til layout-valg i denne komponenten.
+type Props = {
+  // jaListe: kun ja-folk — driver avatar-raden og «+ N til»-pillen (uendret)
+  jaListe: PaameldtPerson[]
+  // alleSvar: alle aktive medlemmer med status — driver modalen (#285)
+  alleSvar: PaameldtPerson[]
+}
+
+// Maks antall avatarer som vises i raden. Resten oppsummeres som «+ N til».
+// Holdes lokal — tett knyttet til layout-valg i denne komponenten.
 const MAKS_I_RAD = 6
 
-export default function PaameldteListe({ paameldinger }: { paameldinger: PaameldtPerson[] }) {
+// Rekkefølge og visningsnavn for statusgruppene i modalen.
+// Rekkefølgen her avgjør render-rekkefølgen (ja øverst, ikke_svart nederst).
+const GRUPPE_META: Record<RsvpStatus, { label: string; farge: string }> = {
+  ja: { label: 'Ja', farge: 'var(--success)' },
+  kanskje: { label: 'Kanskje', farge: 'var(--warning)' },
+  nei: { label: 'Nei', farge: 'var(--danger)' },
+  ikke_svart: { label: 'Ikke svart', farge: 'var(--text-tertiary)' },
+}
+const GRUPPE_REKKEFØLGE: RsvpStatus[] = ['ja', 'kanskje', 'nei', 'ikke_svart']
+
+// Glyph som korresponderer til hver RSVP-status — vist i raden ved siden av navn.
+const STATUS_GLYPH: Record<RsvpStatus, React.ComponentProps<typeof RsvpGlyph>['name']> = {
+  ja: 'check',
+  kanskje: 'question',
+  nei: 'x',
+  ikke_svart: 'dash',
+}
+
+export default function PaameldteListe({ jaListe, alleSvar }: Props) {
   const [modalAapen, setModalAapen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -30,12 +57,26 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
   // Intl.Collator er raskere enn localeCompare i loop og gir konsistent sortering
   // på tvers av kall. Sekundær-sort på profil_id sikrer stabil rekkefølge ved like navn.
   const collator = useMemo(() => new Intl.Collator('nb'), [])
-  const jaListe = useMemo(() => {
-    return [...paameldinger].sort((a, b) => {
+
+  // jaListeSortert: avatarrad + «+ N til»-pill (kun ja, alfabetisk)
+  const jaListeSortert = useMemo(() => {
+    return [...jaListe].sort((a, b) => {
       const cmp = collator.compare(a.navn, b.navn)
       return cmp !== 0 ? cmp : a.profil_id.localeCompare(b.profil_id)
     })
-  }, [paameldinger, collator])
+  }, [jaListe, collator])
+
+  // grupper: alleSvar gruppert per status, alfabetisk innen hver gruppe
+  const grupper = useMemo(() => {
+    const sorted = [...alleSvar].sort((a, b) => {
+      const cmp = collator.compare(a.navn, b.navn)
+      return cmp !== 0 ? cmp : a.profil_id.localeCompare(b.profil_id)
+    })
+    const map = new Map<RsvpStatus, PaameldtPerson[]>()
+    for (const s of GRUPPE_REKKEFØLGE) map.set(s, [])
+    for (const p of sorted) map.get(p.status)?.push(p)
+    return map
+  }, [alleSvar, collator])
 
   // Escape-tast lukker modalen. body-overflow hindrer scroll bak modalen,
   // særlig viktig på iOS hvor scroll-chain lett lekker gjennom overlay.
@@ -49,21 +90,22 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
     document.addEventListener('keydown', onKey)
     const forrigeOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    // Lagre forrige fokus og flytt fokus til dialogen
     triggerRef.current = document.activeElement as HTMLElement | null
     dialogRef.current?.focus()
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = forrigeOverflow
-      // Returnér fokus til triggeren (typisk knappen som åpnet modalen)
       triggerRef.current?.focus?.()
     }
   }, [modalAapen])
 
-  if (jaListe.length === 0) return null
+  // Vises kun hvis det finnes aktive medlemmer (alleSvar.length > 0).
+  // Tidligere ble seksjonen skjult hvis ingen hadde sagt ja — men det ga en
+  // «tom» opplevelse for bruker. Nå vises alltid modalen med «Ikke svart»-gjengen. (#285)
+  if (alleSvar.length === 0) return null
 
-  const synligeAvatarer = jaListe.slice(0, MAKS_I_RAD)
-  const antallSkjult = jaListe.length - MAKS_I_RAD
+  const synligeAvatarer = jaListeSortert.slice(0, MAKS_I_RAD)
+  const antallSkjult = jaListeSortert.length - MAKS_I_RAD
   const harOverflow = antallSkjult > 0
 
   return (
@@ -77,7 +119,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
           marginBottom: 32,
         }}
       >
-        {/* Avatar-rad: per-avatar Link til medlemsprofil. */}
+        {/* Avatar-rad: per-avatar Link til medlemsprofil. Kun ja-folk. */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {synligeAvatarer.map((p, i) => (
             <Link
@@ -100,7 +142,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
           ))}
         </div>
 
-        {/* «+ N til»-pill kun ved overflow. */}
+        {/* «+ N til»-pill kun ved overflow i ja-listen. */}
         {harOverflow && (
           <span
             style={{
@@ -113,7 +155,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
           </span>
         )}
 
-        {/* «Vis liste»-knapp alltid synlig — uavhengig av antall (#280). */}
+        {/* «Vis liste»-knapp åpner modal med alle svar — alltid synlig (#280, #285). */}
         <button
           type="button"
           onClick={() => setModalAapen(true)}
@@ -136,7 +178,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
         </button>
       </div>
 
-      {/* Modal: alfabetisk liste over alle påmeldte. Alltid tilgjengelig via «Vis liste». */}
+      {/* Modal: alle aktive medlemmer gruppert etter RSVP-status (#285). */}
       {modalAapen && (
         // Backdrop — klikk utenfor kortet lukker modalen
         <div
@@ -158,7 +200,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Påmeldte"
+            aria-label="Svar fra medlemmer"
             tabIndex={-1}
             onClick={e => e.stopPropagation()}
             style={{
@@ -192,7 +234,7 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
                 gap: 12,
               }}
             >
-              <span style={{ flex: 1 }}>Påmeldt ({jaListe.length})</span>
+              <span style={{ flex: 1 }}>Svar ({alleSvar.length})</span>
               <button
                 type="button"
                 onClick={() => setModalAapen(false)}
@@ -223,53 +265,98 @@ export default function PaameldteListe({ paameldinger }: { paameldinger: Paameld
               </button>
             </div>
 
-            {/* Scrollbar liste */}
+            {/* Scrollbar liste — gruppert etter status.
+                Kun ikke-tomme grupper rendres. Gruppe-headeren er sticky
+                innen scroll-containeren så den henger igjen ved scroll. */}
             <div style={{ overflowY: 'auto', flex: 1 }}>
-              {jaListe.map((p, i) => (
-                <Link
-                  key={p.profil_id}
-                  href={`/klubbinfo/medlemmer/${p.profil_id}`}
-                  onClick={() => setModalAapen(false)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 20px',
-                    textDecoration: 'none',
-                    // Skillelinje mellom rader: 0.5px border-subtle (ikke første rad)
-                    borderTop: i > 0 ? '0.5px solid var(--border-subtle)' : 'none',
-                  }}
-                >
-                  <Avatar name={p.navn} size={40} src={p.bilde_url} rolle={p.rolle} />
-                  <span
-                    style={{
-                      flex: 1,
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 15,
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {p.navn}
-                  </span>
-                  {/* Chevron som visuell affordance for at raden er klikkbar */}
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
-                  >
-                    <path
-                      d="M6 4l4 4-4 4"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </Link>
-              ))}
+              {GRUPPE_REKKEFØLGE.map(status => {
+                const personer = grupper.get(status) ?? []
+                if (personer.length === 0) return null
+                const meta = GRUPPE_META[status]
+                const glyphNavn = STATUS_GLYPH[status]
+                return (
+                  <div key={status}>
+                    {/* Sticky gruppe-header — henger igjen ved scroll innen containeren */}
+                    <div
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        background: 'var(--bg-elevated)',
+                        padding: '12px 20px 6px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        textTransform: 'uppercase',
+                        letterSpacing: '1.4px',
+                        color: meta.farge,
+                        // Subtil skillelinje under header
+                        borderBottom: '0.5px solid var(--border-subtle)',
+                      }}
+                    >
+                      {meta.label} ({personer.length})
+                    </div>
+                    {/* Rader i gruppen */}
+                    {personer.map((p, i) => (
+                      <Link
+                        key={p.profil_id}
+                        href={`/klubbinfo/medlemmer/${p.profil_id}`}
+                        onClick={() => setModalAapen(false)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '12px 20px',
+                          textDecoration: 'none',
+                          borderTop: i > 0 ? '0.5px solid var(--border-subtle)' : 'none',
+                        }}
+                      >
+                        <Avatar name={p.navn} size={40} src={p.bilde_url} rolle={p.rolle} />
+                        <span
+                          style={{
+                            flex: 1,
+                            fontFamily: 'var(--font-body)',
+                            fontSize: 15,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {p.navn}
+                        </span>
+                        {/* Status-sirkel med glyph mellom navn og chevron (#285) */}
+                        <span
+                          style={{
+                            width: 24,
+                            height: 24,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            flexShrink: 0,
+                            color: meta.farge,
+                          }}
+                        >
+                          <RsvpGlyph name={glyphNavn} color={meta.farge} size={14} />
+                        </span>
+                        {/* Chevron som visuell affordance for at raden er klikkbar */}
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden="true"
+                          style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+                        >
+                          <path
+                            d="M6 4l4 4-4 4"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Link>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

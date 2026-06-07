@@ -10,7 +10,7 @@ import RsvpBlokk from '@/components/arrangement/RsvpBlokk'
 import VarsleNuKnapp from './VarsleNuKnapp'
 import Chat from '@/components/chat/Chat'
 import PassListe, { type PassListeDeltaker } from '@/components/arrangement/PassListe'
-import PaameldteListe from '@/components/arrangement/PaameldteListe'
+import PaameldteListe, { type RsvpStatus } from '@/components/arrangement/PaameldteListe'
 import AlbumSeksjon from '@/components/album/AlbumSeksjon'
 import { formaterDato } from '@/lib/dato'
 import { kanAdministrere } from '@/lib/roller'
@@ -500,19 +500,46 @@ export default async function ArrangementDetaljer({
           </>
         )}
 
-        {/* Påmeldt-seksjon.
-            Bygg den filtrerte listen FØR vi tegner — slik at antall-badgen i headeren og
-            antall avatarer i raden alltid stemmer overens (se review-funn til #272). */}
+        {/* Påmeldt-seksjon (#285).
+            Bygg jaListe (avatar-raden) og alleSvar (modalen) FØR vi tegner —
+            slik at antall-badgen i headeren alltid stemmer overens (se #272).
+            alleSvar itererer chatProfiler (alle aktive medlemmer) og slår opp
+            status fra paameldinger — default 'ikke_svart' ved manglende rad. */}
         {(() => {
-          const paameldteMedNavn = jaListe
+          // Slå opp status per profil_id fra paameldinger-lista
+          const statusMap = new Map<string, RsvpStatus>()
+          for (const p of paameldinger) {
+            const s = p.status as RsvpStatus
+            if (s === 'ja' || s === 'kanskje' || s === 'nei') statusMap.set(p.profil_id, s)
+          }
+
+          // jaListeMedNavn: kun ja-folk med navn — driver avatar-raden (uendret)
+          const jaListeMedNavn = jaListe
             .filter(p => p.profiles?.navn)
             .map(p => ({
               profil_id: p.profil_id,
-              navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing — filter over sikrer at den aldri trigger
+              navn: p.profiles?.navn ?? '?', // ?? '?' beholdt for type-narrowing
               bilde_url: p.profiles?.bilde_url ?? null,
               rolle: p.profiles?.rolle ?? null,
+              status: 'ja' as RsvpStatus,
             }));
-          if (paameldteMedNavn.length === 0) return null;
+
+          // alleSvar: alle aktive medlemmer med navn, status default 'ikke_svart'.
+          // Bruker chatProfiler som kilde fordi den allerede er hentet for Chat-komponenten.
+          const alleSvar = (chatProfiler ?? [])
+            .filter(p => p.navn)
+            .map(p => ({
+              profil_id: p.id,
+              navn: p.navn ?? '?', // ?? '?' for type-narrowing — filter over sikrer at den aldri trigger
+              bilde_url: p.bilde_url ?? null,
+              rolle: p.rolle ?? null,
+              status: statusMap.get(p.id) ?? ('ikke_svart' as RsvpStatus),
+            }));
+
+          // Vis seksjonen så lenge det finnes aktive medlemmer (#285).
+          // Tidligere ble seksjonen skjult hvis ingen hadde sagt ja — men det
+          // hindret brukeren i å se hvem som IKKE hadde svart ennå.
+          if (alleSvar.length === 0) return null;
           return (
             <>
               <div
@@ -530,11 +557,11 @@ export default async function ArrangementDetaljer({
                 }}
               >
                 <span>Påmeldt</span>
-                <span style={{ color: 'var(--text-secondary)' }}>{paameldteMedNavn.length}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>{jaListeMedNavn.length}</span>
                 <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
               </div>
-              {/* Avatar-rad + modal — klikk åpner alfabetisk liste (#272). */}
-              <PaameldteListe paameldinger={paameldteMedNavn} />
+              {/* Avatar-rad (ja-folk) + modal (alle svar gruppert etter status, #285). */}
+              <PaameldteListe jaListe={jaListeMedNavn} alleSvar={alleSvar} />
             </>
           );
         })()}
