@@ -38,6 +38,9 @@
   --danger-alt: #e87060;
   --danger-soft: rgba(200, 90, 80, 0.14);
   --danger-border: rgba(200, 90, 80, 0.34);
+  --warning: #e8a96b;
+  --warning-soft: rgba(230, 160, 100, 0.14);
+  --warning-border: rgba(230, 160, 100, 0.34);
 
   /* Fonter */
   --font-display: var(--font-instrument), Georgia, serif;
