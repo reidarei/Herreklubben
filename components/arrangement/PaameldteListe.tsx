@@ -276,20 +276,24 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                 const glyphNavn = STATUS_GLYPH[status]
                 return (
                   <div key={status}>
-                    {/* Sticky gruppe-header — henger igjen ved scroll innen containeren */}
+                    {/* Sticky gruppe-header — henger igjen ved scroll innen containeren.
+                        backgroundColor må være fullt opak slik at 40px avatarer og
+                        24px glyph-slot ikke peeker gjennom (iOS Safari særlig). Økt
+                        bunn-padding gir luft mellom tekst og første avatar under scroll.
+                        boxShadow erstatter borderBottom for å unngå 0.5px-hopp ved
+                        sub-pixel rendering. */}
                     <div
                       style={{
                         position: 'sticky',
                         top: 0,
-                        background: 'var(--bg-elevated)',
-                        padding: '12px 20px 6px',
+                        backgroundColor: 'var(--bg-elevated)',
+                        padding: '10px 20px 8px',
                         fontFamily: 'var(--font-mono)',
                         fontSize: 10,
                         textTransform: 'uppercase',
                         letterSpacing: '1.4px',
                         color: meta.farge,
-                        // Subtil skillelinje under header
-                        borderBottom: '0.5px solid var(--border-subtle)',
+                        boxShadow: '0 1px 0 var(--border-subtle)',
                       }}
                     >
                       {meta.label} ({personer.length})
@@ -300,6 +304,9 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                         key={p.profil_id}
                         href={`/klubbinfo/medlemmer/${p.profil_id}`}
                         onClick={() => setModalAapen(false)}
+                        // aria-label kombinerer navn + status så skjermlesere får
+                        // formidlet RSVP-svaret — ellers leses bare navnet.
+                        aria-label={`${p.navn}, ${meta.label}`}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -320,7 +327,8 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                         >
                           {p.navn}
                         </span>
-                        {/* Status-sirkel med glyph mellom navn og chevron (#285) */}
+                        {/* Naken glyph i fast 24x24 layout-slot mellom navn og chevron
+                            (#285). Ingen bakgrunn/border — bare glyph i meta.farge. */}
                         <span
                           style={{
                             width: 24,
@@ -328,7 +336,6 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            borderRadius: '50%',
                             flexShrink: 0,
                             color: meta.farge,
                           }}

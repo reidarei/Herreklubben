@@ -70,6 +70,9 @@ export default async function ArrangementDetaljer({
       .eq('arrangement_id', id)
       .order('opprettet', { ascending: false })
       .limit(30),
+    // chatProfiler: alle aktive medlemmer. Navnet kommer fra at den primært
+    // brukes som profil-oppslag for Chat-komponenten, men brukes også til
+    // RSVP-listen (alleSvar) i #285 for å vise hvem som ikke har svart.
     supabase
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
