@@ -94,6 +94,43 @@ async function hentPushSubscriptions(profilIder: string[]) {
   return data ?? []
 }
 
+// ─── HJELPEFUNKSJON FOR HILSENFORMATERING ───────────────────────────────────
+
+/**
+ * Formaterer en varselmelding med valgfri personlig hilsen. Når hilsen er
+ * tom (eller mangler) returneres fallback uendret. Når hilsen er satt
+ * flettes den inn som «{fraNavn} {verb} {basis} og skriver: «{hilsen}»».
+ *
+ * Sentralisert per #289 etter at samme mønster ble duplisert i tre
+ * wrappers (#267, #282, #287). Helper er ren — ingen IO eller state.
+ */
+export function formaterHilsenMelding({
+  fraNavn,
+  hilsen,
+  verb,
+  basis,
+  fallback,
+  maksLengde,
+}: {
+  fraNavn?: string
+  hilsen?: string
+  verb: string         // f.eks. 'purrer deg på', 'varsler om'
+  basis: string        // f.eks. 'Vårfest (15.06.2026)' eller 'Mars-møte 2026'
+  fallback: string     // standard-melding når hilsen mangler
+  maksLengde?: number  // valgfri lengde-validering
+}): string {
+  const trimmet = hilsen?.trim()
+  if (trimmet && !fraNavn) {
+    throw new Error('fraNavn må oppgis sammen med hilsen')
+  }
+  if (trimmet && maksLengde && trimmet.length > maksLengde) {
+    throw new Error(`Hilsen kan ikke være lengre enn ${maksLengde} tegn`)
+  }
+  return trimmet && fraNavn
+    ? `${fraNavn} ${verb} ${basis} og skriver: «${trimmet}»`
+    : fallback
+}
+
 // ─── SENTRAL VARSLINGSFUNKSJON ───────────────────────────────────────────────
 
 export async function sendVarsel({
@@ -284,17 +321,15 @@ export async function sendOppdatertVarsler({
   hilsen?: string
 }) {
   const dato = formaterDatoKlokke(startTidspunkt)
-  const trimmet = hilsen?.trim()
-  // Defensiv: hilsen uten avsender ville falle stille tilbake til standardteksten
-  // og forvirre fremtidige kallere. Krev at de oppgis sammen.
-  if (trimmet && !fraNavn) {
-    throw new Error('fraNavn må oppgis sammen med hilsen')
-  }
-  // Med hilsen: personlig melding med avsender og tekst.
-  // Uten hilsen: standard stille oppdateringsmelding (bakoverkompatibel).
-  const melding = trimmet && fraNavn
-    ? `${fraNavn} varsler om ${tittel} (${dato}) og skriver: «${trimmet}»`
-    : `${tittel} — ${dato}`
+  // Personlig melding med avsender og hilsen — ellers standard stille
+  // oppdateringsmelding (bakoverkompatibel). Validering i formaterHilsenMelding.
+  const melding = formaterHilsenMelding({
+    fraNavn,
+    hilsen,
+    verb: 'varsler om',
+    basis: `${tittel} (${dato})`,
+    fallback: `${tittel} — ${dato}`,
+  })
   await sendVarsel({
     tittel: 'Arrangement oppdatert',
     melding,
@@ -471,12 +506,10 @@ export async function sendPurringVarsler({
   // en bevisst handling, ikke en cron-jobb. Default false (cron-sti). (#287)
   ignorerAktivBryter?: boolean
 }) {
+  // trimmetHilsen brukes kun for å avgjøre om vi trenger hente fraNavn
+  // (unngår unødig DB-spørring når hilsen er tom). Selve valideringen og
+  // meldingsbygningen er delegert til formaterHilsenMelding.
   const trimmetHilsen = hilsen?.trim()
-
-  // Defensiv guard: hilsen uten avsender ville gitt en forvirrende melding.
-  if (trimmetHilsen && !fraNavn) {
-    throw new Error('fraNavn må oppgis sammen med hilsen')
-  }
 
   if (!ignorerAktivBryter) {
     if (!(await erVarselAktiv('purring_aktiv'))) return
@@ -507,9 +540,13 @@ export async function sendPurringVarsler({
 
   const dato = formaterDatoKlokke(startTidspunkt)
   // Personlig melding med avsender og hilsen — ellers standard cron-melding.
-  const melding = trimmetHilsen && fraNavn
-    ? `${fraNavn} purrer deg på ${tittel} (${dato}) og skriver: «${trimmetHilsen}»`
-    : `${tittel} — ${dato}. Du har ikke svart enda.`
+  const melding = formaterHilsenMelding({
+    fraNavn,
+    hilsen,
+    verb: 'purrer deg på',
+    basis: `${tittel} (${dato})`,
+    fallback: `${tittel} — ${dato}. Du har ikke svart enda.`,
+  })
 
   await sendVarsel({
     mottakere: sendTil,
