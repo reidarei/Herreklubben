@@ -456,35 +456,71 @@ export async function sendPurringVarsler({
   arrangementId,
   tittel,
   startTidspunkt,
+  fraNavn,
+  hilsen,
+  mottakere,
 }: {
   arrangementId: string
   tittel: string
   startTidspunkt: string
+  // Valgfri avsender og hilsen — satt ved manuell purring fra admin/oppretter (#287).
+  // Når disse er oppgitt brukes personlig meldingstekst og purring_aktiv-sjekken hoppes over.
+  fraNavn?: string
+  hilsen?: string
+  // Hvis oppgitt: brukes som mottakerliste direkte — beregning av utenSvar hoppes over.
+  // Brukt av purreUtenSvar() som selv beregner hvem som ikke har svart. (#287)
+  mottakere?: string[]
 }) {
-  if (!(await erVarselAktiv('purring_aktiv'))) return
+  const trimmetHilsen = hilsen?.trim()
+
+  // Defensiv guard: hilsen uten avsender ville gitt en forvirrende melding.
+  if (trimmetHilsen && !fraNavn) {
+    throw new Error('fraNavn må oppgis sammen med hilsen')
+  }
+
+  // Manuell purring (mottakere oppgitt eksplisitt av admin/oppretter) skal ikke gates
+  // av cron-bryteren purring_aktiv — det er en admin-handling, ikke en cron-jobb. (#287)
+  if (!mottakere) {
+    if (!(await erVarselAktiv('purring_aktiv'))) return
+  }
 
   const supabase = createAdminClient()
 
-  const { data: paameldinger } = await supabase
-    .from('paameldinger')
-    .select('profil_id')
-    .eq('arrangement_id', arrangementId)
+  let sendTil: string[]
+  if (mottakere) {
+    // Mottakere er allerede beregnet av kalleren — bruk listen direkte.
+    sendTil = mottakere
+  } else {
+    // Cron-sti: beregn hvem som ikke har svart ennå.
+    const { data: paameldinger } = await supabase
+      .from('paameldinger')
+      .select('profil_id')
+      .eq('arrangement_id', arrangementId)
 
-  const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
+    const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
+    const profiler = await hentProfiler()
+    sendTil = profiler.filter(p => !harSvart.has(p.id)).map(p => p.id)
+  }
 
-  const profiler = await hentProfiler()
-  const utenSvar = profiler.filter(p => !harSvart.has(p.id))
-  if (utenSvar.length === 0) return
+  if (sendTil.length === 0) return
 
   const dato = formaterDatoKlokke(startTidspunkt)
+  // Personlig melding med avsender og hilsen — ellers standard cron-melding.
+  const melding = trimmetHilsen && fraNavn
+    ? `${fraNavn} purrer deg på ${tittel} (${dato}) og skriver: «${trimmetHilsen}»`
+    : `${tittel} — ${dato}. Du har ikke svart enda.`
+
   await sendVarsel({
-    mottakere: utenSvar.map(p => p.id),
+    mottakere: sendTil,
     tittel: 'Husk å svare!',
-    melding: `${tittel} — ${dato}. Du har ikke svart enda.`,
+    melding,
     url: `${BASE_URL}/arrangementer/${arrangementId}`,
     knappTekst: 'Svar nå',
     type: 'purring',
     arrangementId,
+    // Manuell purring fra admin er en bevisst handling — alltid send uavhengig av
+    // om de allerede har mottatt en cron-purring for dette arrangementet. (#287)
+    tillatDuplikat: !!mottakere,
   })
 }
 

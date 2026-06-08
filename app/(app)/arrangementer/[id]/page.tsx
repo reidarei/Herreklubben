@@ -563,8 +563,15 @@ export default async function ArrangementDetaljer({
                 <span style={{ color: 'var(--text-secondary)' }}>{jaListeMedNavn.length}</span>
                 <span style={{ flex: 1, height: '0.5px', background: 'var(--border-subtle)' }} />
               </div>
-              {/* Avatar-rad (ja-folk) + modal (alle svar gruppert etter status, #285). */}
-              <PaameldteListe jaListe={jaListeMedNavn} alleSvar={alleSvar} />
+              {/* Avatar-rad (ja-folk) + modal (alle svar gruppert etter status, #285).
+                  kanPurre=kanRedigere slik at kun admin/oppretter ser «Purre disse». (#287) */}
+              <PaameldteListe
+                jaListe={jaListeMedNavn}
+                alleSvar={alleSvar}
+                arrangementId={id}
+                arrangementTittel={arr.tittel}
+                kanPurre={kanRedigere}
+              />
             </>
           );
         })()}

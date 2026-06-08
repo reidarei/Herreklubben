@@ -4,11 +4,14 @@
 // som åpner modal med ALLE aktive medlemmer gruppert etter RSVP-status (#285).
 // Avatar-raden er uendret — den viser kun ja-folk via jaListe-prop.
 // Modal-innholdet drives av alleSvar-prop som inkluderer ikke-svart.
+// «Purre disse»-pill i «Ikke svart»-gruppe-headeren for admin/oppretter (#287).
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import Avatar from '@/components/ui/Avatar'
 import RsvpGlyph from '@/components/arrangement/RsvpGlyph'
+import { purreUtenSvar } from '@/lib/actions/arrangementer'
+import { PURRING_MAKS_LENGDE } from '@/lib/konstanter'
 
 export type RsvpStatus = 'ja' | 'kanskje' | 'nei' | 'ikke_svart'
 
@@ -25,6 +28,11 @@ type Props = {
   jaListe: PaameldtPerson[]
   // alleSvar: alle aktive medlemmer med status — driver modalen (#285)
   alleSvar: PaameldtPerson[]
+  // Arrangement-info og tilgangssjekk for «Purre disse»-knappen (#287)
+  arrangementId: string
+  arrangementTittel: string
+  // kanPurre: true for admin og oppretter — vises ikke for vanlige medlemmer
+  kanPurre: boolean
 }
 
 // Maks antall avatarer som vises i raden. Resten oppsummeres som «+ N til».
@@ -49,10 +57,22 @@ const STATUS_GLYPH: Record<RsvpStatus, React.ComponentProps<typeof RsvpGlyph>['n
   ikke_svart: 'dash',
 }
 
-export default function PaameldteListe({ jaListe, alleSvar }: Props) {
+export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arrangementTittel, kanPurre }: Props) {
   const [modalAapen, setModalAapen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
+
+  // Purre-modal state — søsken til hovedmodalen slik at de aldri er åpne
+  // samtidig. Lukk hoved → åpne purre ved klikk på «Purre disse». (#287)
+  const [purreModalAapen, setPurreModalAapen] = useState(false)
+  const [purreMelding, setPurreMelding] = useState('')
+  const [purrePending, startPurreTransition] = useTransition()
+  const [purreSendt, setPurreSendt] = useState(false)
+  const [purreFeil, setPurreFeil] = useState('')
+  // Synkron guard mot dobbelklikk — settes før useTransition rekker å markere pending.
+  const purreSendingRef = useRef(false)
+  // Focus-retur: snapshot av trigger-knappen ved åpning av purre-modal.
+  const purreTriggerRef = useRef<HTMLElement | null>(null)
 
   // Intl.Collator er raskere enn localeCompare i loop og gir konsistent sortering
   // på tvers av kall. Sekundær-sort på profil_id sikrer stabil rekkefølge ved like navn.
@@ -98,6 +118,53 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
       triggerRef.current?.focus?.()
     }
   }, [modalAapen])
+
+  // Samme fokus/scroll-lock-mønster for purre-modalen. (#287)
+  useEffect(() => {
+    if (!purreModalAapen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !purrePending) setPurreModalAapen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    const forrigeOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const triggerNode = purreTriggerRef.current
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = forrigeOverflow
+      triggerNode?.focus?.()
+    }
+  }, [purreModalAapen, purrePending])
+
+  function aapnePurreModal() {
+    // Lukk hoved-modalen først, åpne purre-modalen direkte. (#287)
+    purreTriggerRef.current = document.activeElement as HTMLElement | null
+    setModalAapen(false)
+    setPurreFeil('')
+    setPurreMelding('')
+    setPurreModalAapen(true)
+  }
+
+  function lukkPurreModal() {
+    if (purrePending) return
+    setPurreModalAapen(false)
+  }
+
+  function handlePurreSend() {
+    if (purreSendingRef.current) return
+    purreSendingRef.current = true
+    startPurreTransition(async () => {
+      try {
+        await purreUtenSvar(arrangementId, purreMelding.trim() || undefined)
+        setPurreSendt(true)
+        setPurreModalAapen(false)
+      } catch (err) {
+        setPurreFeil(err instanceof Error ? err.message : 'Kunne ikke sende purring')
+      } finally {
+        purreSendingRef.current = false
+      }
+    })
+  }
 
   // Vises kun hvis det finnes aktive medlemmer (alleSvar.length > 0).
   // Tidligere ble seksjonen skjult hvis ingen hadde sagt ja — men det ga en
@@ -294,9 +361,36 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                         letterSpacing: '1.4px',
                         color: meta.farge,
                         boxShadow: '0 1px 0 var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
                       }}
                     >
-                      {meta.label} ({personer.length})
+                      <span style={{ flex: 1 }}>{meta.label} ({personer.length})</span>
+                      {/* «Purre disse»-pill: kun synlig for admin/oppretter når gruppen ikke er tom.
+                          Manuell purring ignorerer cron-bryteren purring_aktiv — admin vet hva han gjør. (#287) */}
+                      {status === 'ikke_svart' && kanPurre && (
+                        <button
+                          type="button"
+                          onClick={aapnePurreModal}
+                          disabled={purreSendt}
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 10,
+                            letterSpacing: '1.2px',
+                            textTransform: 'uppercase',
+                            color: purreSendt ? 'var(--success)' : 'var(--accent)',
+                            background: 'var(--accent-soft)',
+                            border: '0.5px solid var(--accent)',
+                            borderRadius: 999,
+                            padding: '4px 10px',
+                            cursor: purreSendt ? 'default' : 'pointer',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {purreSendt ? 'Purret' : 'Purre disse'}
+                        </button>
+                      )}
                     </div>
                     {/* Rader i gruppen */}
                     {personer.map((p, i) => (
@@ -364,6 +458,160 @@ export default function PaameldteListe({ jaListe, alleSvar }: Props) {
                   </div>
                 )
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purre-modal — søsken til hoved-modalen, aldri åpne samtidig. (#287)
+          Samme overlay- og dialog-mønster som VarsleNuKnapp og PurreKnapp. */}
+      {purreModalAapen && (
+        <div
+          onClick={lukkPurreModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 20px',
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Purre de som ikke har svart på ${arrangementTittel}`}
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 360,
+              background: 'var(--bg-elevated)',
+              border: '0.5px solid var(--border)',
+              borderRadius: 16,
+              padding: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 20,
+                fontWeight: 500,
+                letterSpacing: '-0.2px',
+                color: 'var(--text-primary)',
+              }}
+            >
+              Purre disse
+            </div>
+
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 13,
+                color: 'var(--text-tertiary)',
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              Skriv en valgfri hilsen til de som ikke har svart på {arrangementTittel}, eller bare send.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <textarea
+                value={purreMelding}
+                onChange={e => setPurreMelding(e.target.value)}
+                maxLength={PURRING_MAKS_LENGDE}
+                placeholder="Valgfritt: en hilsen til gutta…"
+                rows={3}
+                autoFocus
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 14,
+                  color: 'var(--text-primary)',
+                  background: 'var(--bg-base)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  resize: 'none',
+                  outline: 'none',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  lineHeight: 1.5,
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 11,
+                  color: 'var(--text-tertiary)',
+                  alignSelf: 'flex-end',
+                }}
+              >
+                {purreMelding.length}/{PURRING_MAKS_LENGDE}
+              </span>
+            </div>
+
+            {purreFeil && (
+              <p
+                role="alert"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 13,
+                  color: 'var(--danger)',
+                  margin: 0,
+                  lineHeight: 1.5,
+                }}
+              >
+                {purreFeil}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={lukkPurreModal}
+                disabled={purrePending}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  background: 'transparent',
+                  border: '0.5px solid var(--border)',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: '1.4px',
+                  textTransform: 'uppercase',
+                  cursor: 'pointer',
+                }}
+              >
+                Avbryt
+              </button>
+              <button
+                type="button"
+                onClick={handlePurreSend}
+                disabled={purrePending}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  background: 'var(--accent)',
+                  border: 'none',
+                  color: '#0a0a0a',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: '1.4px',
+                  textTransform: 'uppercase',
+                  cursor: purrePending ? 'default' : 'pointer',
+                  opacity: purrePending ? 0.7 : 1,
+                }}
+              >
+                {purrePending ? 'Sender…' : 'Send purring'}
+              </button>
             </div>
           </div>
         </div>
