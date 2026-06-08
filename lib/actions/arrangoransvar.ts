@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { sendVarsel } from '@/lib/varsler'
+import { sendVarsel, formaterHilsenMelding } from '@/lib/varsler'
 import { ensureAdmin, ensureInnlogget } from '@/lib/auth'
 import { PURRING_MAKS_LENGDE } from '@/lib/konstanter'
 
@@ -161,13 +161,8 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
   const { user } = await ensureInnlogget()
   const admin = createAdminClient()
 
-  // Server-side validering av hilsen-lengde (klienten håndhever maks via
-  // maxLength, men vi validerer også her mot manipulasjon).
-  const trimmetHilsen = hilsen?.trim()
-  if (trimmetHilsen && trimmetHilsen.length > PURRING_MAKS_LENGDE) {
-    throw new Error(`Hilsen kan ikke være lengre enn ${PURRING_MAKS_LENGDE} tegn`)
-  }
-
+  // Meldingsbygging og lengde-validering av hilsen ligger i
+  // formaterHilsenMelding lenger nede — vi sender bare rådata inn. (#289)
   const { data: ansvar } = await admin
     .from('arrangoransvar')
     .select('id, aar, arrangement_navn, ansvarlig_id, arrangement_id')
@@ -216,9 +211,14 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
 
   const fraNavn = purrer?.visningsnavn || purrer?.navn || 'En gutt'
 
-  const melding = trimmetHilsen
-    ? `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar} og skriver: «${trimmetHilsen}»`
-    : `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`
+  const melding = formaterHilsenMelding({
+    fraNavn,
+    hilsen,
+    verb: 'purrer deg på',
+    basis: `${ansvar.arrangement_navn} ${ansvar.aar}`,
+    fallback: `${fraNavn} purrer deg på ${ansvar.arrangement_navn} ${ansvar.aar}. Få arrangementet inn i kalenderen.`,
+    maksLengde: PURRING_MAKS_LENGDE,
+  })
 
   await sendVarsel({
     mottakere,

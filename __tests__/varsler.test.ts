@@ -28,6 +28,7 @@ import {
   sendNyttArrangementVarsler,
   sendPaaminneVarsler,
   sendArrangorPurringVarsler,
+  formaterHilsenMelding,
 } from '@/lib/varsler'
 
 beforeEach(() => {
@@ -215,6 +216,89 @@ describe('wrapper-funksjoner', () => {
     if (mockSendEpost.mock.calls.length > 0) {
       expect(mockSendEpost.mock.calls[0][0].emne).toBe('Husk arrangøransvaret ditt!')
     }
+  })
+})
+
+describe('formaterHilsenMelding', () => {
+  it('returnerer fallback når hilsen mangler', () => {
+    const melding = formaterHilsenMelding({
+      verb: 'purrer deg på',
+      basis: 'Vårfest (15.06.2026)',
+      fallback: 'Vårfest — 15.06.2026. Du har ikke svart enda.',
+    })
+    expect(melding).toBe('Vårfest — 15.06.2026. Du har ikke svart enda.')
+  })
+
+  it('returnerer fallback når hilsen er tom streng', () => {
+    const melding = formaterHilsenMelding({
+      fraNavn: 'Ola Nordmann',
+      hilsen: '   ',
+      verb: 'purrer deg på',
+      basis: 'Vårfest (15.06.2026)',
+      fallback: 'Vårfest — 15.06.2026. Du har ikke svart enda.',
+    })
+    expect(melding).toBe('Vårfest — 15.06.2026. Du har ikke svart enda.')
+  })
+
+  it('returnerer formatert streng med hilsen og fraNavn', () => {
+    const melding = formaterHilsenMelding({
+      fraNavn: 'Ola Nordmann',
+      hilsen: 'Kom deg på banen!',
+      verb: 'purrer deg på',
+      basis: 'Vårfest (15.06.2026)',
+      fallback: 'Vårfest — 15.06.2026. Du har ikke svart enda.',
+    })
+    expect(melding).toBe('Ola Nordmann purrer deg på Vårfest (15.06.2026) og skriver: «Kom deg på banen!»')
+  })
+
+  it('returnerer fallback når hilsen kun er whitespace uten fraNavn', () => {
+    // Whitespace-only hilsen skal trimmes bort, så fraNavn-kravet
+    // gjelder ikke — fallback returneres uten å kaste.
+    const melding = formaterHilsenMelding({
+      hilsen: '   ',
+      verb: 'purrer deg på',
+      basis: 'Vårfest',
+      fallback: 'fallback-melding',
+    })
+    expect(melding).toBe('fallback-melding')
+  })
+
+  it('kaster når hilsen er oppgitt uten fraNavn', () => {
+    expect(() =>
+      formaterHilsenMelding({
+        hilsen: 'En hilsen',
+        verb: 'purrer deg på',
+        basis: 'Vårfest (15.06.2026)',
+        fallback: 'fallback',
+      })
+    ).toThrow('fraNavn må oppgis sammen med hilsen')
+  })
+
+  it('kaster når hilsen overskrider maksLengde', () => {
+    expect(() =>
+      formaterHilsenMelding({
+        fraNavn: 'Ola',
+        hilsen: 'x'.repeat(201),
+        verb: 'purrer deg på',
+        basis: 'Vårfest',
+        fallback: 'fallback',
+        maksLengde: 200,
+      })
+    ).toThrow('Hilsen kan ikke være lengre enn 200 tegn')
+  })
+
+  it('respekterer maksLengde: 0 (truthy-fellen)', () => {
+    // Sikrer at falsy men gyldig maksLengde (0) ikke hoppes over av truthy-sjekk.
+    expect(() =>
+      formaterHilsenMelding({
+        fraNavn: 'Ola',
+        hilsen: 'x',
+        verb: 'purrer deg på',
+        basis: 'Vårfest',
+        fallback: 'fallback',
+        maksLengde: 0,
+      })
+    ).toThrow('Hilsen kan ikke være lengre enn 0 tegn')
   })
 })
 
