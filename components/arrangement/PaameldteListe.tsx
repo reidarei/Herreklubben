@@ -132,7 +132,17 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = forrigeOverflow
-      triggerNode?.focus?.()
+      // Focus-retur: trigger-knappen for purre-modalen er pillen INNE i
+      // hoved-modalen, som lukkes samtidig som purre-modalen åpnes. Når purre
+      // lukkes er den DOM-noden derfor borte. Fall tilbake til hoved-modalens
+      // trigger (avatar-raden/«Vis liste»), og til body som siste utvei. (#287)
+      if (triggerNode && document.body.contains(triggerNode)) {
+        triggerNode.focus?.()
+      } else if (triggerRef.current && document.body.contains(triggerRef.current)) {
+        triggerRef.current.focus?.()
+      } else {
+        document.body.focus?.()
+      }
     }
   }, [purreModalAapen, purrePending])
 
@@ -142,6 +152,9 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
     setModalAapen(false)
     setPurreFeil('')
     setPurreMelding('')
+    // Reset «Purret»-tilstanden så admin kan purre igjen senere i økten —
+    // folk svarer over tid, og det er legitimt å purre flere ganger. (#287)
+    setPurreSendt(false)
     setPurreModalAapen(true)
   }
 
@@ -368,8 +381,10 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
                     >
                       <span style={{ flex: 1 }}>{meta.label} ({personer.length})</span>
                       {/* «Purre disse»-pill: kun synlig for admin/oppretter når gruppen ikke er tom.
-                          Manuell purring ignorerer cron-bryteren purring_aktiv — admin vet hva han gjør. (#287) */}
-                      {status === 'ikke_svart' && kanPurre && (
+                          personer.length>0 er strengt tatt overflødig (tomme grupper filtreres bort
+                          over), men eksplisitt sjekk leser tydeligere enn implisitt avhengighet. (#287)
+                          Manuell purring ignorerer cron-bryteren purring_aktiv — admin vet hva han gjør. */}
+                      {status === 'ikke_svart' && kanPurre && personer.length > 0 && (
                         <button
                           type="button"
                           onClick={aapnePurreModal}

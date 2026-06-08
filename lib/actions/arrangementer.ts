@@ -9,6 +9,7 @@ import { kanAdministrere } from '@/lib/roller'
 import { naa } from '@/lib/dato'
 import { r2StiFraUrl, slettR2 } from '@/lib/r2'
 import { VARSLE_MAKS_LENGDE, PURRING_MAKS_LENGDE } from '@/lib/konstanter'
+import { ensureInnlogget } from '@/lib/auth'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -226,9 +227,7 @@ export async function varslOmArrangement(arrangementId: string, hilsen?: string)
 // «Vis liste»-modalen via «Purre disse»-knappen. Ignorerer purring_aktiv-bryteren
 // siden dette er en bevisst admin-handling, ikke en cron-jobb. Se #287.
 export async function purreUtenSvar(arrangementId: string, hilsen?: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const trimmetHilsen = hilsen?.trim()
 
@@ -250,26 +249,6 @@ export async function purreUtenSvar(arrangementId: string, hilsen?: string) {
   const erOpprettet = arrangement.opprettet_av === user.id
   if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
 
-  // Beregn hvem som ikke har svart ennå — hent alle aktive profiler minus de
-  // som har en paameldinger-rad for dette arrangementet.
-  const [{ data: paameldinger }, { data: alleProfiler }] = await Promise.all([
-    supabase
-      .from('paameldinger')
-      .select('profil_id')
-      .eq('arrangement_id', arrangementId),
-    supabase
-      .from('profiles')
-      .select('id')
-      .eq('aktiv', true),
-  ])
-
-  const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
-  const utenSvar = (alleProfiler ?? [])
-    .map(p => p.id)
-    .filter(id => !harSvart.has(id))
-
-  if (utenSvar.length === 0) return
-
   // Hent avsenders visningsnavn hvis hilsen er oppgitt
   let fraNavn: string | undefined
   if (trimmetHilsen) {
@@ -281,12 +260,20 @@ export async function purreUtenSvar(arrangementId: string, hilsen?: string) {
     fraNavn = avsender?.visningsnavn || avsender?.navn || 'En gutt'
   }
 
+  // Vi sender IKKE en pre-beregnet mottakerliste — sendPurringVarsler beregner
+  // utenSvar selv så tett opp mot utsendingen som mulig. Det lukker et TOCTOU-vindu
+  // hvor noen rekker å svare mellom beregning her og utsending der. Vi signaliserer
+  // bare at dette er en manuell admin-handling som skal ignorere cron-bryteren. (#287)
   await sendPurringVarsler({
     arrangementId: arrangement.id,
     tittel: arrangement.tittel,
     startTidspunkt: arrangement.start_tidspunkt,
-    mottakere: utenSvar,
     fraNavn,
     hilsen: trimmetHilsen,
+    ignorerAktivBryter: true,
   })
+
+  // Refresh siden så «Ikke svart»-listen oppdateres hvis noen svarte
+  // i mellomtiden (eller cron har kjørt mellom åpning og sending).
+  revalidatePath(`/arrangementer/${arrangementId}`)
 }

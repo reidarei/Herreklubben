@@ -458,18 +458,18 @@ export async function sendPurringVarsler({
   startTidspunkt,
   fraNavn,
   hilsen,
-  mottakere,
+  ignorerAktivBryter = false,
 }: {
   arrangementId: string
   tittel: string
   startTidspunkt: string
   // Valgfri avsender og hilsen — satt ved manuell purring fra admin/oppretter (#287).
-  // Når disse er oppgitt brukes personlig meldingstekst og purring_aktiv-sjekken hoppes over.
+  // Når disse er oppgitt brukes personlig meldingstekst i stedet for cron-meldingen.
   fraNavn?: string
   hilsen?: string
-  // Hvis oppgitt: brukes som mottakerliste direkte — beregning av utenSvar hoppes over.
-  // Brukt av purreUtenSvar() som selv beregner hvem som ikke har svart. (#287)
-  mottakere?: string[]
+  // Manuell admin-purring skal ikke gates av cron-bryteren purring_aktiv — det er
+  // en bevisst handling, ikke en cron-jobb. Default false (cron-sti). (#287)
+  ignorerAktivBryter?: boolean
 }) {
   const trimmetHilsen = hilsen?.trim()
 
@@ -478,29 +478,22 @@ export async function sendPurringVarsler({
     throw new Error('fraNavn må oppgis sammen med hilsen')
   }
 
-  // Manuell purring (mottakere oppgitt eksplisitt av admin/oppretter) skal ikke gates
-  // av cron-bryteren purring_aktiv — det er en admin-handling, ikke en cron-jobb. (#287)
-  if (!mottakere) {
+  if (!ignorerAktivBryter) {
     if (!(await erVarselAktiv('purring_aktiv'))) return
   }
 
+  // Beregn mottakere her — så tett opp mot utsendingen som mulig. Tidligere lot vi
+  // kalleren sende inn en mottakerliste, men det åpnet et TOCTOU-vindu der noen
+  // kunne svare mellom action-beregning og utsending og fortsatt få purring. (#287)
   const supabase = createAdminClient()
+  const { data: paameldinger } = await supabase
+    .from('paameldinger')
+    .select('profil_id')
+    .eq('arrangement_id', arrangementId)
 
-  let sendTil: string[]
-  if (mottakere) {
-    // Mottakere er allerede beregnet av kalleren — bruk listen direkte.
-    sendTil = mottakere
-  } else {
-    // Cron-sti: beregn hvem som ikke har svart ennå.
-    const { data: paameldinger } = await supabase
-      .from('paameldinger')
-      .select('profil_id')
-      .eq('arrangement_id', arrangementId)
-
-    const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
-    const profiler = await hentProfiler()
-    sendTil = profiler.filter(p => !harSvart.has(p.id)).map(p => p.id)
-  }
+  const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
+  const profiler = await hentProfiler()
+  const sendTil = profiler.filter(p => !harSvart.has(p.id)).map(p => p.id)
 
   if (sendTil.length === 0) return
 
@@ -520,7 +513,7 @@ export async function sendPurringVarsler({
     arrangementId,
     // Manuell purring fra admin er en bevisst handling — alltid send uavhengig av
     // om de allerede har mottatt en cron-purring for dette arrangementet. (#287)
-    tillatDuplikat: !!mottakere,
+    tillatDuplikat: ignorerAktivBryter,
   })
 }
 
