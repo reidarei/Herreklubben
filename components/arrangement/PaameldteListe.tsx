@@ -120,10 +120,16 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
   }, [modalAapen])
 
   // Samme fokus/scroll-lock-mønster for purre-modalen. (#287)
+  // Effekten avhenger KUN av purreModalAapen — ikke purrePending. Hvis vi
+  // hadde lagt pending i dep-listen ville cleanup kjørt midt under sending
+  // (når useTransition flipper pending), restore body-overflow og forsøkt
+  // focus-retur mens modalen fortsatt er åpen. Escape-gating gjøres derfor
+  // via purreSendingRef (synkron flagg), samme mønster som VarsleNuKnapp
+  // etter #282-fiksen.
   useEffect(() => {
     if (!purreModalAapen) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !purrePending) setPurreModalAapen(false)
+      if (e.key === 'Escape' && !purreSendingRef.current) setPurreModalAapen(false)
     }
     document.addEventListener('keydown', onKey)
     const forrigeOverflow = document.body.style.overflow
@@ -144,7 +150,7 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
         document.body.focus?.()
       }
     }
-  }, [purreModalAapen, purrePending])
+  }, [purreModalAapen])
 
   function aapnePurreModal() {
     // Lukk hoved-modalen først, åpne purre-modalen direkte. (#287)
@@ -385,10 +391,17 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
                           over), men eksplisitt sjekk leser tydeligere enn implisitt avhengighet. (#287)
                           Manuell purring ignorerer cron-bryteren purring_aktiv — admin vet hva han gjør. */}
                       {status === 'ikke_svart' && kanPurre && personer.length > 0 && (
+                        // Pillen disables KUN under aktiv sending (purrePending).
+                        // Etter sending viser vi «Purret» som tekst-state i en kort
+                        // periode, men pillen er klikkbar igjen — admin kan åpne
+                        // modalen og purre på nytt (aapnePurreModal nullstiller
+                        // purreSendt). Tidligere ble pillen permanent disabled
+                        // etter første sending, så admin var låst ute fra å sende
+                        // ny purring uten å laste siden på nytt.
                         <button
                           type="button"
                           onClick={aapnePurreModal}
-                          disabled={purreSendt}
+                          disabled={purrePending}
                           style={{
                             fontFamily: 'var(--font-mono)',
                             fontSize: 10,
@@ -399,7 +412,7 @@ export default function PaameldteListe({ jaListe, alleSvar, arrangementId, arran
                             border: '0.5px solid var(--accent)',
                             borderRadius: 999,
                             padding: '4px 10px',
-                            cursor: purreSendt ? 'default' : 'pointer',
+                            cursor: purrePending ? 'default' : 'pointer',
                             flexShrink: 0,
                           }}
                         >

@@ -486,10 +486,18 @@ export async function sendPurringVarsler({
   // kalleren sende inn en mottakerliste, men det åpnet et TOCTOU-vindu der noen
   // kunne svare mellom action-beregning og utsending og fortsatt få purring. (#287)
   const supabase = createAdminClient()
-  const { data: paameldinger } = await supabase
+  const { data: paameldinger, error: paameldingerFeil } = await supabase
     .from('paameldinger')
     .select('profil_id')
     .eq('arrangement_id', arrangementId)
+
+  // Fail closed: hvis spørringen feiler er harSvart tomt, og uten denne
+  // sjekken ville purringen gått til ALLE aktive medlemmer — også de som
+  // for lengst har svart. Manuell purring skal aldri eksplodere til hele
+  // klubben pga en transient DB-feil. (#287)
+  if (paameldingerFeil) {
+    throw new Error(`Kunne ikke hente påmeldinger for purring: ${paameldingerFeil.message}`)
+  }
 
   const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
   const profiler = await hentProfiler()
