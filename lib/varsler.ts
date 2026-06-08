@@ -456,35 +456,72 @@ export async function sendPurringVarsler({
   arrangementId,
   tittel,
   startTidspunkt,
+  fraNavn,
+  hilsen,
+  ignorerAktivBryter = false,
 }: {
   arrangementId: string
   tittel: string
   startTidspunkt: string
+  // Valgfri avsender og hilsen — satt ved manuell purring fra admin/oppretter (#287).
+  // Når disse er oppgitt brukes personlig meldingstekst i stedet for cron-meldingen.
+  fraNavn?: string
+  hilsen?: string
+  // Manuell admin-purring skal ikke gates av cron-bryteren purring_aktiv — det er
+  // en bevisst handling, ikke en cron-jobb. Default false (cron-sti). (#287)
+  ignorerAktivBryter?: boolean
 }) {
-  if (!(await erVarselAktiv('purring_aktiv'))) return
+  const trimmetHilsen = hilsen?.trim()
 
+  // Defensiv guard: hilsen uten avsender ville gitt en forvirrende melding.
+  if (trimmetHilsen && !fraNavn) {
+    throw new Error('fraNavn må oppgis sammen med hilsen')
+  }
+
+  if (!ignorerAktivBryter) {
+    if (!(await erVarselAktiv('purring_aktiv'))) return
+  }
+
+  // Beregn mottakere her — så tett opp mot utsendingen som mulig. Tidligere lot vi
+  // kalleren sende inn en mottakerliste, men det åpnet et TOCTOU-vindu der noen
+  // kunne svare mellom action-beregning og utsending og fortsatt få purring. (#287)
   const supabase = createAdminClient()
-
-  const { data: paameldinger } = await supabase
+  const { data: paameldinger, error: paameldingerFeil } = await supabase
     .from('paameldinger')
     .select('profil_id')
     .eq('arrangement_id', arrangementId)
 
-  const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
+  // Fail closed: hvis spørringen feiler er harSvart tomt, og uten denne
+  // sjekken ville purringen gått til ALLE aktive medlemmer — også de som
+  // for lengst har svart. Manuell purring skal aldri eksplodere til hele
+  // klubben pga en transient DB-feil. (#287)
+  if (paameldingerFeil) {
+    throw new Error(`Kunne ikke hente påmeldinger for purring: ${paameldingerFeil.message}`)
+  }
 
+  const harSvart = new Set((paameldinger ?? []).map(p => p.profil_id))
   const profiler = await hentProfiler()
-  const utenSvar = profiler.filter(p => !harSvart.has(p.id))
-  if (utenSvar.length === 0) return
+  const sendTil = profiler.filter(p => !harSvart.has(p.id)).map(p => p.id)
+
+  if (sendTil.length === 0) return
 
   const dato = formaterDatoKlokke(startTidspunkt)
+  // Personlig melding med avsender og hilsen — ellers standard cron-melding.
+  const melding = trimmetHilsen && fraNavn
+    ? `${fraNavn} purrer deg på ${tittel} (${dato}) og skriver: «${trimmetHilsen}»`
+    : `${tittel} — ${dato}. Du har ikke svart enda.`
+
   await sendVarsel({
-    mottakere: utenSvar.map(p => p.id),
+    mottakere: sendTil,
     tittel: 'Husk å svare!',
-    melding: `${tittel} — ${dato}. Du har ikke svart enda.`,
+    melding,
     url: `${BASE_URL}/arrangementer/${arrangementId}`,
     knappTekst: 'Svar nå',
     type: 'purring',
     arrangementId,
+    // Manuell purring fra admin er en bevisst handling — alltid send uavhengig av
+    // om de allerede har mottatt en cron-purring for dette arrangementet. (#287)
+    tillatDuplikat: ignorerAktivBryter,
   })
 }
 

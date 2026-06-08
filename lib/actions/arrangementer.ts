@@ -3,12 +3,13 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { sendNyttArrangementVarsler, sendOppdatertVarsler } from '@/lib/varsler'
+import { sendNyttArrangementVarsler, sendOppdatertVarsler, sendPurringVarsler } from '@/lib/varsler'
 import { getProfil } from '@/lib/auth-cache'
 import { kanAdministrere } from '@/lib/roller'
 import { naa } from '@/lib/dato'
 import { r2StiFraUrl, slettR2 } from '@/lib/r2'
-import { VARSLE_MAKS_LENGDE } from '@/lib/konstanter'
+import { VARSLE_MAKS_LENGDE, PURRING_MAKS_LENGDE } from '@/lib/konstanter'
+import { ensureInnlogget } from '@/lib/auth'
 
 export type ArrangementInput = {
   type: 'moete' | 'tur'
@@ -219,5 +220,60 @@ export async function varslOmArrangement(arrangementId: string, hilsen?: string)
     hilsen: trimmetHilsen,
   })
 
+  revalidatePath(`/arrangementer/${arrangementId}`)
+}
+
+// Manuell purring til alle som ikke har svart — trigges av admin/oppretter fra
+// «Vis liste»-modalen via «Purre disse»-knappen. Ignorerer purring_aktiv-bryteren
+// siden dette er en bevisst admin-handling, ikke en cron-jobb. Se #287.
+export async function purreUtenSvar(arrangementId: string, hilsen?: string) {
+  const { supabase, user } = await ensureInnlogget()
+
+  const trimmetHilsen = hilsen?.trim()
+
+  if (trimmetHilsen && trimmetHilsen.length > PURRING_MAKS_LENGDE) {
+    throw new Error(`Hilsen kan ikke være lengre enn ${PURRING_MAKS_LENGDE} tegn`)
+  }
+
+  const { data: arrangement } = await supabase
+    .from('arrangementer')
+    .select('id, tittel, start_tidspunkt, opprettet_av')
+    .eq('id', arrangementId)
+    .single()
+
+  if (!arrangement) throw new Error('Arrangement ikke funnet')
+
+  // Kun admin eller oppretter kan purre — samme mønster som varslOmArrangement.
+  const profil = await getProfil()
+  const erAdmin = kanAdministrere(profil?.rolle)
+  const erOpprettet = arrangement.opprettet_av === user.id
+  if (!erAdmin && !erOpprettet) throw new Error('Ikke tilgang')
+
+  // Hent avsenders visningsnavn hvis hilsen er oppgitt
+  let fraNavn: string | undefined
+  if (trimmetHilsen) {
+    const { data: avsender } = await supabase
+      .from('profiles')
+      .select('navn, visningsnavn')
+      .eq('id', user.id)
+      .single()
+    fraNavn = avsender?.visningsnavn || avsender?.navn || 'En gutt'
+  }
+
+  // Vi sender IKKE en pre-beregnet mottakerliste — sendPurringVarsler beregner
+  // utenSvar selv så tett opp mot utsendingen som mulig. Det lukker et TOCTOU-vindu
+  // hvor noen rekker å svare mellom beregning her og utsending der. Vi signaliserer
+  // bare at dette er en manuell admin-handling som skal ignorere cron-bryteren. (#287)
+  await sendPurringVarsler({
+    arrangementId: arrangement.id,
+    tittel: arrangement.tittel,
+    startTidspunkt: arrangement.start_tidspunkt,
+    fraNavn,
+    hilsen: trimmetHilsen,
+    ignorerAktivBryter: true,
+  })
+
+  // Refresh siden så «Ikke svart»-listen oppdateres hvis noen svarte
+  // i mellomtiden (eller cron har kjørt mellom åpning og sending).
   revalidatePath(`/arrangementer/${arrangementId}`)
 }
