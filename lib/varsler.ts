@@ -126,7 +126,8 @@ export function formaterHilsenMelding({
   if (trimmet && !fraNavn) {
     throw new Error('fraNavn må oppgis sammen med hilsen')
   }
-  if (trimmet && maksLengde && trimmet.length > maksLengde) {
+  // Eksplisitt undefined-sjekk: maksLengde: 0 skal også validere (truthy-sjekk ville hoppet over 0)
+  if (trimmet && maksLengde !== undefined && trimmet.length > maksLengde) {
     throw new Error(`Hilsen kan ikke være lengre enn ${maksLengde} tegn`)
   }
   return trimmet && fraNavn

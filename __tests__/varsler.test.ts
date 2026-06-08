@@ -286,6 +286,20 @@ describe('formaterHilsenMelding', () => {
       })
     ).toThrow('Hilsen kan ikke være lengre enn 200 tegn')
   })
+
+  it('respekterer maksLengde: 0 (truthy-fellen)', () => {
+    // Sikrer at falsy men gyldig maksLengde (0) ikke hoppes over av truthy-sjekk.
+    expect(() =>
+      formaterHilsenMelding({
+        fraNavn: 'Ola',
+        hilsen: 'x',
+        verb: 'purrer deg på',
+        basis: 'Vårfest',
+        fallback: 'fallback',
+        maksLengde: 0,
+      })
+    ).toThrow('Hilsen kan ikke være lengre enn 0 tegn')
+  })
 })
 
 describe('sendVarsel – testmodus', () => {
