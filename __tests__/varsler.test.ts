@@ -251,6 +251,18 @@ describe('formaterHilsenMelding', () => {
     expect(melding).toBe('Ola Nordmann purrer deg på Vårfest (15.06.2026) og skriver: «Kom deg på banen!»')
   })
 
+  it('returnerer fallback når hilsen kun er whitespace uten fraNavn', () => {
+    // Whitespace-only hilsen skal trimmes bort, så fraNavn-kravet
+    // gjelder ikke — fallback returneres uten å kaste.
+    const melding = formaterHilsenMelding({
+      hilsen: '   ',
+      verb: 'purrer deg på',
+      basis: 'Vårfest',
+      fallback: 'fallback-melding',
+    })
+    expect(melding).toBe('fallback-melding')
+  })
+
   it('kaster når hilsen er oppgitt uten fraNavn', () => {
     expect(() =>
       formaterHilsenMelding({

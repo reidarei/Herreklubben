@@ -161,11 +161,8 @@ export async function purreAnsvarlig(ansvarId: string, hilsen?: string) {
   const { user } = await ensureInnlogget()
   const admin = createAdminClient()
 
-  // trimmetHilsen brukes kun for å avgjøre om vi trenger hente fraNavn
-  // (unngår unødig DB-spørring når hilsen er tom). Lengde-validering og
-  // meldingsbygning delegeres til formaterHilsenMelding (#289).
-  const trimmetHilsen = hilsen?.trim()
-
+  // Meldingsbygging og lengde-validering av hilsen ligger i
+  // formaterHilsenMelding lenger nede — vi sender bare rådata inn. (#289)
   const { data: ansvar } = await admin
     .from('arrangoransvar')
     .select('id, aar, arrangement_navn, ansvarlig_id, arrangement_id')

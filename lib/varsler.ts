@@ -3,6 +3,7 @@ import { sendPush } from '@/lib/push'
 import { sendEpost, arrangementEpostHtml } from '@/lib/epost'
 import { formaterDato, FORMAT_DATO_KLOKKE } from '@/lib/dato'
 import { BASE_URL } from '@/lib/config'
+import { PURRING_MAKS_LENGDE, VARSLE_MAKS_LENGDE } from '@/lib/konstanter'
 
 const formaterDatoKlokke = (iso: string) => formaterDato(iso, FORMAT_DATO_KLOKKE)
 
@@ -102,7 +103,9 @@ async function hentPushSubscriptions(profilIder: string[]) {
  * flettes den inn som «{fraNavn} {verb} {basis} og skriver: «{hilsen}»».
  *
  * Sentralisert per #289 etter at samme mønster ble duplisert i tre
- * wrappers (#267, #282, #287). Helper er ren — ingen IO eller state.
+ * wrappers (#267, #282, #287).
+ *
+ * Helper er ren — ingen IO eller state.
  */
 export function formaterHilsenMelding({
   fraNavn,
@@ -329,6 +332,7 @@ export async function sendOppdatertVarsler({
     verb: 'varsler om',
     basis: `${tittel} (${dato})`,
     fallback: `${tittel} — ${dato}`,
+    maksLengde: VARSLE_MAKS_LENGDE,
   })
   await sendVarsel({
     tittel: 'Arrangement oppdatert',
@@ -506,11 +510,6 @@ export async function sendPurringVarsler({
   // en bevisst handling, ikke en cron-jobb. Default false (cron-sti). (#287)
   ignorerAktivBryter?: boolean
 }) {
-  // trimmetHilsen brukes kun for å avgjøre om vi trenger hente fraNavn
-  // (unngår unødig DB-spørring når hilsen er tom). Selve valideringen og
-  // meldingsbygningen er delegert til formaterHilsenMelding.
-  const trimmetHilsen = hilsen?.trim()
-
   if (!ignorerAktivBryter) {
     if (!(await erVarselAktiv('purring_aktiv'))) return
   }
@@ -546,6 +545,7 @@ export async function sendPurringVarsler({
     verb: 'purrer deg på',
     basis: `${tittel} (${dato})`,
     fallback: `${tittel} — ${dato}. Du har ikke svart enda.`,
+    maksLengde: PURRING_MAKS_LENGDE,
   })
 
   await sendVarsel({
