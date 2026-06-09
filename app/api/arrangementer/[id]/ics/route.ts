@@ -40,7 +40,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const linjer = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    `PRODID:-//${KLUBB_NAVN}//NO`,
+    // KLUBB_NAVN kan inneholde tegn som må escapes for ICS TEXT (komma, semikolon).
+    `PRODID:-//${escapeIcs(KLUBB_NAVN)}//NO`,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `BEGIN:VTIMEZONE`,

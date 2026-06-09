@@ -1,8 +1,9 @@
 // Krever verifisert domene i Resend — sett RESEND_FROM til f.eks. "Herreklubben <noreply@dittdomene.no>"
-import { KLUBB_NAVN, KLUBB_EPOST_AVSENDER } from './klubb-config'
+import { KLUBB_NAVN } from './klubb-config'
 const RESEND_API_KEY = process.env.RESEND_API_KEY!
-// RESEND_FROM hentes fra klubb-config slik at avsendernavn ikke er hardkodet her.
-const RESEND_FROM = KLUBB_EPOST_AVSENDER
+// Avsender er server-only-konfig (Resend-spesifikk) og holdes derfor her,
+// ikke i klient-trygg klubb-config. Ingen NEXT_PUBLIC_-prefiks.
+const RESEND_FROM = process.env.RESEND_FROM ?? 'Herreklubben <onboarding@resend.dev>'
 
 export async function sendEpost({ til, emne, html }: { til: string; emne: string; html: string }) {
   try {
@@ -58,6 +59,8 @@ export function arrangementEpostHtml({
   const tekstEsc = escapeHtml(tekst)
   const urlEsc = escapeHtml(url)
   const knappTekstEsc = escapeHtml(knappTekst)
+  // KLUBB_NAVN kommer fra env-var (NEXT_PUBLIC_KLUBB_NAVN) — escapes som
+  // forsvar i dybden selv om kilden i praksis kontrolleres av deployer.
   return `
 <!DOCTYPE html>
 <html lang="no">
