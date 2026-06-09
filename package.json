@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "stamp-versjon": "node scripts/stamp-versjon.mjs",
-    "import:messenger": "node --env-file=.env.local scripts/import-messenger-klubbchat.mjs"
+    "import:messenger": "node --env-file=.env.local scripts/import-messenger-klubbchat.mjs",
+    "sjekk-miljo": "node --env-file=.env.local scripts/sjekk-miljo.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
