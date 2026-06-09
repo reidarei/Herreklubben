@@ -226,6 +226,24 @@ __tests__/       # Vitest — fokuserte enhets-tester på utvalgte helpers
 
 ---
 
+## Miljøvariabler
+
+Kopier `.env.example` til `.env.local`, fyll inn verdiene, og kjør `npm run sjekk-miljo` for å verifisere:
+
+```bash
+cp .env.example .env.local
+# fyll inn verdiene
+npm run sjekk-miljo
+```
+
+Skriptet sjekker tre nivåer:
+
+- **Kritisk** (Supabase, R2, VAPID) — appen/kjernefunksjoner starter ikke uten disse.
+- **Anbefalt** (Resend, CRON_SECRET, GitHub-token) — appen starter, men e-post, påminnelsesvarsler eller innspill-funksjonen mangler.
+- **Valgfri** (klubbidentitet m.m.) — har defaults, vises kun hvis eksplisitt satt.
+
+**GitHub Actions-secrets** (`APP_URL`, `CRON_SECRET`) settes i repo Settings → Secrets and variables → Actions — ikke i `.env.local`.
+
 ## Lokalt utviklingsmiljø
 
 ```bash
@@ -239,6 +257,7 @@ npm install
 npx vercel link
 npx vercel env pull .env.local --environment=production
 
+npm run sjekk-miljo  # verifiser miljøet
 npm run dev          # http://localhost:3000
 npm run build        # Produksjonsbygg
 npm run lint         # ESLint
