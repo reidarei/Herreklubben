@@ -21,6 +21,20 @@ const erLegacyJwt = (v) => {
   return deler.length === 3 && deler[0].startsWith('eyJ')
 }
 
+// Hjelper: les `role`-claimen ut av en legacy Supabase-JWT.
+// Returnerer strengen ved suksess, eller null hvis payloaden ikke kan dekodes.
+// Vi printer ALDRI verdier herfra — kun navn på variabelen som ev. er byttet.
+const lesJwtRole = (v) => {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(v.split('.')[1], 'base64url').toString('utf8'),
+    )
+    return typeof payload?.role === 'string' ? payload.role : null
+  } catch {
+    return null
+  }
+}
+
 const typer = {
   // Gyldig URL med https eller http
   url: (v) => {
@@ -31,12 +45,26 @@ const typer = {
   // To formatgenerasjoner finnes side om side:
   //   - Ny (fra ~2025): "sb_publishable_<base64>" — opaque token, ikke JWT.
   //   - Legacy: signert JWT (eyJ...). Eksisterende prosjekter har fortsatt denne.
-  // Vi godtar begge — gamle prosjekter trenger ikke roteres.
-  'supabase-publishable': (v) => v.startsWith('sb_publishable_') || erLegacyJwt(v),
+  // Vi godtar begge — gamle prosjekter trenger ikke roteres. For legacy JWT
+  // sjekker vi at role-claimen i payloaden er 'anon' så vi fanger nøkkelbytte
+  // (service_role lagt i anon-variabelen) — men aksepterer udekodbar payload
+  // for å ikke være strengere enn nødvendig mot ukjente legacy-varianter.
+  'supabase-publishable': (v) => {
+    if (v.startsWith('sb_publishable_')) return true
+    if (!erLegacyJwt(v)) return false
+    const role = lesJwtRole(v)
+    return role === null || role === 'anon'
+  },
   // Supabase secret/service-role-nøkkel.
   //   - Ny: "sb_secret_<base64>" — opaque token.
-  //   - Legacy: JWT med role: service_role i payload.
-  'supabase-secret': (v) => v.startsWith('sb_secret_') || erLegacyJwt(v),
+  //   - Legacy: JWT med role: service_role i payload. Vi sjekker claimen for
+  //     å fange byttede nøkler (anon-JWT lagt inn som service-role).
+  'supabase-secret': (v) => {
+    if (v.startsWith('sb_secret_')) return true
+    if (!erLegacyJwt(v)) return false
+    const role = lesJwtRole(v)
+    return role === null || role === 'service_role'
+  },
   // VAPID offentlig nøkkel: ukomprimert P-256 punkt → 65 bytes → 87 base64url-tegn
   // (uten padding). Bruker 80–100 for slingring rundt eventuelle implementasjoner
   // som padder eller hopper et tegn.
@@ -52,12 +80,17 @@ const typer = {
   // Resend API-nøkkel
   'resend-key': (v) => v.startsWith('re_'),
   // R2 jurisdiksjon — speiler verdiene lib/r2.ts faktisk forventer.
-  // 'default' gir tomt segment i endpointet, 'eu' gir '.eu'-segment.
-  'r2-jurisdiction': (v) => ['default', 'eu'].includes(v.toLowerCase()),
+  // 'default' gir tomt segment i endpointet, 'eu' gir '.eu'-segment,
+  // 'fedramp' gir '.fedramp'-segment (Cloudflares US-myndighetstilbud).
+  'r2-jurisdiction': (v) => ['default', 'eu', 'fedramp'].includes(v.toLowerCase()),
   // Ikke-tom streng
   streng: (v) => v.trim().length > 0,
   // Positivt heltall
   'pos-int': (v) => /^\d+$/.test(v) && parseInt(v, 10) > 0,
+  // Måned 1–12
+  maaned: (v) => /^\d+$/.test(v) && parseInt(v, 10) >= 1 && parseInt(v, 10) <= 12,
+  // Dag 1–31 (vi sjekker ikke at dag faktisk finnes i måneden — overkill her)
+  dag: (v) => /^\d+$/.test(v) && parseInt(v, 10) >= 1 && parseInt(v, 10) <= 31,
 }
 
 function valider(type, verdi) {
@@ -83,13 +116,16 @@ const variabler = [
   { navn: 'R2_ACCESS_KEY_ID',          nivaa: 'kritisk',   type: 'streng',   beskrivelse: 'R2 access key ID (SECRET)' },
   { navn: 'R2_SECRET_ACCESS_KEY',      nivaa: 'kritisk',   type: 'streng',   beskrivelse: 'R2 secret access key (SECRET)' },
   { navn: 'R2_BUCKET',                 nivaa: 'valgfri',   type: 'streng',   beskrivelse: 'R2 bucket-navn (default: herreklubben-bilder)' },
-  { navn: 'R2_JURISDICTION',           nivaa: 'valgfri',   type: 'r2-jurisdiction', beskrivelse: 'R2 jurisdiksjon: default|eu' },
+  { navn: 'R2_JURISDICTION',           nivaa: 'valgfri',   type: 'r2-jurisdiction', beskrivelse: 'R2 jurisdiksjon: default|eu|fedramp' },
   // R2_PUBLIC_URL og NEXT_PUBLIC_R2_PUBLIC_URL håndteres som spesialsjekk under
 
   // VAPID
   { navn: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY', nivaa: 'kritisk', type: 'vapid-public',  beskrivelse: 'VAPID offentlig nøkkel (base64url, ~87 tegn)' },
   { navn: 'VAPID_PRIVATE_KEY',          nivaa: 'kritisk',   type: 'vapid-private', beskrivelse: 'VAPID privat nøkkel (base64url, 43–44 tegn, SECRET)' },
-  { navn: 'VAPID_CONTACT_EMAIL',        nivaa: 'valgfri',   type: 'epost',    beskrivelse: 'Kontakt-epost for push-tjenester' },
+  // Anbefalt fordi defaulten i lib/config.ts er kildeklubbens egen kontakt-epost.
+  // Ved fork: push-tjenester (Apple/Google) skal kunne nå klubbens egen kontakt,
+  // ikke en annens. Vi skriker ⚠ men blokkerer ikke.
+  { navn: 'VAPID_CONTACT_EMAIL',        nivaa: 'anbefalt',  type: 'epost',    beskrivelse: 'Kontakt-epost for push-tjenester — bør settes per klubb (default er kildeklubbens kontakt)' },
 
   // Resend
   { navn: 'RESEND_API_KEY',            nivaa: 'anbefalt',  type: 'resend-key', beskrivelse: 'Resend API-nøkkel (re_...) — e-postvarsler mangler uten' },
@@ -115,8 +151,8 @@ const variabler = [
   { navn: 'NEXT_PUBLIC_KLUBB_BESKRIVELSE',       nivaa: 'valgfri', type: 'streng', beskrivelse: 'Beskrivelse av appen' },
   { navn: 'NEXT_PUBLIC_KLUBB_DOMENE',            nivaa: 'valgfri', type: 'hostname', beskrivelse: 'Domenenavn (default: mortensrudherreklubb.no)' },
   { navn: 'NEXT_PUBLIC_KLUBB_STIFTET_AAR',       nivaa: 'valgfri', type: 'pos-int', beskrivelse: 'Stiftelsesår' },
-  { navn: 'NEXT_PUBLIC_KLUBB_STIFTET_MAANED',    nivaa: 'valgfri', type: 'pos-int', beskrivelse: 'Stiftelsesmåned (1–12)' },
-  { navn: 'NEXT_PUBLIC_KLUBB_STIFTET_DAG',       nivaa: 'valgfri', type: 'pos-int', beskrivelse: 'Stiftelsesdag (1–31)' },
+  { navn: 'NEXT_PUBLIC_KLUBB_STIFTET_MAANED',    nivaa: 'valgfri', type: 'maaned',  beskrivelse: 'Stiftelsesmåned (1–12)' },
+  { navn: 'NEXT_PUBLIC_KLUBB_STIFTET_DAG',       nivaa: 'valgfri', type: 'dag',     beskrivelse: 'Stiftelsesdag (1–31)' },
   { navn: 'NEXT_PUBLIC_KLUBB_STED',              nivaa: 'valgfri', type: 'streng', beskrivelse: 'Sted/bydel' },
   { navn: 'NEXT_PUBLIC_ROLLE_TITTEL_GENERALSEKRETAER', nivaa: 'valgfri', type: 'streng', beskrivelse: 'Tittel for generalsekretær-rollen' },
   { navn: 'NEXT_PUBLIC_R2_CUSTOM_DOMAIN',        nivaa: 'valgfri', type: 'hostname', beskrivelse: 'Custom domain for R2-bilder (kun ved eget domene)' },
@@ -164,8 +200,19 @@ for (const { navn, nivaa, type, beskrivelse } of variabler) {
   // Satt — formatkontroll
   const ok = valider(type, verdi)
   if (!ok) {
+    // Skill mellom rent formatfeil og legacy-JWT med feil role-claim.
+    // Sistnevnte er en sterk indikator på at nøklene er byttet om mellom
+    // anon- og service-role-variabelen — vanlig feil ved kopiering.
+    let melding = `ugyldig format (forventet: ${type})`
+    if ((type === 'supabase-publishable' || type === 'supabase-secret') && erLegacyJwt(verdi)) {
+      const role = lesJwtRole(verdi)
+      const forventetRole = type === 'supabase-secret' ? 'service_role' : 'anon'
+      if (role && role !== forventetRole) {
+        melding = `legacy JWT med role='${role}', forventet '${forventetRole}' — sannsynlig nøkkel-bytte mellom anon og service-role`
+      }
+    }
     // Satt, men feil format — alltid kritisk feil
-    const linje = `  ${r('✖')} ${navn} — ugyldig format (forventet: ${type})  (${beskrivelse})`
+    const linje = `  ${r('✖')} ${navn} — ${melding}  (${beskrivelse})`
     if (nivaa === 'kritisk') {
       meldinger.kritisk.push(linje)
     } else {

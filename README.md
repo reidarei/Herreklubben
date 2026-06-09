@@ -242,7 +242,9 @@ Skriptet sjekker tre nivåer:
 - **Anbefalt** (Resend, CRON_SECRET, GitHub-token) — appen starter, men e-post, påminnelsesvarsler eller innspill-funksjonen mangler.
 - **Valgfri** (klubbidentitet m.m.) — har defaults, vises kun hvis eksplisitt satt.
 
-**GitHub Actions-secrets** (`APP_URL`, `CRON_SECRET`) settes i repo Settings → Secrets and variables → Actions — ikke i `.env.local`.
+**CRON_SECRET** settes to steder med samme verdi: i Vercel env-vars (runtime-sjekken i cron-endepunktet) og som GitHub Actions-secret (workflow-en som sender headeren). Mismatch eller manglende verdi gir 401 fra cron-endepunktet.
+
+**APP_URL** settes kun som GitHub Actions-secret (peker workflow-en til prod-URL) — den brukes ikke av appen i runtime og hører ikke hjemme i `.env.local`.
 
 ## Lokalt utviklingsmiljø
 
