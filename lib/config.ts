@@ -1,7 +1,10 @@
 // Sentral applikasjons-konfigurasjon. All env-var-lesing og miljø-defaults
 // skal samles her, ikke spres ut i actions/route handlers.
 
-const PROD_URL = 'https://mortensrudherreklubb.no'
+import { KLUBB_DOMENE } from './klubb-config'
+
+// PROD_URL bygges fra KLUBB_DOMENE slik at domenet kun er hardkodet ett sted.
+const PROD_URL = `https://${KLUBB_DOMENE}`
 const DEV_URL = 'http://localhost:3000'
 
 // Brukes i absolutte URL-er i varsler (push/epost), ICS-filer og lignende.
@@ -34,8 +37,10 @@ export const R2_PUBLIC_URL = (
 
 // GitHub-repo som backer «innspill»-funksjonen. Issues med label
 // GITHUB_ONSKE_LABEL behandles som brukerønsker.
-export const GITHUB_REPO = 'reidarei/Herreklubben'
-export const GITHUB_ONSKE_LABEL = 'ønske'
+export const GITHUB_REPO =
+  process.env.NEXT_PUBLIC_GITHUB_REPO ?? 'reidarei/Herreklubben'
+export const GITHUB_ONSKE_LABEL =
+  process.env.NEXT_PUBLIC_GITHUB_ONSKE_LABEL ?? 'ønske'
 
 // Bygg GitHub Issues-list URL med ønske-label og gitt state.
 export function githubIssuesUrl(params: {

@@ -44,10 +44,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.r2.dev',
       },
-      // Custom domain for R2 (når aktivert) — bilder.mortensrudherreklubb.no
+      // Custom domain for R2 (når aktivert). next.config.ts kan ikke
+      // importere fra lib/, så vi leser process.env direkte her.
       {
         protocol: 'https',
-        hostname: 'bilder.mortensrudherreklubb.no',
+        hostname: process.env.NEXT_PUBLIC_R2_CUSTOM_DOMAIN ?? 'bilder.mortensrudherreklubb.no',
       },
     ],
   },

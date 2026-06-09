@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import { KLUBB_KORTNAVN } from '@/lib/klubb-config'
 
 const AVVIST_NOKKEL = 'install-veiledning-avvist'
 
@@ -175,7 +176,7 @@ export default function InstallVeiledning() {
               letterSpacing: '-0.2px',
             }}
           >
-            Installer Herreklubben på telefonen
+            Installer {KLUBB_KORTNAVN} på telefonen
           </div>
 
           {iosNettleser === 'safari' && (

@@ -6,8 +6,10 @@ import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
 import versjon from '@/lib/versjon.json'
+import { KLUBB_STIFTET, KLUBB_NAVN_LINJE_1, KLUBB_NAVN_LINJE_2 } from '@/lib/klubb-config'
 
-const KLUBBEN_START_AAR = 2007
+// Hentes fra KLUBB_STIFTET i stedet for hardkodet konstant
+const KLUBBEN_START_AAR = KLUBB_STIFTET.aar
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -142,7 +144,7 @@ export default async function Klubbinfo() {
             fontStyle: 'italic',
           }}
         >
-          Mortensrud
+          {KLUBB_NAVN_LINJE_1}
         </h2>
         <h2
           style={{
@@ -155,7 +157,7 @@ export default async function Klubbinfo() {
             margin: '2px 0 0',
           }}
         >
-          Herreklubb
+          {KLUBB_NAVN_LINJE_2}
         </h2>
 
         {/* Nøkkeltall */}

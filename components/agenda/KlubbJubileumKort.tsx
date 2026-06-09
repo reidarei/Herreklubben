@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { formaterDato, aarHvisAvvik } from '@/lib/dato'
+import { KLUBB_KORTNAVN, KLUBB_NAVN_LINJE_1, KLUBB_NAVN_LINJE_2 } from '@/lib/klubb-config'
 
 export type KlubbJubileumData = {
   id: string
@@ -81,7 +82,7 @@ export default function KlubbJubileumKort({ jubileum }: { jubileum: KlubbJubileu
             lineHeight: 1.2,
           }}
         >
-          Herreklubben{' '}
+          {KLUBB_KORTNAVN}{' '}
           <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>
             fyller {jubileum.alder}
           </span>
@@ -108,8 +109,8 @@ export default function KlubbJubileumKort({ jubileum }: { jubileum: KlubbJubileu
         }}
         aria-hidden="true"
       >
-        <span style={{ fontStyle: 'italic' }}>Mortensrud</span>
-        <span>Herreklubb</span>
+        <span style={{ fontStyle: 'italic' }}>{KLUBB_NAVN_LINJE_1}</span>
+        <span>{KLUBB_NAVN_LINJE_2}</span>
       </div>
     </Link>
   )

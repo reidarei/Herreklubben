@@ -46,10 +46,11 @@ import type { KlubbJubileumData } from '@/components/agenda/KlubbJubileumKort'
 import type { PollKortData } from '@/components/agenda/PollKort'
 import type { MeldingKortData } from '@/components/agenda/MeldingKort'
 import type { AlbumSpotlight } from '@/lib/melding-spotlight'
+import { KLUBB_STIFTET } from '@/lib/klubb-config'
 
-// Herreklubben ble stiftet 24. november 2007. Brukes til å beregne
-// neste stiftelsesdag på agendaen.
-export const STIFTET_DATO = { maaned: 11, dag: 24, aar: 2007 } as const
+// Stiftelsesdato — brukes til å beregne neste jubileumsdag på agendaen.
+// Hentes fra klubb-config slik at den kan overstyres via env-var.
+export const STIFTET_DATO = KLUBB_STIFTET
 
 // Levetidsregler for meldinger på agenda. En melding er «levende» (vises
 // øverst) så lenge det er mindre enn MELDING_LEVENDE_DAGER siden siste

@@ -74,7 +74,7 @@ describe('lagMentionForslag', () => {
   const profiler: ChatProfil[] = [
     profil('1', 'Reidar Eik Haavik'),
     profil('2', 'Michael'),
-    profil('3', 'André Heede'),
+    profil('3', 'Kari Nordmann'),
   ]
 
   it('tom liste når mentionSøk === null', () => {

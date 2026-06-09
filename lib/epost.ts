@@ -1,5 +1,8 @@
 // Krever verifisert domene i Resend — sett RESEND_FROM til f.eks. "Herreklubben <noreply@dittdomene.no>"
+import { KLUBB_NAVN } from './klubb-config'
 const RESEND_API_KEY = process.env.RESEND_API_KEY!
+// Avsender er server-only-konfig (Resend-spesifikk) og holdes derfor her,
+// ikke i klient-trygg klubb-config. Ingen NEXT_PUBLIC_-prefiks.
 const RESEND_FROM = process.env.RESEND_FROM ?? 'Herreklubben <onboarding@resend.dev>'
 
 export async function sendEpost({ til, emne, html }: { til: string; emne: string; html: string }) {
@@ -56,6 +59,8 @@ export function arrangementEpostHtml({
   const tekstEsc = escapeHtml(tekst)
   const urlEsc = escapeHtml(url)
   const knappTekstEsc = escapeHtml(knappTekst)
+  // KLUBB_NAVN kommer fra env-var (NEXT_PUBLIC_KLUBB_NAVN) — escapes som
+  // forsvar i dybden selv om kilden i praksis kontrolleres av deployer.
   return `
 <!DOCTYPE html>
 <html lang="no">
@@ -68,7 +73,7 @@ export function arrangementEpostHtml({
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
         <tr><td style="padding:32px;">
-          <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">Mortensrud Herreklubb</p>
+          <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">${escapeHtml(KLUBB_NAVN)}</p>
           <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;">${tittelEsc}</h1>
           <p style="margin:0 0 24px;font-size:15px;line-height:1.6;white-space:pre-wrap;">${tekstEsc}</p>
           <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:separate;">
@@ -115,9 +120,9 @@ export function velkommenEpostHtml({
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
         <tr><td style="padding:32px;">
-          <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">Mortensrud Herreklubb</p>
+          <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;">${escapeHtml(KLUBB_NAVN)}</p>
           <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;">Velkommen herr ${etternavnEsc}!</h1>
-          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">Du er lagt til som medlem i Mortensrud Herreklubb. Under finner du innloggingsinfoen din.</p>
+          <p style="margin:0 0 24px;font-size:15px;line-height:1.6;">Du er lagt til som medlem i ${escapeHtml(KLUBB_NAVN)}. Under finner du innloggingsinfoen din.</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
             <tr><td style="padding:6px 0;">
               <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7;">Brukernavn</p>
