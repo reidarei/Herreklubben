@@ -15,19 +15,34 @@ const b = (s) => tty ? `\x1b[1m${s}\x1b[0m` : s    // fet
 
 // ─── TYPVALIDATORER ──────────────────────────────────────────────────────────
 
+// Hjelper: legacy Supabase-nøkkel er en JWT (eyJ + 3 deler).
+const erLegacyJwt = (v) => {
+  const deler = v.split('.')
+  return deler.length === 3 && deler[0].startsWith('eyJ')
+}
+
 const typer = {
   // Gyldig URL med https eller http
   url: (v) => {
     try { const u = new URL(v); return u.protocol === 'https:' || u.protocol === 'http:' }
     catch { return false }
   },
-  // JWT: tre punktum-separerte deler, første starter med eyJ (base64url for {"...)
-  jwt: (v) => {
-    const deler = v.split('.')
-    return deler.length === 3 && deler[0].startsWith('eyJ')
-  },
-  // VAPID-nøkler er base64url-kodet, 43 tegn (256-bit uten padding) eller 88 tegn (512-bit)
-  base64url: (v) => /^[A-Za-z0-9_-]{43,}$/.test(v),
+  // Supabase publishable/anon-nøkkel.
+  // To formatgenerasjoner finnes side om side:
+  //   - Ny (fra ~2025): "sb_publishable_<base64>" — opaque token, ikke JWT.
+  //   - Legacy: signert JWT (eyJ...). Eksisterende prosjekter har fortsatt denne.
+  // Vi godtar begge — gamle prosjekter trenger ikke roteres.
+  'supabase-publishable': (v) => v.startsWith('sb_publishable_') || erLegacyJwt(v),
+  // Supabase secret/service-role-nøkkel.
+  //   - Ny: "sb_secret_<base64>" — opaque token.
+  //   - Legacy: JWT med role: service_role i payload.
+  'supabase-secret': (v) => v.startsWith('sb_secret_') || erLegacyJwt(v),
+  // VAPID offentlig nøkkel: ukomprimert P-256 punkt → 65 bytes → 87 base64url-tegn
+  // (uten padding). Bruker 80–100 for slingring rundt eventuelle implementasjoner
+  // som padder eller hopper et tegn.
+  'vapid-public': (v) => /^[A-Za-z0-9_-]{80,100}$/.test(v),
+  // VAPID privat nøkkel: en P-256 skalar → 32 bytes → 43 base64url-tegn (44 med padding).
+  'vapid-private': (v) => /^[A-Za-z0-9_-]{43,44}$/.test(v),
   // E-postadresse
   epost: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
   // Hostnavn (domene uten protokoll)
@@ -36,8 +51,9 @@ const typer = {
   'github-token': (v) => v.startsWith('ghp_') || v.startsWith('github_pat_') || v.startsWith('gho_'),
   // Resend API-nøkkel
   'resend-key': (v) => v.startsWith('re_'),
-  // R2 jurisdiksjon
-  'r2-jurisdiction': (v) => ['default', 'eu', 'fedramp'].includes(v.toLowerCase()),
+  // R2 jurisdiksjon — speiler verdiene lib/r2.ts faktisk forventer.
+  // 'default' gir tomt segment i endpointet, 'eu' gir '.eu'-segment.
+  'r2-jurisdiction': (v) => ['default', 'eu'].includes(v.toLowerCase()),
   // Ikke-tom streng
   streng: (v) => v.trim().length > 0,
   // Positivt heltall
@@ -56,23 +72,23 @@ function valider(type, verdi) {
 //        'anbefalt' → ⚠ ved mangler, ✖ ved satt-men-feil-format
 //        'valgfri'  → ✓ kun hvis satt, ellers stille
 
-const variablar = [
+const variabler = [
   // Supabase
   { navn: 'NEXT_PUBLIC_SUPABASE_URL',   nivaa: 'kritisk',   type: 'url',      beskrivelse: 'Supabase prosjekt-URL' },
-  { navn: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', nivaa: 'kritisk', type: 'jwt',     beskrivelse: 'Supabase anon-nøkkel (JWT)' },
-  { navn: 'SUPABASE_SERVICE_ROLE_KEY',  nivaa: 'kritisk',   type: 'jwt',      beskrivelse: 'Supabase service-role-nøkkel (JWT, SECRET)' },
+  { navn: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', nivaa: 'kritisk', type: 'supabase-publishable', beskrivelse: 'Supabase anon/publishable-nøkkel (sb_publishable_... eller legacy JWT)' },
+  { navn: 'SUPABASE_SERVICE_ROLE_KEY',  nivaa: 'kritisk',   type: 'supabase-secret', beskrivelse: 'Supabase service-role-nøkkel (sb_secret_... eller legacy JWT, SECRET)' },
 
   // R2
   { navn: 'R2_ACCOUNT_ID',             nivaa: 'kritisk',   type: 'streng',   beskrivelse: 'Cloudflare konto-ID' },
   { navn: 'R2_ACCESS_KEY_ID',          nivaa: 'kritisk',   type: 'streng',   beskrivelse: 'R2 access key ID (SECRET)' },
   { navn: 'R2_SECRET_ACCESS_KEY',      nivaa: 'kritisk',   type: 'streng',   beskrivelse: 'R2 secret access key (SECRET)' },
   { navn: 'R2_BUCKET',                 nivaa: 'valgfri',   type: 'streng',   beskrivelse: 'R2 bucket-navn (default: herreklubben-bilder)' },
-  { navn: 'R2_JURISDICTION',           nivaa: 'valgfri',   type: 'r2-jurisdiction', beskrivelse: 'R2 jurisdiksjon: default|eu|fedramp' },
+  { navn: 'R2_JURISDICTION',           nivaa: 'valgfri',   type: 'r2-jurisdiction', beskrivelse: 'R2 jurisdiksjon: default|eu' },
   // R2_PUBLIC_URL og NEXT_PUBLIC_R2_PUBLIC_URL håndteres som spesialsjekk under
 
   // VAPID
-  { navn: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY', nivaa: 'kritisk', type: 'base64url', beskrivelse: 'VAPID offentlig nøkkel (base64url)' },
-  { navn: 'VAPID_PRIVATE_KEY',          nivaa: 'kritisk',   type: 'base64url', beskrivelse: 'VAPID privat nøkkel (base64url, SECRET)' },
+  { navn: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY', nivaa: 'kritisk', type: 'vapid-public',  beskrivelse: 'VAPID offentlig nøkkel (base64url, ~87 tegn)' },
+  { navn: 'VAPID_PRIVATE_KEY',          nivaa: 'kritisk',   type: 'vapid-private', beskrivelse: 'VAPID privat nøkkel (base64url, 43–44 tegn, SECRET)' },
   { navn: 'VAPID_CONTACT_EMAIL',        nivaa: 'valgfri',   type: 'epost',    beskrivelse: 'Kontakt-epost for push-tjenester' },
 
   // Resend
@@ -83,7 +99,7 @@ const variablar = [
   { navn: 'CRON_SECRET',               nivaa: 'anbefalt',  type: 'streng',   beskrivelse: 'Delt hemmelighet for cron-endepunkt — påminnelsesvarsler mangler uten' },
 
   // GitHub
-  { navn: 'GITHUB_TOKEN',              nivaa: 'anbefalt',  type: 'github-token', beskrivelse: 'GitHub PAT (ghp_/github_pat_) — innspill-funksjon mangler uten' },
+  { navn: 'GITHUB_TOKEN',              nivaa: 'anbefalt',  type: 'github-token', beskrivelse: 'GitHub PAT (ghp_/github_pat_) — innspill-funksjon + bli-utvikler-endepunktet (/api/bli-utvikler) feiler uten' },
   { navn: 'GITHUB_WEBHOOK_SECRET',     nivaa: 'anbefalt',  type: 'streng',   beskrivelse: 'GitHub webhook-hemmelighet — innkommende webhook-validering mangler uten' },
   { navn: 'NEXT_PUBLIC_GITHUB_REPO',   nivaa: 'valgfri',   type: 'streng',   beskrivelse: 'GitHub-repo for innspill (default: reidarei/Herreklubben)' },
   { navn: 'NEXT_PUBLIC_GITHUB_ONSKE_LABEL', nivaa: 'valgfri', type: 'streng', beskrivelse: 'GitHub Issues-label for ønsker (default: ønske)' },
@@ -112,10 +128,10 @@ const variablar = [
 // ─── INNSAMLING OG SJEKK ─────────────────────────────────────────────────────
 
 let kritiskFeil = 0
-let advarslar = 0
-const meldingar = { kritisk: [], anbefalt: [], valgfri: [] }
+let advarsler = 0
+const meldinger = { kritisk: [], anbefalt: [], valgfri: [] }
 
-for (const { navn, nivaa, type, beskrivelse } of variablar) {
+for (const { navn, nivaa, type, beskrivelse } of variabler) {
   const verdi = process.env[navn]
   const satt = verdi !== undefined && verdi !== ''
 
@@ -123,10 +139,10 @@ for (const { navn, nivaa, type, beskrivelse } of variablar) {
     if (satt) {
       const ok = valider(type, verdi)
       if (ok) {
-        meldingar.valgfri.push(`  ${g('✓')} ${navn}`)
+        meldinger.valgfri.push(`  ${g('✓')} ${navn}`)
       } else {
         // Satt, men feil format — alltid feil uansett nivå
-        meldingar.valgfri.push(`  ${r('✖')} ${navn} — satt, men ugyldig format (${type})`)
+        meldinger.valgfri.push(`  ${r('✖')} ${navn} — satt, men ugyldig format (${type})`)
         kritiskFeil++
       }
     }
@@ -136,11 +152,11 @@ for (const { navn, nivaa, type, beskrivelse } of variablar) {
 
   if (!satt) {
     if (nivaa === 'kritisk') {
-      meldingar.kritisk.push(`  ${r('✖')} ${navn} — mangler  (${beskrivelse})`)
+      meldinger.kritisk.push(`  ${r('✖')} ${navn} — mangler  (${beskrivelse})`)
       kritiskFeil++
     } else {
-      meldingar.anbefalt.push(`  ${y('⚠')} ${navn} — ikke satt  (${beskrivelse})`)
-      advarslar++
+      meldinger.anbefalt.push(`  ${y('⚠')} ${navn} — ikke satt  (${beskrivelse})`)
+      advarsler++
     }
     continue
   }
@@ -151,66 +167,56 @@ for (const { navn, nivaa, type, beskrivelse } of variablar) {
     // Satt, men feil format — alltid kritisk feil
     const linje = `  ${r('✖')} ${navn} — ugyldig format (forventet: ${type})  (${beskrivelse})`
     if (nivaa === 'kritisk') {
-      meldingar.kritisk.push(linje)
+      meldinger.kritisk.push(linje)
     } else {
-      meldingar.anbefalt.push(linje)
+      meldinger.anbefalt.push(linje)
     }
     kritiskFeil++
     continue
   }
 
   if (nivaa === 'kritisk') {
-    meldingar.kritisk.push(`  ${g('✓')} ${navn}`)
+    meldinger.kritisk.push(`  ${g('✓')} ${navn}`)
   } else {
-    meldingar.anbefalt.push(`  ${g('✓')} ${navn}`)
+    meldinger.anbefalt.push(`  ${g('✓')} ${navn}`)
   }
 }
 
 // ─── SPESIALSJEKK 1: R2 public URL ──────────────────────────────────────────
 // Minst én av R2_PUBLIC_URL eller NEXT_PUBLIC_R2_PUBLIC_URL må være satt.
+// Vi rapporterer som én linje for å unngå støy når begge er satt til samme verdi.
 
 const r2PubServer = process.env.R2_PUBLIC_URL
 const r2PubKlient = process.env.NEXT_PUBLIC_R2_PUBLIC_URL
-const r2PubSatt = (r2PubServer && r2PubServer !== '') || (r2PubKlient && r2PubKlient !== '')
+const r2ServerSatt = r2PubServer && r2PubServer !== ''
+const r2KlientSatt = r2PubKlient && r2PubKlient !== ''
 
-if (!r2PubSatt) {
-  meldingar.kritisk.push(`  ${r('✖')} R2_PUBLIC_URL / NEXT_PUBLIC_R2_PUBLIC_URL — minst én må settes (bilder kan ikke vises uten)`)
+if (!r2ServerSatt && !r2KlientSatt) {
+  meldinger.kritisk.push(`  ${r('✖')} R2_PUBLIC_URL / NEXT_PUBLIC_R2_PUBLIC_URL — minst én må settes (bilder kan ikke vises uten)`)
   kritiskFeil++
 } else {
   // Valider format på de som er satt
-  if (r2PubServer && r2PubServer !== '') {
-    if (!typer.url(r2PubServer)) {
-      meldingar.kritisk.push(`  ${r('✖')} R2_PUBLIC_URL — ugyldig URL-format`)
-      kritiskFeil++
-    } else {
-      meldingar.kritisk.push(`  ${g('✓')} R2_PUBLIC_URL`)
-    }
+  const serverOk = !r2ServerSatt || typer.url(r2PubServer)
+  const klientOk = !r2KlientSatt || typer.url(r2PubKlient)
+
+  if (!serverOk) {
+    meldinger.kritisk.push(`  ${r('✖')} R2_PUBLIC_URL — ugyldig URL-format`)
+    kritiskFeil++
   }
-  if (r2PubKlient && r2PubKlient !== '') {
-    if (!typer.url(r2PubKlient)) {
-      meldingar.kritisk.push(`  ${r('✖')} NEXT_PUBLIC_R2_PUBLIC_URL — ugyldig URL-format`)
-      kritiskFeil++
-    } else {
-      meldingar.kritisk.push(`  ${g('✓')} NEXT_PUBLIC_R2_PUBLIC_URL`)
-    }
+  if (!klientOk) {
+    meldinger.kritisk.push(`  ${r('✖')} NEXT_PUBLIC_R2_PUBLIC_URL — ugyldig URL-format`)
+    kritiskFeil++
+  }
+  if (serverOk && klientOk) {
+    // Beskriv hvilken som faktisk er satt — gir nyttig synlighet uten å printe verdier.
+    const navn = r2ServerSatt && r2KlientSatt
+      ? 'R2_PUBLIC_URL + NEXT_PUBLIC_R2_PUBLIC_URL (begge satt)'
+      : r2ServerSatt ? 'R2_PUBLIC_URL' : 'NEXT_PUBLIC_R2_PUBLIC_URL'
+    meldinger.kritisk.push(`  ${g('✓')} R2 public URL (${navn})`)
   }
 }
 
-// ─── SPESIALSJEKK 2: VAPID-nøkler i par ─────────────────────────────────────
-// Begge må settes — advarsel hvis kun én er satt (fanges også av kritisk-sjekk,
-// men her gir vi en spesifikk parforklaring).
-
-const vapidPub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-const vapidPriv = process.env.VAPID_PRIVATE_KEY
-const vapidPubSatt = vapidPub && vapidPub !== ''
-const vapidPrivSatt = vapidPriv && vapidPriv !== ''
-if (vapidPubSatt !== vapidPrivSatt) {
-  meldingar.kritisk.push(
-    `  ${y('⚠')} VAPID-nøkler er ikke i par — begge må genereres og settes sammen (npx web-push generate-vapid-keys)`
-  )
-}
-
-// ─── SPESIALSJEKK 3: BASE_URL vs KLUBB_DOMENE drift ─────────────────────────
+// ─── SPESIALSJEKK 2: BASE_URL vs KLUBB_DOMENE drift ─────────────────────────
 // Hvis begge er satt og BASE_URL ikke stemmer med KLUBB_DOMENE, er det
 // to sannhetskilder som kan gi forskjellige URL-er i varsler og ICS.
 
@@ -219,14 +225,14 @@ const klubbDomene = process.env.NEXT_PUBLIC_KLUBB_DOMENE
 if (baseUrl && baseUrl !== '' && klubbDomene && klubbDomene !== '') {
   const forventet = `https://${klubbDomene}`
   if (baseUrl !== forventet) {
-    meldingar.anbefalt.push(
+    meldinger.anbefalt.push(
       `  ${y('⚠')} NEXT_PUBLIC_BASE_URL (${baseUrl}) stemmer ikke med NEXT_PUBLIC_KLUBB_DOMENE (${forventet}) — mulig drift mellom to sannhetskilder`
     )
-    advarslar++
+    advarsler++
   }
 }
 
-// ─── SPESIALSJEKK 4: Secret-lekkasje i NEXT_PUBLIC_ ─────────────────────────
+// ─── SPESIALSJEKK 3: Secret-lekkasje i NEXT_PUBLIC_ ─────────────────────────
 // Heuristikk: hvis verdien til en NEXT_PUBLIC_-variabel ligner et kjent
 // secret-format, er det sannsynligvis en feilkonfigurasjon.
 // VIKTIG: vi printer ALDRI verdien — kun variabelnavnet.
@@ -236,12 +242,19 @@ for (const [key, val] of Object.entries(process.env)) {
 
   let lekkasje = false
 
-  // Kjente token-prefikser
-  if (val.startsWith('ghp_') || val.startsWith('github_pat_') || val.startsWith('re_')) {
+  // Kjente token-prefikser — inkluderer både Supabase ny-format (sb_secret_)
+  // og GitHub/Resend.
+  if (
+    val.startsWith('ghp_') ||
+    val.startsWith('github_pat_') ||
+    val.startsWith('re_') ||
+    val.startsWith('sb_secret_')
+  ) {
     lekkasje = true
   }
 
-  // JWT med service_role i payload (base64-dekod midtdel, let etter "role":"service_role")
+  // Legacy Supabase JWT med service_role i payload
+  // (base64-dekod midtdel, let etter "role":"service_role")
   if (!lekkasje && val.split('.').length === 3) {
     try {
       const payload = JSON.parse(Buffer.from(val.split('.')[1], 'base64url').toString('utf8'))
@@ -250,7 +263,7 @@ for (const [key, val] of Object.entries(process.env)) {
   }
 
   if (lekkasje) {
-    meldingar.kritisk.push(
+    meldinger.kritisk.push(
       `  ${r('✖')} ${key} — verdien ser ut som et secret (token/nøkkel) og skal IKKE ha NEXT_PUBLIC_-prefiks (inlines i browser-bundle)`
     )
     kritiskFeil++
@@ -263,34 +276,34 @@ console.log('')
 console.log(b('=== Herreklubben — miljøsjekk ==='))
 console.log('')
 
-if (meldingar.kritisk.length > 0) {
+if (meldinger.kritisk.length > 0) {
   console.log(b('Kritiske (app starter ikke uten):'))
-  meldingar.kritisk.forEach((m) => console.log(m))
+  meldinger.kritisk.forEach((m) => console.log(m))
   console.log('')
 }
 
-if (meldingar.anbefalt.length > 0) {
+if (meldinger.anbefalt.length > 0) {
   console.log(b('Anbefalte (mangler gir redusert funksjonalitet):'))
-  meldingar.anbefalt.forEach((m) => console.log(m))
+  meldinger.anbefalt.forEach((m) => console.log(m))
   console.log('')
 }
 
-if (meldingar.valgfri.length > 0) {
+if (meldinger.valgfri.length > 0) {
   console.log(b('Valgfrie (satt, med defaults):'))
-  meldingar.valgfri.forEach((m) => console.log(m))
+  meldinger.valgfri.forEach((m) => console.log(m))
   console.log('')
 }
 
 // Oppsummering
-const kritiskOk = meldingar.kritisk.filter((m) => m.includes('✓')).length
-const anbefaltOk = meldingar.anbefalt.filter((m) => m.includes('✓')).length
+const kritiskOk = meldinger.kritisk.filter((m) => m.includes('✓')).length
+const anbefaltOk = meldinger.anbefalt.filter((m) => m.includes('✓')).length
 
-if (kritiskFeil === 0 && advarslar === 0) {
+if (kritiskFeil === 0 && advarsler === 0) {
   console.log(g(`✓ Alt OK — ${kritiskOk} kritiske og ${anbefaltOk} anbefalte variabler er satt og gyldige.`))
 } else if (kritiskFeil === 0) {
-  console.log(y(`⚠ ${advarslar} advarsel(er) — ${kritiskOk} kritiske OK. Appen starter, men noen funksjoner mangler.`))
+  console.log(y(`⚠ ${advarsler} advarsel(er) — ${kritiskOk} kritiske OK. Appen starter, men noen funksjoner mangler.`))
 } else {
-  console.log(r(`✖ ${kritiskFeil} kritisk feil — ${advarslar} advarsel(er). Fiks feil markert med ✖ før deploy.`))
+  console.log(r(`✖ ${kritiskFeil} kritisk feil — ${advarsler} advarsel(er). Fiks feil markert med ✖ før deploy.`))
 }
 console.log('')
 
