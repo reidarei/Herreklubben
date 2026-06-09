@@ -6,10 +6,20 @@ import { norskAar } from '@/lib/dato'
 import Icon, { IkonNavn } from '@/components/ui/Icon'
 import { kanAdministrere } from '@/lib/roller'
 import versjon from '@/lib/versjon.json'
-import { KLUBB_STIFTET, KLUBB_NAVN_LINJE_1, KLUBB_NAVN_LINJE_2 } from '@/lib/klubb-config'
+import { KLUBB_STIFTET, KLUBB_STED, KLUBB_NAVN_LINJE_1, KLUBB_NAVN_LINJE_2 } from '@/lib/klubb-config'
+import { format } from 'date-fns'
+import { nb } from 'date-fns/locale'
 
 // Hentes fra KLUBB_STIFTET i stedet for hardkodet konstant
 const KLUBBEN_START_AAR = KLUBB_STIFTET.aar
+
+// Hele stiftelsesdatoen formatert på norsk («24. november 2007»).
+// Lokal fast dato uten tidssone-aspekt — new Date(y, m-1, d) er trygt her.
+const STIFTET_TEKST = format(
+  new Date(KLUBB_STIFTET.aar, KLUBB_STIFTET.maaned - 1, KLUBB_STIFTET.dag),
+  'd. MMMM yyyy',
+  { locale: nb }
+)
 
 export default async function Klubbinfo() {
   const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
@@ -105,11 +115,11 @@ export default async function Klubbinfo() {
           }}
         >
           <span style={{ width: 18, height: '0.5px', background: 'var(--border-strong)' }} />
-          Stiftet 24. november {KLUBBEN_START_AAR}
+          Stiftet {STIFTET_TEKST}
           <span aria-hidden="true" style={{ opacity: 0.4 }}>·</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <MapPinIcon aria-hidden="true" style={{ width: 11, height: 11 }} />
-            Søndre Nordstrand
+            {KLUBB_STED}
           </span>
         </div>
 

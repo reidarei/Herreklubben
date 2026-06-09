@@ -34,6 +34,9 @@ export const KLUBB_STIFTET = {
   dag: Number(process.env.NEXT_PUBLIC_KLUBB_STIFTET_DAG) || 24,
 } as const
 
+// Stiftelsessted — vises ved siden av stiftelsesdatoen på klubbinfo-siden.
+export const KLUBB_STED = process.env.NEXT_PUBLIC_KLUBB_STED ?? 'Søndre Nordstrand'
+
 // Tittel-streng for generalsekretær-rollen i UI. Rolle-koden i DB
 // («generalsekretaer») endres ikke — kun visningsnavnet kan overstyres.
 export const ROLLE_TITTEL_GENERALSEKRETAER =
