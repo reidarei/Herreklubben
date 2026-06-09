@@ -4,6 +4,7 @@ import { sendEpost, velkommenEpostHtml } from '@/lib/epost'
 import { NextResponse } from 'next/server'
 import { kanAdministrere } from '@/lib/roller'
 import { BASE_URL } from '@/lib/config'
+import { KLUBB_NAVN } from '@/lib/klubb-config'
 
 function genererPassord() {
   const tegn = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
   // Send velkomst-e-post med innloggingsinfo
   await sendEpost({
     til: epost,
-    emne: 'Velkommen til Mortensrud Herreklubb',
+    emne: `Velkommen til ${KLUBB_NAVN}`,
     html: velkommenEpostHtml({
       navn,
       epost,

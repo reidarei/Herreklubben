@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Ordsky from '@/components/Ordsky'
 import Button from '@/components/ui/Button'
+import { KLUBB_NAVN, KLUBB_KORTNAVN } from '@/lib/klubb-config'
 
 const inputStil: React.CSSProperties = {
   background: 'var(--bg-elevated-2)',
@@ -75,10 +76,10 @@ export default function OppdaterPassordSide() {
         <Ordsky className="w-full" style={{ maxHeight: '160px' }} />
         <div className="text-center mt-14">
           <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
-            Herreklubben
+            {KLUBB_KORTNAVN}
           </h1>
           <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Mortensrud Herreklubb
+            {KLUBB_NAVN}
           </p>
         </div>
       </div>

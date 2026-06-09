@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import SectionLabel from '@/components/ui/SectionLabel'
 import versjon from '@/lib/versjon.json'
+import { KLUBB_NAVN } from '@/lib/klubb-config'
 
 export default function OmAppen() {
   return (
@@ -42,7 +43,7 @@ export default function OmAppen() {
             maxWidth: 420,
           }}
         >
-          Privat klubbapp for Mortensrud Herreklubb. Erstatter Facebook for
+          Privat klubbapp for {KLUBB_NAVN}. Erstatter Facebook for
           påmelding, klubbinfo og kåringer.
         </p>
       </header>

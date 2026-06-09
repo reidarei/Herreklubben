@@ -1,5 +1,7 @@
 // Sentral rolle- og rettighetsmatrise. Alle andre steder i koden skal gå
 // gjennom hjelperne her — aldri sammenligne `rolle === 'admin'` direkte.
+
+import { ROLLE_TITTEL_GENERALSEKRETAER } from './klubb-config'
 //
 // Modellen:
 //   - Tre roller: medlem, admin, generalsekretaer
@@ -42,7 +44,9 @@ export const ROLLER: Record<Rolle, Rettigheter> = {
     loeserTiebreak: false,
   },
   generalsekretaer: {
-    tittel: 'Generalsekretær',
+    // Tittel hentes fra klubb-config slik at den kan overstyres via env-var
+    // uten kode-endring. Rolle-koden i DB («generalsekretaer») er uendret.
+    tittel: ROLLE_TITTEL_GENERALSEKRETAER,
     kanAdministrere: true,
     faarIssueVarsler: false,
     harGulGloed: true,

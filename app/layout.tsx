@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import VitalsLogger from '@/components/VitalsLogger'
+import { KLUBB_NAVN, KLUBB_KORTNAVN, KLUBB_BESKRIVELSE } from '@/lib/klubb-config'
 import './globals.css'
 
 const inter = Inter({
@@ -37,8 +38,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Mortensrud Herreklubb',
-  description: 'Privat klubbapp for Mortensrud Herreklubb',
+  title: KLUBB_NAVN,
+  description: KLUBB_BESKRIVELSE,
   manifest: '/manifest.webmanifest',
   icons: {
     icon: [
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Herreklubben',
+    title: KLUBB_KORTNAVN,
   },
 }
 
@@ -77,7 +78,7 @@ export default function RootLayout({
           <div style={{ fontSize: 40, lineHeight: 1 }}>↻</div>
           <div style={{ fontSize: 18, fontWeight: 500 }}>Roter telefonen</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 320 }}>
-            Herreklubben fungerer best i portrett-modus.
+            {KLUBB_KORTNAVN} fungerer best i portrett-modus.
           </div>
         </div>
         <SpeedInsights />

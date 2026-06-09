@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next'
+import { KLUBB_NAVN, KLUBB_KORTNAVN, KLUBB_BESKRIVELSE } from '@/lib/klubb-config'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Mortensrud Herreklubb',
-    short_name: 'Herreklubben',
-    description: 'Privat klubbapp for Mortensrud Herreklubb',
+    name: KLUBB_NAVN,
+    short_name: KLUBB_KORTNAVN,
+    description: KLUBB_BESKRIVELSE,
     start_url: '/',
     display: 'standalone',
     background_color: '#060608',

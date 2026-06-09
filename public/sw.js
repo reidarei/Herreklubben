@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.2.8'
+const CACHE_VERSION = 'V3.2.9'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -162,7 +162,8 @@ self.addEventListener('push', (event) => {
   const { tittel, melding, url } = data
 
   event.waitUntil(
-    self.registration.showNotification(tittel ?? 'Herreklubben', {
+    // SW kan ikke importere TS-moduler; serveren setter alltid tittel i praksis.
+    self.registration.showNotification(tittel ?? 'Varsel', {
       body: melding,
       icon: '/icon-192.png',
       badge: '/icon-192.png',

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Avatar from '@/components/ui/Avatar'
 import { harGulGloed } from '@/lib/roller'
+import { KLUBB_KORTNAVN } from '@/lib/klubb-config'
 
 type Tab = {
   href: string
@@ -263,7 +264,7 @@ export default function TopHeader({ brukerNavn, bildeUrl, rolle, ulestChat = fal
           }}
         >
           <Avatar
-            name={brukerNavn ?? 'Herreklubben'}
+            name={brukerNavn ?? KLUBB_KORTNAVN}
             src={bildeUrl ?? null}
             rolle={rolle ?? null}
             size={38}
