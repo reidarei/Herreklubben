@@ -2,7 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { formaterDato, TIDSSONE } from '@/lib/dato'
 import { BASE_URL } from '@/lib/config'
-import { KLUBB_NAVN, KLUBB_DOMENE } from '@/lib/klubb-config'
+import { KLUBB_NAVN, KLUBB_KORTNAVN, KLUBB_DOMENE } from '@/lib/klubb-config'
 
 // Escape for .ics TEXT-verdier: backslash, semikolon, komma og linjeskift
 function escapeIcs(s: string): string {
@@ -60,7 +60,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   ]
 
   const ics = linjer.join('\r\n')
-  const filnavn = `herreklubben-${id.slice(0, 8)}.ics`
+  // Filnavn fra kortnavnet, forenklet til trygge ASCII-tegn (æ/ø/å og
+  // spesialtegn kan skape trøbbel i Content-Disposition på enkelte klienter).
+  const navnSlug = KLUBB_KORTNAVN.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kalender'
+  const filnavn = `${navnSlug}-${id.slice(0, 8)}.ics`
 
   return new NextResponse(ics, {
     headers: {
