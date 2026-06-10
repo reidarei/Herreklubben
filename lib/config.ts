@@ -35,6 +35,12 @@ export const R2_PUBLIC_URL = (
   ''
 ).replace(/\/$/, '')
 
+// Kjent prod-URL for Supabase-prosjektet. Brukes som vakt i init-admin-scriptet
+// slik at scriptet nekter å kjøre mot prod (selv om .env.local peker dit).
+// Konstanten er trygg å eksponere — det er ikke en hemmelighet hvilken Supabase-
+// instans appen bruker; access keys er det hemmelige.
+export const KJENT_PROD_SUPABASE_URL = 'https://tdlfswmxezjdnxcbbiwn.supabase.co'
+
 // GitHub-repo som backer «innspill»-funksjonen. Issues med label
 // GITHUB_ONSKE_LABEL behandles som brukerønsker.
 export const GITHUB_REPO =

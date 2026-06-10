@@ -1387,6 +1387,20 @@ export type Database = {
       }
       er_admin: { Args: never; Returns: boolean }
       er_generalsekretaer: { Args: never; Returns: boolean }
+      fjern_generalsekretaer: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          forrige_profil: string
+          forrige_navn: string
+        }[]
+      }
+      sett_generalsekretaer: {
+        Args: { ny_profil: string }
+        Returns: {
+          forrige_profil: string
+          forrige_navn: string
+        }[]
+      }
       get_statistikk: { Args: never; Returns: Json }
       har_pass_tilgang: { Args: { eier: string }; Returns: boolean }
       lukk_kaaringspoll_naa: {

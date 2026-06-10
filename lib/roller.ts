@@ -88,6 +88,9 @@ export function rollerMed(rettighet: keyof Rettigheter): Rolle[] {
   return (Object.keys(ROLLER) as Rolle[]).filter(r => Boolean(ROLLER[r][rettighet]))
 }
 
-// Roller som kan velges fra admin-UI (rediger medlem). Generalsekretær
-// utelates bevisst fordi den settes manuelt via SQL, ikke via skjema.
+// Roller som kan velges fra to-valgs Segment i RedigerMedlemSkjema.
+// Generalsekretær utelates her — den settes via egen ToggleSwitch i
+// skjemaet som kaller server action settGeneralsekretaer() (RPC), ikke
+// via dette rolle-feltet. Det sikrer at RPC-ens atomisitetskrav alltid
+// overholdes og at partial unique index (migrasjon 094) aldri omgås.
 export const VALGBARE_ROLLER: Rolle[] = ['medlem', 'admin']
