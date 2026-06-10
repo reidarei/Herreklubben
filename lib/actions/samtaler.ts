@@ -50,7 +50,8 @@ export async function aapneSamtale(motpartId: string) {
  * andres meldinger (mottatte) — ikke egne.
  */
 export async function markerSamtaleLest(samtaleId: string) {
-  // se #305 — bevisst silent no-op, ikke ensureInnlogget (som kaster ved uinnlogget)
+  // se #305 — bevisst silent no-op, ikke ensureInnlogget: kalles som background-
+  // effekt ved sidelast, og en utløpt sesjon skal ikke kaste feil til klienten
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
