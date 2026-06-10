@@ -5,6 +5,7 @@ import { sendChatMentionVarsler, sendVarsel } from '@/lib/varsler'
 import { BASE_URL } from '@/lib/config'
 import { CHAT_MIN_LENGDE, INNLEGG_MIN_LENGDE } from '@/lib/konstanter'
 import { konfigFor, type ChatScope } from '@/lib/chat-konfig'
+import { ensureInnlogget } from '@/lib/auth'
 
 // Trimmer og validerer chat-innhold for et gitt scope. Bruker scope-spesifikk
 // charLimit (privat = INNLEGG_MAKS_LENGDE = 2000, øvrige = CHAT_MAKS_LENGDE
@@ -111,9 +112,7 @@ export async function sendChatMelding(
   const k = konfigFor(scope)
   const { tekst } = validerInnhold(innhold, bildeUrl, k.charLimit)
 
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const fkData = k.fkFelt ? { [k.fkFelt]: k.scopeId(scope) } : {}
   const { error } = await supabase
@@ -179,9 +178,7 @@ export async function slettChatMelding(
 // melding_id peker til id-en i den underliggende chat-tabellen (RLS
 // håndhever at brukeren kun kan legge til/fjerne egne reaksjoner).
 export async function leggTilReaksjon(meldingId: string, emoji: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('chat_reaksjoner')
@@ -194,9 +191,7 @@ export async function leggTilReaksjon(meldingId: string, emoji: string) {
 }
 
 export async function fjernReaksjon(meldingId: string, emoji: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('chat_reaksjoner')

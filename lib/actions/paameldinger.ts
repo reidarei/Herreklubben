@@ -1,16 +1,14 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { naa } from '@/lib/dato'
+import { ensureInnlogget } from '@/lib/auth'
 
 export async function oppdaterPaamelding(
   arrangementId: string,
   status: 'ja' | 'nei' | 'kanskje'
 ) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('paameldinger')

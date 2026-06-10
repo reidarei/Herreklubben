@@ -142,9 +142,7 @@ export async function oppdaterMeldingPost(meldingId: string, innhold: string) {
 // Reaksjoner på selve innlegget. Egen tabell `melding_reaksjon` for å
 // holde dem adskilt fra chat_reaksjoner som er på kommentar-nivå.
 export async function leggTilMeldingReaksjon(meldingId: string, emoji: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('melding_reaksjon')
@@ -157,9 +155,7 @@ export async function leggTilMeldingReaksjon(meldingId: string, emoji: string) {
 }
 
 export async function fjernMeldingReaksjon(meldingId: string, emoji: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('melding_reaksjon')
