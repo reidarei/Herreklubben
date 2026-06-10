@@ -104,9 +104,14 @@ if (count > 0) {
 
   if (!eksisterende) {
     avbryt(
-      `profiles-tabellen er ikke tom (${count} rad(er)). ` +
-      'Scriptet kjøres kun på ferske instanser. ' +
-      'Legg til admin via Rediger-siden i appen, eller via Supabase Dashboard.'
+      `profiles-tabellen er ikke tom (${count} rad(er)), og eposten ${epost} ` +
+      'finnes ikke der fra før. Scriptet er ment for ferske instanser, eller ' +
+      'for re-kjøring med samme epost etter at Lag 1 (auth-bruker) gikk gjennom.\n\n' +
+      'Hvis du vil legge til denne adminen likevel:\n' +
+      '  1. Opprett brukeren via Supabase Dashboard → Authentication → Users\n' +
+      '  2. Sett rollen via SQL i Dashboard:\n' +
+      `     update public.profiles set rolle = 'admin' where epost = '${epost}';\n\n` +
+      'Eller bruk Rediger-siden i appen hvis du allerede har innloggede admins.'
     )
   }
 

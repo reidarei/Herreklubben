@@ -56,3 +56,6 @@ scripts/data/import-rapport.json
 /scripts/fb-bilder-metadata.html
 .vercel
 .env*.local
+
+# init-admin: engangspassord skrevet til fil, må aldri committes
+/init-admin-passord.txt
