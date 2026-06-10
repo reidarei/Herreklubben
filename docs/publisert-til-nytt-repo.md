@@ -20,7 +20,8 @@ Sjekkliste over hva som kopieres til det nye, rene open source-repoet og hva som
 - `app/` — hele Next.js-applikasjonen
 - `components/` — alle komponenter
 - `lib/` — alle helpere, actions, supabase-clients
-- `supabase/migrations/` — alle SQL-migrasjoner
+- `supabase/migrations/` — alle SQL-migrasjoner (+ `supabase/config.toml` med nøytral project_id)
+- `types/` — globale TypeScript-deklarasjoner (`css.d.ts` — build feiler uten)
 - `__tests__/` — enhets-tester
 - `e2e/` — Playwright-tester
 
@@ -32,8 +33,9 @@ Sjekkliste over hva som kopieres til det nye, rene open source-repoet og hva som
 - `middleware.ts` — Next.js auth-guard, krevd ved kjøring
 - `vercel.json` — Vercel-region/build-konfig
 - `.env.example`
-- `.gitignore`, `.gitattributes`
+- `.gitignore` (`.gitattributes` finnes ikke i kilderepoet)
 - `.github/workflows/paaminne.yml`
+- `.github/workflows/keepalive.yml` — holder Supabase free tier aktiv, generisk nyttig
 
 ### Genererte/build-artifakter — kopieres med?
 - `lib/supabase/database.types.ts` — **kopieres med** som utgangspunkt. Fila er generert per Supabase-instans (`npx supabase gen types`), men `next build` krever at den finnes. Nytt repo bør levere én versjon som matcher migrasjoner i `supabase/migrations/`, og dokumentere at den må regenereres etter første `db push` mot egen instans.
