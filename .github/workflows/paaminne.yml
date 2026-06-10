@@ -1,3 +1,6 @@
+# Daglig påminnelsesjobb — kaller /api/cron/paaminne kl. 06:00 UTC.
+# Secret-oppsett (CRON_SECRET og APP_URL): se docs/oppsett.md, seksjon 9.
+
 name: Daglig påminnelse
 
 on:

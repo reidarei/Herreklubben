@@ -1387,6 +1387,25 @@ export type Database = {
       }
       er_admin: { Args: never; Returns: boolean }
       er_generalsekretaer: { Args: never; Returns: boolean }
+      fjern_generalsekretaer: {
+        // forventet_profil er valgfri (default null i SQL). Race-vakt: RPC
+        // demoterer kun hvis sittende GS matcher denne id-en.
+        Args: { forventet_profil?: string }
+        Returns: {
+          // Nullable når ingen GS fantes, eller når forventet_profil ikke
+          // matchet sittende GS (race-mismatch).
+          forrige_profil: string | null
+          forrige_navn: string | null
+        }[]
+      }
+      sett_generalsekretaer: {
+        Args: { ny_profil: string }
+        Returns: {
+          // Nullable når det ikke var noen sittende GS før byttet.
+          forrige_profil: string | null
+          forrige_navn: string | null
+        }[]
+      }
       get_statistikk: { Args: never; Returns: Json }
       har_pass_tilgang: { Args: { eier: string }; Returns: boolean }
       lukk_kaaringspoll_naa: {
