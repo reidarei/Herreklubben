@@ -2,9 +2,18 @@ import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { GITHUB_REPO, GITHUB_ONSKE_LABEL } from '@/lib/config'
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN!
+// Ingen non-null assertion: GITHUB_TOKEN er en valgfri integrasjon, og en
+// instans uten den skal degradere pent — ikke krasje (#299).
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN
 
 export async function POST(request: Request) {
+  if (!GITHUB_TOKEN) {
+    return NextResponse.json(
+      { feil: 'Innspill-funksjonen er ikke konfigurert (GITHUB_TOKEN mangler)' },
+      { status: 503 }
+    )
+  }
+
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ feil: 'Ikke innlogget' }, { status: 401 })
