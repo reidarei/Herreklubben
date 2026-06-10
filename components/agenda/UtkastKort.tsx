@@ -9,7 +9,7 @@ export type UtkastData = {
   ansvarligeIds: string[]
 }
 
-// «Reka», «Reka og Jona», «Reka, Jona og Heede»
+// «Ola», «Ola og Kari», «Ola, Kari og Per»
 function formaterAnsvarlige(navn: string[]): string {
   if (navn.length <= 1) return navn[0] ?? ''
   if (navn.length === 2) return `${navn[0]} og ${navn[1]}`
