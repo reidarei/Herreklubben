@@ -66,26 +66,43 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
   // Hvis personen i DB er generalsekretær og innsendt rolle er 'admin' eller
   // 'medlem', skal IKKE denne actionen demotere — det håndteres av
   // fjernGeneralsekretaer() som kalles FØR denne actionen i handleLagre.
-  // Vi henter aktuell rolle fra DB og bevarer 'generalsekretaer' hvis den
-  // innsendte rollen prøver å overskrive den uten at fjern-actionen er kalt.
-  // I praksis vil RedigerMedlemSkjema alltid kalle fjern-actionen først, så
-  // dette er en defensiv sjekk mot direktebruk av actionen.
+  // Defensiv invariant: når DB-rollen er 'generalsekretaer', utelater vi
+  // rolle-feltet HELT fra update-objektet — vi rører det aldri. Det unngår
+  // en TOCTOU-felle hvor en annen admin demoterer GS i mellomtiden og vi
+  // re-promoterer i stillhet ved å skrive den gamle rollen tilbake.
   const { data: gjeldende } = await supabase
     .from('profiles')
     .select('rolle')
     .eq('id', id)
     .single()
 
-  // Velg endelig rolle: hvis personen er GS og vi ikke fikk 'generalsekretaer'
-  // som innsendt rolle → bruk gjeldende (ingen endring). Klienten har allerede
-  // kalt fjernGeneralsekretaer() for å demotere hvis det var ønsket.
-  const endeligRolle = gjeldende?.rolle === 'generalsekretaer'
-    ? gjeldende.rolle  // bevarer GS-rollen; fjern-actionen demoterte om nødvendig
-    : data.rolle
+  const baseOppdatering = {
+    navn,
+    visningsnavn,
+    telefon: normaliserTelefon(data.telefon),
+    fodselsdato: data.fodselsdato || null,
+    aktiv: data.aktiv,
+    oppdatert: naa(),
+  }
+  // Bevaringsgren: DB sier GS, innsendt rolle er medlem/admin → ikke rør rolle.
+  // Klienten skal ha kalt fjernGeneralsekretaer() først hvis demotering var ønsket.
+  // Logg en advarsel når dette skjer, så vi oppdager UI-bugs som hopper over
+  // fjern-actionen og lar denne actionen «fikse» det stille.
+  const skalRoreRolle = gjeldende?.rolle !== 'generalsekretaer'
+  if (!skalRoreRolle) {
+    console.warn(
+      `[oppdaterMedlemAdmin] Hopper over rolle-oppdatering for profil ${id}: ` +
+      `DB-rolle er 'generalsekretaer', innsendt '${data.rolle}'. ` +
+      `Forventer at fjernGeneralsekretaer() ble kalt først.`,
+    )
+  }
+  const oppdatering: Record<string, unknown> = skalRoreRolle
+    ? { ...baseOppdatering, rolle: data.rolle }
+    : baseOppdatering
 
   const { error } = await supabase
     .from('profiles')
-    .update({ navn, visningsnavn, telefon: normaliserTelefon(data.telefon), fodselsdato: data.fodselsdato || null, rolle: endeligRolle, aktiv: data.aktiv, oppdatert: naa() })
+    .update(oppdatering)
     .eq('id', id)
 
   if (error) throw new Error(error.message)

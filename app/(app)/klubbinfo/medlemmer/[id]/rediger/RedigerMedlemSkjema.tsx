@@ -8,7 +8,7 @@ import {
   settGeneralsekretaer,
   fjernGeneralsekretaer,
 } from '@/lib/actions/profil'
-import { VALGBARE_ROLLER, tittelFor, type Rolle } from '@/lib/roller'
+import { VALGBARE_ROLLER, tittelFor, kanAdministrere, type Rolle } from '@/lib/roller'
 import SkjemaBar from '@/components/ui/SkjemaBar'
 import SkjemaSeksjon from '@/components/ui/SkjemaSeksjon'
 import Segment from '@/components/ui/Segment'
@@ -90,9 +90,12 @@ export default function RedigerMedlemSkjema({
   // Generalsekretær-rollen styres av ToggleSwitch nedenfor.
   const erValgbar = (VALGBARE_ROLLER as string[]).includes(medlem.rolle)
   const [rolle, setRolle] = useState<Rolle>(
-    erValgbar ? (medlem.rolle as Rolle) : 'admin',
-    // Hvis GS er GS → vis 'admin' i Segmentet (GS har admin-rettigheter).
-    // ToggleSwitch-en viser selve GS-statusen separat.
+    // For valgbare roller (medlem/admin): bruk DB-rollen direkte.
+    // For andre (i praksis 'generalsekretaer'): velg admin/medlem basert på
+    // om rollen har admin-rettigheter. Bruker kanAdministrere() i stedet for
+    // hardkodet 'admin' så fremtidige roller med admin-rettigheter speiles
+    // riktig i Segmentet uten å måtte huske å oppdatere denne linja.
+    erValgbar ? (medlem.rolle as Rolle) : (kanAdministrere(medlem.rolle) ? 'admin' : 'medlem'),
   )
   const [aktiv, setAktiv] = useState<'aktiv' | 'deaktivert'>(
     medlem.aktiv ? 'aktiv' : 'deaktivert',
@@ -114,7 +117,7 @@ export default function RedigerMedlemSkjema({
         : null
 
       const beskjed = annenGs
-        ? `Flytte generalsekretær-tittelen fra ${annenGs.navn} til ${medlem.navn}? ${annenGs.navn} forblir admin, men mister tittelen.`
+        ? `Flytte generalsekretær-tittelen fra ${annenGs.navn} til ${medlem.navn}? ${annenGs.navn} blir admin og mister tittelen.`
         : `Gjøre ${medlem.navn} til generalsekretær?`
 
       if (!confirm(beskjed)) return  // bruker avbrøt → ikke toggle
@@ -127,25 +130,38 @@ export default function RedigerMedlemSkjema({
 
   async function handleLagre() {
     startTransition(async () => {
-      // handleLagre-rekkefølge (kritisk — rekkefølgen kan ikke byttes):
+      // handleLagre-rekkefølge:
       //
-      // 1. Fjern GS-tittelen FØRST hvis dette medlemmet er GS og skal slutte å
-      //    være det. Det gjelder både ved toggle-av og ved bytte til en annen.
-      //    Uten dette steget ville oppdaterMedlemAdmin (steg 2) se rolle=
-      //    'generalsekretaer' i DB og bevare den — ikke demotere.
+      // 1. Oppdater navn/telefon/aktiv/rolle FØRST. Hvis dette feiler så er
+      //    ingen GS-endring gjort ennå — vi ender ikke i den ekle tilstanden
+      //    hvor GS er stille demotert mens resten av skjemaet rullet tilbake.
+      //    Når DB-rolle er 'generalsekretaer' utelater oppdaterMedlemAdmin
+      //    rolle-feltet helt (defensiv invariant i actionen), så det er trygt
+      //    å kalle med rolle='admin'/'medlem' selv om personen er GS.
       //
-      // 2. Oppdater navn, telefon, aktiv-status og rolle (admin/medlem).
-      //    oppdaterMedlemAdmin bevarer 'generalsekretaer' hvis den fortsatt er i DB,
-      //    men etter steg 1 er den demotert og steg 2 kan sette 'admin'/'medlem' trygt.
+      // 2. Fjern GS-tittel hvis dette medlemmet er GS og skal slutte å være det.
+      //    Etter dette er DB ren for et evt. steg 3.
       //
-      // 3. Sett GS-tittel SIST hvis toggle er på. Da er DB i riktig tilstand
-      //    (forrige GS er demotert i steg 1) og RPC-ens partial unique index
-      //    vil ikke trigge 23505.
+      // 3. Sett GS-tittel hvis toggle er på. Partial unique index kan fortsatt
+      //    feile med 23505 hvis en annen admin satte ny GS i mellomtiden —
+      //    klienten viser da reaktiv confirm med oppdatert innehavernavn.
 
       const skalFjernes = medlem.rolle === 'generalsekretaer' && !erGeneralsekretaer
       const skalSettes  = erGeneralsekretaer && medlem.rolle !== 'generalsekretaer'
 
-      // Steg 1: fjern GS-tittel (om nødvendig)
+      // Steg 1: oppdater øvrige felter. Send 'admin' når personen er GS i DB
+      // (Segment kan ikke vise 'generalsekretaer'); actionen ignorerer feltet
+      // i bevaringsgrenen. Etter evt. steg 2 settes 'admin' uansett av RPC-en.
+      await oppdaterMedlemAdmin(medlem.id, {
+        navn,
+        visningsnavn: visningsnavn || navn,
+        telefon,
+        rolle,
+        aktiv: aktiv === 'aktiv',
+        fodselsdato: fodselsdato || undefined,
+      })
+
+      // Steg 2: fjern GS-tittel (om nødvendig)
       if (skalFjernes) {
         const res = await fjernGeneralsekretaer()
         if (!res.ok) {
@@ -153,16 +169,6 @@ export default function RedigerMedlemSkjema({
           return
         }
       }
-
-      // Steg 2: oppdater øvrige felter (navn, telefon, rolle, aktiv)
-      await oppdaterMedlemAdmin(medlem.id, {
-        navn,
-        visningsnavn: visningsnavn || navn,
-        telefon,
-        rolle,  // 'admin' eller 'medlem' — GS-rollen håndteres i steg 1 og 3
-        aktiv: aktiv === 'aktiv',
-        fodselsdato: fodselsdato || undefined,
-      })
 
       // Steg 3: sett GS-tittel (om nødvendig)
       if (skalSettes) {
@@ -172,12 +178,17 @@ export default function RedigerMedlemSkjema({
             // Race-tilstand: en annen admin satte en ny GS i mellomtiden.
             // Spør på nytt med oppdatert innehavernavn.
             const bekreft = confirm(
-              `${res.innehaver.navn} ble nettopp satt som generalsekretær av en annen admin. Vil du likevel flytte tittelen til ${medlem.navn}? ${res.innehaver.navn} forblir admin.`
+              `${res.innehaver.navn} ble nettopp satt som generalsekretær av en annen admin. Vil du likevel flytte tittelen til ${medlem.navn}? ${res.innehaver.navn} blir admin og mister tittelen.`
             )
             if (bekreft) {
               const res2 = await settGeneralsekretaer(medlem.id)
               if (!res2.ok) {
-                alert(`Feil ved bytte av generalsekretær: ${res2.kode === 'feil' ? res2.melding : 'Prøv igjen.'}`)
+                // Andre forsøk feilet også. Skill ut race-tilfellet for å
+                // unngå en uendelig retry-loop og gi en konkret melding.
+                const melding = res2.kode === 'generalsekretaer_finnes'
+                  ? `En annen admin satte ${res2.innehaver.navn} som generalsekretær igjen. Last siden på nytt og prøv om ønskelig.`
+                  : `Feil ved bytte av generalsekretær: ${res2.melding}`
+                alert(melding)
                 return
               }
             } else {
