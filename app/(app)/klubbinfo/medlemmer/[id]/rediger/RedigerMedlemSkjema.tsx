@@ -161,11 +161,21 @@ export default function RedigerMedlemSkjema({
         fodselsdato: fodselsdato || undefined,
       })
 
-      // Steg 2: fjern GS-tittel (om nødvendig)
+      // Steg 2: fjern GS-tittel (om nødvendig).
+      // Vi sender medlem.id som forventet profil — RPC-en avbryter hvis
+      // sittende GS ikke matcher (en annen admin har flyttet tittelen i
+      // mellomtiden). Da viser vi en pen melding heller enn å demotere
+      // feil person.
       if (skalFjernes) {
-        const res = await fjernGeneralsekretaer()
+        const res = await fjernGeneralsekretaer(medlem.id)
         if (!res.ok) {
-          alert(`Feil ved fjerning av generalsekretær: ${res.melding}`)
+          if (res.kode === 'race_mismatch') {
+            alert(
+              `${medlem.navn} er ikke generalsekretær lenger — en annen admin har flyttet tittelen siden du åpnet siden. Last siden på nytt for oppdatert status.`,
+            )
+          } else {
+            alert(`Feil ved fjerning av generalsekretær: ${res.melding}`)
+          }
           return
         }
       }

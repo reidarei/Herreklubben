@@ -81,20 +81,34 @@ begin
      where id = v_forrige_id;
   end if;
 
-  -- Promotér ny profil til 'generalsekretaer'
+  -- Promotér ny profil til 'generalsekretaer'.
+  -- FOUND-sjekk: hvis ny_profil ikke finnes (slettet/feil id) blir UPDATE en
+  -- silent no-op som ellers ville returnert OK. Vi vil heller feile synlig.
   update profiles
      set rolle     = 'generalsekretaer',
          oppdatert = now()
    where id = ny_profil;
 
+  if not found then
+    raise exception 'Profil % finnes ikke — kan ikke settes som generalsekretær', ny_profil
+      using errcode = 'P0002';
+  end if;
+
   return query select v_forrige_id, v_forrige_navn;
 end;
 $$;
 
--- 3) RPC: fjern_generalsekretaer()
+-- 3) RPC: fjern_generalsekretaer(forventet_profil uuid)
 --    Demoterer sittende GS til 'admin'. Null GS er gyldig tilstand (f.eks.
 --    i overgangsperiode). Returnerer den som ble fjernet.
-create or replace function fjern_generalsekretaer()
+--
+--    forventet_profil-parameteren forhindrer race-tilstand: klienten leser
+--    sittende GS ved sidelast, men en annen admin kan ha flyttet tittelen
+--    mellom lasting og lagring. Vi demoterer KUN hvis sittende GS-id matcher
+--    det klienten forventet. Mismatch → tomrad returneres uten endring, og
+--    klienten kan oppdage det og varsle brukeren. forventet_profil = null
+--    bevarer gammel oppførsel (demoter hvem enn som sitter).
+create or replace function fjern_generalsekretaer(forventet_profil uuid default null)
 returns table (
   forrige_profil uuid,
   forrige_navn   text
@@ -123,6 +137,14 @@ begin
     return;
   end if;
 
+  -- Race-vakt: hvis klienten oppga forventet profil og det ikke matcher
+  -- sittende GS, har noen flyttet tittelen i mellomtiden. Ikke demoter —
+  -- returner tomrad så klienten kan oppdage at ingenting ble gjort.
+  if forventet_profil is not null and forventet_profil <> v_forrige_id then
+    return query select null::uuid, null::text;
+    return;
+  end if;
+
   update profiles
      set rolle     = 'admin',
          oppdatert = now()
@@ -138,5 +160,5 @@ $$;
 revoke all on function sett_generalsekretaer(uuid) from public;
 grant execute on function sett_generalsekretaer(uuid) to authenticated;
 
-revoke all on function fjern_generalsekretaer() from public;
-grant execute on function fjern_generalsekretaer() to authenticated;
+revoke all on function fjern_generalsekretaer(uuid) from public;
+grant execute on function fjern_generalsekretaer(uuid) to authenticated;

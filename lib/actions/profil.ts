@@ -16,6 +16,8 @@ export type SettGeneralsekretaerResultat =
 
 export type FjernGeneralsekretaerResultat =
   | { ok: true; forrigeProfilId: string | null }
+  // Race: forventet profil var ikke sittende GS lenger. Ingen demotering ble gjort.
+  | { ok: false; kode: 'race_mismatch' }
   | { ok: false; kode: 'feil'; melding: string }
 
 export async function oppdaterEgenProfil(data: { navn: string; visningsnavn: string; telefon: string; fodselsdato?: string; bilde_url?: string | null }) {
@@ -70,11 +72,17 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
   // rolle-feltet HELT fra update-objektet — vi rører det aldri. Det unngår
   // en TOCTOU-felle hvor en annen admin demoterer GS i mellomtiden og vi
   // re-promoterer i stillhet ved å skrive den gamle rollen tilbake.
-  const { data: gjeldende } = await supabase
+  // Slå opp gjeldende rolle. NB: RLS-select-policyen på profiles er
+  // `using (aktiv = true)` (se 009_rls_policyer.sql) — for INAKTIVE profiler
+  // returnerer .maybeSingle() null selv om raden finnes. Vi må derfor
+  // fail-safe: hvis oppslaget feiler ELLER returnerer null, rører vi IKKE
+  // rolle-feltet. Det unngår at en sittende GS demoteres stille gjennom
+  // denne actionen utenom RPC-flyten — som var bug-en Copilot fanget.
+  const { data: gjeldende, error: gjeldendeFeil } = await supabase
     .from('profiles')
     .select('rolle')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
   const baseOppdatering = {
     navn,
@@ -84,16 +92,16 @@ export async function oppdaterMedlemAdmin(id: string, data: { navn: string; visn
     aktiv: data.aktiv,
     oppdatert: naa(),
   }
-  // Bevaringsgren: DB sier GS, innsendt rolle er medlem/admin → ikke rør rolle.
-  // Klienten skal ha kalt fjernGeneralsekretaer() først hvis demotering var ønsket.
-  // Logg en advarsel når dette skjer, så vi oppdager UI-bugs som hopper over
-  // fjern-actionen og lar denne actionen «fikse» det stille.
-  const skalRoreRolle = gjeldende?.rolle !== 'generalsekretaer'
+  // Fail-safe: rør rolle KUN hvis vi har bekreftet at gjeldende rolle ikke
+  // er 'generalsekretaer'. Manglende oppslag (RLS-skjult inaktiv profil,
+  // nettverksfeil osv.) → ikke rør rolle. Klienten må kalle
+  // fjernGeneralsekretaer() først hvis demotering av GS er ønsket.
+  const skalRoreRolle = !gjeldendeFeil && gjeldende != null && gjeldende.rolle !== 'generalsekretaer'
   if (!skalRoreRolle) {
     console.warn(
       `[oppdaterMedlemAdmin] Hopper over rolle-oppdatering for profil ${id}: ` +
-      `DB-rolle er 'generalsekretaer', innsendt '${data.rolle}'. ` +
-      `Forventer at fjernGeneralsekretaer() ble kalt først.`,
+      `gjeldende rolle '${gjeldende?.rolle ?? 'ukjent'}' (oppslagsfeil: ${gjeldendeFeil?.message ?? 'nei'}), innsendt '${data.rolle}'. ` +
+      `Forventer at fjernGeneralsekretaer() ble kalt først hvis GS skulle demoteres.`,
     )
   }
   const oppdatering: Record<string, unknown> = skalRoreRolle
@@ -146,17 +154,35 @@ export async function settGeneralsekretaer(nyProfilId: string): Promise<SettGene
 
 // Fjerner generalsekretær-tittelen fra sittende GS (demoterer til 'admin').
 // Null GS er en gyldig tilstand — f.eks. i overgangsperiode.
-export async function fjernGeneralsekretaer(): Promise<FjernGeneralsekretaerResultat> {
+//
+// forventetProfilId: id-en klienten TRODDE var sittende GS da han åpnet siden.
+// RPC-en demoterer kun hvis dette matcher faktisk sittende GS. Mismatch →
+// `race_mismatch` returneres uten endring. Dette forhindrer at en annen admin
+// som flyttet GS i mellomtiden får sin nye GS demotert ved en uskyldig lagring
+// fra en utdatert side. Hvis forventetProfilId utelates faller vi tilbake til
+// gammel oppførsel (demoter den som sitter — brukes bare hvis kalleren ikke
+// har et entydig anker).
+export async function fjernGeneralsekretaer(forventetProfilId?: string): Promise<FjernGeneralsekretaerResultat> {
   const { supabase } = await ensureAdmin()
 
   const { data, error } = await supabase
-    .rpc('fjern_generalsekretaer')
+    .rpc('fjern_generalsekretaer', { forventet_profil: forventetProfilId ?? undefined })
 
   if (error) {
     return { ok: false, kode: 'feil', melding: error.message }
   }
 
   const rad = data?.[0]
+
+  // Race-mismatch-deteksjon: hvis vi oppga forventetProfilId men RPC-en
+  // returnerte tomrad (forrige_profil = null), betyr det enten at det ikke
+  // var noen GS, eller at sittende GS ikke matchet forventningen vår.
+  // Skill mellom de to ved å sjekke om vi i det hele tatt forventet en
+  // demotering — kalleren her vet at det var en GS før, så null = mismatch.
+  if (forventetProfilId && !rad?.forrige_profil) {
+    return { ok: false, kode: 'race_mismatch' }
+  }
+
   revalidatePath('/klubbinfo/medlemmer')
   if (rad?.forrige_profil) revalidatePath(`/klubbinfo/medlemmer/${rad.forrige_profil}`)
 
