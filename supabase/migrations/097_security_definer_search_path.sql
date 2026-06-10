@@ -22,7 +22,7 @@ as $$
   select rolle in ('admin', 'generalsekretaer') from profiles where id = auth.uid()
 $$;
 
--- 2) handle_ny_bruker() — opprinnelig fra mig. 071 (btrim-forsvar mot whitespace i e-post)
+-- 2) handle_ny_bruker() — opprinnelig fra mig. 001, sist redigert i mig. 071 (btrim-forsvar mot whitespace i e-post)
 create or replace function handle_ny_bruker()
 returns trigger
 language plpgsql

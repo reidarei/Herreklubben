@@ -7,7 +7,7 @@
 
 ## 1. Row Level Security (RLS)
 
-Alle 31 tabeller i `public`-schema har RLS aktivert. Default-holdningen er deny-by-default: ingen rad leses eller skrives uten en eksplisitt policy som tillater det.
+Alle 31 tabeller i `public`-schema har RLS aktivert (verifisert mot prod 2026-06-10). Default-holdningen er deny-by-default: ingen rad leses eller skrives uten en eksplisitt policy som tillater det.
 
 **Admin-policies** bruker funksjonen `er_admin()` (definert i mig. 041, search_path-låst i mig. 097) i stedet for inline `rolle = 'admin'`-sjekker. Det gjør at rollen `generalsekretaer` automatisk arver admin-rettigheter uten at hver policy må oppdateres.
 
@@ -16,7 +16,7 @@ Alle 31 tabeller i `public`-schema har RLS aktivert. Default-holdningen er deny-
 | Tabell | Begrunnelse |
 |--------|-------------|
 | `varsel_logg` | Har kun SELECT-policy for eier + admin. INSERT skjer via service_role i `sendVarsel()` — brukere kan ikke selv skrive varsler til seg selv eller andre. |
-| `vitals_logg` | Har kun SELECT-policy for admin. INSERT skjer via service_role i `/api/vitals`-ruta — ingen innlogget bruker kan manipulere ytelsesdataene. |
+| `vitals_logg` | Har kun SELECT-policy for admin. INSERT skjer via service_role fra `/api/vitals`-ruta. Ruta er bevisst uautentisert (se §2) — beskyttelsen mot manipulasjon ligger i streng server-side validering av enum-felter og capping av tallverdier før insert. |
 
 Disse er ikke hull — deny-by-default er tilsiktet for skrive-tilgang.
 
@@ -30,10 +30,15 @@ Disse er ikke hull — deny-by-default er tilsiktet for skrive-tilgang.
 
 | Rute | Beskyttelsesmekanisme |
 |------|-----------------------|
-| `/api/cron/paaminne` | `CRON_SECRET` i Authorization-header — verifiseres mot env-variabel før noe annet skjer |
+| `/api/cron/paaminne` | `CRON_SECRET` i Authorization-header — verifiseres på alle metoder (GET og POST) før noe annet skjer |
 | `/api/github/webhook` | HMAC-SHA256 signatur (`X-Hub-Signature-256`) — verifiseres mot `GITHUB_WEBHOOK_SECRET` |
+| `/api/vitals` | Ingen — bevisst uautentisert (se under) |
 
-Begge rutene returnerer 401 umiddelbart ved feil/manglende hemmelighet, uten å røpe detaljer om hva som feilet.
+Webhook-ruta returnerer 401 ved ugyldig signatur. Manglende `GITHUB_WEBHOOK_SECRET` gir 503 (fail-closed) — ruten aksepterer aldri en payload uten å ha verifisert signaturen først. Cron-ruta returnerer 401 ved manglende eller feil bearer-token. Ingen av rutene røper detaljer om hva som feilet.
+
+**Bevisst uautentisert: `/api/vitals`**
+
+Ruta tar imot Web Vitals-målinger (LCP, INP, CLS, FCP, TTFB) fra klientene. Den må være uautentisert fordi målingene sendes via `navigator.sendBeacon` ved page-unload, der Supabase-sesjonen ikke pålitelig er tilgjengelig. Misbruksrisikoen er begrenset av streng server-side validering: `metric` må være i en hvitliste, `rating` likeså, `verdi` må være et tall mellom 0 og 600 000, og `rute` capet til 120 tegn. En angriper kan i verste fall forurense egne ytelsesdata — ingen sensitiv tilstand kan endres. Akseptert risiko for dette endepunktet.
 
 ---
 

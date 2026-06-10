@@ -17,10 +17,19 @@ function verifiserSignatur(body: string, signatur: string | null): boolean {
 }
 
 export async function POST(request: Request) {
+  // Fail-closed: hvis hemmeligheten ikke er satt avviser vi requesten.
+  // Et tidligere mønster (`if (WEBHOOK_SECRET && !verifiserSignatur(...))`)
+  // hoppet over verifisering ved manglende env-var — det er fail-open og
+  // ble fanget i sikkerhetsgjennomgangen 2026-06.
+  if (!WEBHOOK_SECRET) {
+    console.error('[github-webhook] GITHUB_WEBHOOK_SECRET er ikke satt — avviser kall')
+    return NextResponse.json({ feil: 'Webhook ikke konfigurert' }, { status: 503 })
+  }
+
   const rawBody = await request.text()
   const signatur = request.headers.get('x-hub-signature-256')
 
-  if (WEBHOOK_SECRET && !verifiserSignatur(rawBody, signatur)) {
+  if (!verifiserSignatur(rawBody, signatur)) {
     return NextResponse.json({ feil: 'Ugyldig signatur' }, { status: 401 })
   }
 
