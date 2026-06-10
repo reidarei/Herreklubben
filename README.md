@@ -304,7 +304,7 @@ Disse er bevisste pragmatiske valg for et hobbyprosjekt med én utvikler — men
 - **Mest styling som inline-style** (objekt-literaler), ikke CSS-moduler eller klasser. Tailwind er installert men brukes lite. Det er pragmatisk for AI-assistert utvikling fordi diff-bredden blir mindre, men det er ikke skalerbart for større team.
 - **Test-dekning er overflate-tynn.** Kun helpers (`dato`, `roller`, `mention-regex`, `varsler`) har enhetstester. Komponenter, server actions og integrasjoner er ikke dekket. End-to-end er ikke automatisert.
 - **Migrasjoner kjøres manuelt** uten CI-validering. En glemt `db push` mellom merge og deploy = sjanse for runtime-feil.
-- **`scripts/`-mappen inneholder engangsimport-scripts** fra Facebook-dataeksport. Noen av disse har hatt klartekst-passord og datafiler med personopplysninger. Mappen er ikke kopieres til et nytt repo uten individuell audit av hvert script.
+- **`scripts/`-mappen inneholder engangsimport-scripts** fra Facebook-dataeksport. Noen av disse har hatt klartekst-passord og datafiler med personopplysninger. Mappen skal ikke kopieres til et nytt repo uten individuell audit av hvert script.
 - **`lib/actions/`-filer har lett gjenværende dupliserte mønstre** (varsel-sending etter insert, error-håndtering). Konsolidering er gjort der det betalte seg, ikke pedantisk overalt.
 - **Ingen automatisert kodegjennomgang** i CI utover Vercels build-sjekk. Code review skjer ad-hoc via Copilot/ultrareview ved PR.
 - **Et lite antall `as unknown as`-casts** der Supabase-genererte typer ikke matcher faktiske join-resultater. Type-løgner, men avgrenset.
@@ -330,4 +330,4 @@ For en privat klubb på 15–20 medlemmer er dette overkill. For en kommersiell 
 
 ## Lisens
 
-[MIT](LICENSE) — se LICENSE-filen.
+MIT. LICENSE-filen legges inn ved publisering i det nye repoet (OS-fase 6).
