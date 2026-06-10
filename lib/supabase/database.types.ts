@@ -1388,22 +1388,10 @@ export type Database = {
       er_admin: { Args: never; Returns: boolean }
       er_generalsekretaer: { Args: never; Returns: boolean }
       fjern_generalsekretaer: {
-        // forventet_profil er valgfri (default null i SQL). Race-vakt: RPC
-        // demoterer kun hvis sittende GS matcher denne id-en.
         Args: { forventet_profil?: string }
         Returns: {
-          // Nullable når ingen GS fantes, eller når forventet_profil ikke
-          // matchet sittende GS (race-mismatch).
-          forrige_profil: string | null
-          forrige_navn: string | null
-        }[]
-      }
-      sett_generalsekretaer: {
-        Args: { ny_profil: string }
-        Returns: {
-          // Nullable når det ikke var noen sittende GS før byttet.
-          forrige_profil: string | null
-          forrige_navn: string | null
+          forrige_navn: string
+          forrige_profil: string
         }[]
       }
       get_statistikk: { Args: never; Returns: Json }
@@ -1418,6 +1406,13 @@ export type Database = {
         }[]
       }
       marker_chat_sett: { Args: never; Returns: undefined }
+      sett_generalsekretaer: {
+        Args: { ny_profil: string }
+        Returns: {
+          forrige_navn: string
+          forrige_profil: string
+        }[]
+      }
       tell_poll_stemmer: {
         Args: { p_poll_id: string }
         Returns: {
