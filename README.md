@@ -16,6 +16,7 @@ Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og k
 - [Mappe-struktur](#mappe-struktur)
 - [Drift og deploy](#drift-og-deploy)
 - [Lokalt utviklingsmiljø](#lokalt-utviklingsmiljø)
+- [Oppsett fra scratch](docs/oppsett.md)
 - [Kritisk vurdering](#kritisk-vurdering)
 
 ---
