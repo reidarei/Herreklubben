@@ -190,7 +190,11 @@ const filinnhold = [
   '',
 ].join('\n')
 
-fs.writeFileSync(passordFil, filinnhold, { encoding: 'utf8' })
+// mode: 0o600 settes ved opprettelse for å lukke vinduet mellom write og chmod
+// hvor en annen prosess kunne ha lest filen. På Windows er mode-flagget
+// effektivt en no-op, men det er trygt å sende. chmodSync nedenfor er
+// fallback i tilfelle umask eller eksisterende fil har endret tilgangen.
+fs.writeFileSync(passordFil, filinnhold, { encoding: 'utf8', mode: 0o600 })
 
 try {
   fs.chmodSync(passordFil, 0o600)
