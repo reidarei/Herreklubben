@@ -1,6 +1,6 @@
 # Oppsett fra scratch
 
-Denne guiden beskriver hvordan du setter opp en ny instans av Mortensrud Herreklubb-appen fra bunnen av. Bruk den ved nytt Supabase-prosjekt, testinstans eller katastrofegjenoppretting.
+Denne guiden beskriver hvordan du setter opp en ny instans av appen fra bunnen av. Bruk den ved nytt Supabase-prosjekt, testinstans eller katastrofegjenoppretting.
 
 ---
 
@@ -29,8 +29,8 @@ Denne guiden beskriver hvordan du setter opp en ny instans av Mortensrud Herrekl
 ## 1. Klon og installer
 
 ```bash
-git clone https://github.com/reidarei/Herreklubben.git
-cd Herreklubben
+git clone <ditt-repo-url>
+cd <ditt-repo>
 npm install
 ```
 
@@ -157,7 +157,7 @@ For at daglig påminnelsesjobb (`.github/workflows/paaminne.yml`) skal virke:
 | Secret | Verdi |
 |---|---|
 | `CRON_SECRET` | Samme som Vercel env-var `CRON_SECRET` |
-| `APP_URL` | Prod-URL uten trailing slash, f.eks. `https://mortensrudherreklubb.no` |
+| `APP_URL` | Prod-URL uten trailing slash, f.eks. `https://din-klubb.example.com` |
 
 Se `.github/workflows/paaminne.yml` for secret-oppsett-referanse.
 
@@ -195,3 +195,9 @@ Betyr at Data API-rollen mangler `GRANT` på tabellen. Kjør `npx supabase db pu
 
 - Sjekk at `NEXT_PUBLIC_R2_PUBLIC_URL` peker til riktig R2-bucket-URL.
 - Sjekk at bucketen har «Public access» aktivert i Cloudflare Dashboard.
+
+---
+
+## Neste steg
+
+Etter at appen er oppe og første admin er innlogget, se **[docs/klubb-tilpasning.md](klubb-tilpasning.md)** for å bytte navn, ikoner og annen klubbidentitet. Drifts-guiden for løpende vedlikehold finnes i **[docs/drift.md](drift.md)**.

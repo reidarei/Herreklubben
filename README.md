@@ -1,23 +1,26 @@
-# Mortensrud Herreklubb
+# Herreklubben-appen
 
-Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og kåringer i en gruppe på ca. 17 venner. Lever på [mortensrudherreklubb.no](https://mortensrudherreklubb.no).
+> **This project is intentionally in Norwegian** — UI text, code identifiers, table/column names, commit messages, and documentation are all in Norwegian. It was built for a Norwegian-speaking private club and is published as-is. English speakers are welcome to use it, but localisation is out of scope for this repository.
 
-> Dette er et privat hobby-prosjekt, ikke en publikt distribuert produkt. Det er bygget med kraftig AI-assistanse (Claude Code, Anthropic). README-en dekker både hva som er gjennomtenkt og hva som er pragmatiske snarveier — se [Kritisk vurdering](#kritisk-vurdering) nederst.
+Privat web-app for vennegjenger som vil ha et felles sted for arrangementspåmelding, klubbchat og kåringer — uten å være avhengig av Facebook. Referanse-instans: [mortensrudherreklubb.no](https://mortensrudherreklubb.no).
+
+Appen er bygget med kraftig AI-assistanse (Claude Code, Anthropic). README-en dekker både hva som er gjennomtenkt og hva som er pragmatiske snarveier — se [Kritisk vurdering](#kritisk-vurdering) nederst.
 
 ---
 
 ## Innhold
 
 - [Funksjonalitet](#funksjonalitet)
+- [Skjermbilder](#skjermbilder)
 - [Stack](#stack)
+- [Kom i gang](#kom-i-gang)
 - [Arkitektur](#arkitektur)
 - [Datamodell](#datamodell)
 - [Sentrale designvalg](#sentrale-designvalg)
 - [Mappe-struktur](#mappe-struktur)
 - [Drift og deploy](#drift-og-deploy)
-- [Lokalt utviklingsmiljø](#lokalt-utviklingsmiljø)
-- [Oppsett fra scratch](docs/oppsett.md)
 - [Kritisk vurdering](#kritisk-vurdering)
+- [Lisens](#lisens)
 
 ---
 
@@ -31,10 +34,16 @@ Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og k
 - **Privatmeldinger** — én-til-én-samtaler.
 - **Album** — bildedelinger knyttet til arrangementer eller stå-alone. Cover-velger, lightbox med swipe og pil-navigering.
 - **Roller og ansvar** — arrangøransvar per år, kåringer (årets vinnere innen ulike kategorier).
-- **Klubbinfo** — vedtekter, medlemsliste, statistikk, historikk siden 2007.
+- **Klubbinfo** — vedtekter, medlemsliste, statistikk, historikk.
 - **Bursdager og klubbjubileum** dukker opp automatisk på agendaen.
 - **Push-varsler** og **e-post-påminnelser** for nye arrangementer, kommentarer, mentions og påminnelser om RSVP.
 - **PWA** — installerbar på mobil (Safari/Chrome), service worker for offline-fallback.
+
+---
+
+## Skjermbilder
+
+Skjermbilder kommer — anonymiserte versjoner under arbeid.
 
 ---
 
@@ -51,10 +60,30 @@ Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og k
 | E-post | Resend |
 | Push | Web Push (VAPID) via `web-push` |
 | Cron | GitHub Actions (`paaminne.yml`, daglig 06:00 UTC) |
-| Hosting | Vercel (Hobby), region Dublin |
-| Domene | mortensrudherreklubb.no via Domeneshop |
+| Hosting | Vercel (Hobby), region Dublin (referanse-instans) |
+| Domene | Valgfritt — referanse-instans bruker Domeneshop |
 
 286 kildefiler (`.ts`, `.tsx`, `.sql`, `.css`, `.mjs`), 64 SQL-migrasjoner.
+
+---
+
+## Kom i gang
+
+For å sette opp din egen instans:
+
+1. **[docs/oppsett.md](docs/oppsett.md)** — steg-for-steg fra klon til kjørende instans (Supabase, R2, VAPID, Resend, Vercel, GitHub Actions).
+2. **[docs/klubb-tilpasning.md](docs/klubb-tilpasning.md)** — bytt navn, ikoner, farger og konfigurer rollene for din klubb.
+3. **[docs/drift.md](docs/drift.md)** — legge til medlemmer, feilsøke varsler, kjøre migrasjoner og backup.
+
+```bash
+git clone <ditt-repo-url>
+cd <ditt-repo>
+npm install
+cp .env.example .env.local
+# fyll inn verdiene
+npm run sjekk-miljo
+npm run dev
+```
 
 ---
 
@@ -87,6 +116,8 @@ Privat web-app som erstatter Facebook for arrangementspåmelding, klubbchat og k
 ```
 
 **Sikkerhetsmodellen** sentrerer rundt Postgres RLS. Server Actions kjører som innlogget bruker (Supabase auth-cookie sendes med). Det betyr at selv om en server action skulle ha en logikkfeil, kan ikke en bruker lese eller skrive data RLS-policyene ikke tillater. `er_admin()`-SQL-funksjonen brukes konsekvent i policies; klient-siden har egen `kanAdministrere(rolle)`-helper for UI-rendering.
+
+En fullstendig gjennomgang av sikkerhetsmodellen er dokumentert i [docs/sikkerhetsgjennomgang-2026-06.md](docs/sikkerhetsgjennomgang-2026-06.md).
 
 **Privat-bilder via R2.** Cloudflare R2 valgt foran Supabase Storage av to grunner: kostnad ($0 egress) og at bucket lever i EU-jurisdiksjon. URL-er er public (krever ingen signering), men sti inneholder UUID-prefix som gjør dem upraktiske å gjette.
 
@@ -136,7 +167,7 @@ Migrasjonene ligger i `supabase/migrations/` nummerert sekvensielt (000–064). 
 
 ## Sentrale designvalg
 
-Alle disse er kodifisert som «policies» i [`CLAUDE.md`](./CLAUDE.md) — refereransen for AI-assistert utvikling fremover.
+Alle disse er kodifisert som «policies» i [`CLAUDE.md`](./CLAUDE.md) — referansen for AI-assistert utvikling fremover.
 
 ### Sentralisering der det betaler seg
 
@@ -146,6 +177,7 @@ Alle disse er kodifisert som «policies» i [`CLAUDE.md`](./CLAUDE.md) — refer
 - **Roller:** `lib/roller.ts` har sentral matrise. Aldri `rolle === 'admin'`-sammenligning i kode — bruk `kanAdministrere()`. Speilet i SQL via `er_admin()`-funksjonen.
 - **Konstanter:** tegnegrenser og dag-vinduer i `lib/konstanter.ts`. Ingen hardkodede magiske tall.
 - **Konfig:** miljø-avhengige verdier (BASE_URL, R2_PUBLIC_URL, GitHub-repo, VAPID-kontakt) i `lib/config.ts`.
+- **Klubbidentitet:** navn, stiftelsesdato, rolletitler i `lib/klubb-config.ts` med env-override — se [docs/klubb-tilpasning.md](docs/klubb-tilpasning.md).
 - **Bildelagring:** server actions i `lib/actions/bilde-opplasting.ts` + `lib/r2.ts`. Klient komprimerer (1600px / q0.85) før upload.
 - **Avatar:** `<Avatar>`-komponenten er bevisst enkel (kun `name`, `size`, `src`, `rolle`). Spesialtilfeller løses med lokale wrappere, ikke ved å utvide kjerne-komponenten.
 
@@ -200,12 +232,14 @@ lib/
   dato.ts          # Tidssone-trygge helpere
   konstanter.ts    # Domene-konstanter
   config.ts        # Miljø-avhengige verdier
+  klubb-config.ts  # Klubbidentitet (navn, stiftelsesdato, rollekonfig)
   r2.ts            # Cloudflare R2 upload/slett
   bilde-utils.ts   # Klient-side komprimering, kategorisering
 
 supabase/migrations/  # 64 nummererte SQL-filer
 
 scripts/         # Engangs-importer (FB-arrangementer, album), versjon-stamping
+                 # NB: scripts/-mappen må auditeres individuelt før open source-kopiering
 
 __tests__/       # Vitest — fokuserte enhets-tester på utvalgte helpers
                  # (dato, roller, mention-regex, varsler)
@@ -247,35 +281,11 @@ Skriptet sjekker tre nivåer:
 
 **APP_URL** settes kun som GitHub Actions-secret (peker workflow-en til prod-URL) — den brukes ikke av appen i runtime og hører ikke hjemme i `.env.local`.
 
-## Lokalt utviklingsmiljø
-
-```bash
-# Forutsetter Node 20+ og Supabase CLI
-
-git clone https://github.com/reidarei/Herreklubben.git
-cd Herreklubben
-npm install
-
-# Hent miljøvariabler fra Vercel (krever vercel-login)
-npx vercel link
-npx vercel env pull .env.local --environment=production
-
-npm run sjekk-miljo  # verifiser miljøet
-npm run dev          # http://localhost:3000
-npm run build        # Produksjonsbygg
-npm run lint         # ESLint
-npm test             # Vitest
-
-# Når du har lagt til en migrasjon:
-npx supabase db push
-npx supabase gen types typescript --project-id <id> > lib/supabase/database.types.ts
-```
-
 ---
 
 ## Kritisk vurdering
 
-Denne seksjonen er for IT-folk som vurderer kodebasen profesjonelt. Den er bevisst usminket.
+Denne seksjonen er for teknisk kyndige som vurderer kodebasen. Den er bevisst usminket.
 
 ### Hva er gjennomtenkt og solid
 
@@ -290,17 +300,17 @@ Denne seksjonen er for IT-folk som vurderer kodebasen profesjonelt. Den er bevis
 
 Disse er bevisste pragmatiske valg for et hobbyprosjekt med én utvikler — men en gjennomgang fra tradisjonell vinkel ville flagget dem.
 
-- **`Chat.tsx` er 1300+ linjer.** Konsolidert mye via CHAT_KONFIG-refactoren, men selve komponenten er fortsatt en katedral. Sub-komponenter og custom hooks står uendret som "fase B" i issue #100.
+- **`Chat.tsx` er 1300+ linjer.** Konsolidert mye via CHAT_KONFIG-refactoren, men selve komponenten er fortsatt en katedral. Sub-komponenter og custom hooks står uendret som «fase B» i issue #100.
 - **Mest styling som inline-style** (objekt-literaler), ikke CSS-moduler eller klasser. Tailwind er installert men brukes lite. Det er pragmatisk for AI-assistert utvikling fordi diff-bredden blir mindre, men det er ikke skalerbart for større team.
 - **Test-dekning er overflate-tynn.** Kun helpers (`dato`, `roller`, `mention-regex`, `varsler`) har enhetstester. Komponenter, server actions og integrasjoner er ikke dekket. End-to-end er ikke automatisert.
 - **Migrasjoner kjøres manuelt** uten CI-validering. En glemt `db push` mellom merge og deploy = sjanse for runtime-feil.
-- **DB-passord står i klartekst** i scripts/-filer (engangsimporter). For et privat hobbyprosjekt er det greit; i et selskap ville det vært en flagget brudd.
+- **`scripts/`-mappen inneholder engangsimport-scripts** fra Facebook-dataeksport. Noen av disse har hatt klartekst-passord og datafiler med personopplysninger. Mappen er ikke kopieres til et nytt repo uten individuell audit av hvert script.
 - **`lib/actions/`-filer har lett gjenværende dupliserte mønstre** (varsel-sending etter insert, error-håndtering). Konsolidering er gjort der det betalte seg, ikke pedantisk overalt.
 - **Ingen automatisert kodegjennomgang** i CI utover Vercels build-sjekk. Code review skjer ad-hoc via Copilot/ultrareview ved PR.
 - **Et lite antall `as unknown as`-casts** der Supabase-genererte typer ikke matcher faktiske join-resultater. Type-løgner, men avgrenset.
 - **iOS Safari-quirks håndteres med flere lag samtidig** (visualViewport-poll + focus-tracking + pathname-reset). Hver er logget med begrunnelse, men aggregert kompleksitet er reell.
 - **Versjons-stamping er manuell.** Lett å glemme.
-- **«Vibe-stamping» av enkelte beslutninger.** Noen designvalg er tatt fordi de føltes rett i øyeblikket og holdt seg fordi de ikke skapte problemer — ikke fordi de er resultat av eksplisitt avveiing. Dette er en iboende risiko ved AI-flow: koden blir produsert raskere enn man rekker å tvile på den. Refaktorerings-runden over (PR #112 / issue #100) var én slik korreksjon i etterkant.
+- **«Vibe-stamping» av enkelte beslutninger.** Noen designvalg er tatt fordi de føltes rett i øyeblikket og holdt seg fordi de ikke skapte problemer — ikke fordi de er resultat av eksplisitt avveiing. Dette er en iboende risiko ved AI-flow: koden blir produsert raskere enn man rekker å tvile på den.
 
 ### Hva en profesjonell modning ville krevd
 
@@ -314,10 +324,10 @@ For et selskap eller team:
 6. **Backup/restore-rutiner.** Supabase tar daglig backup, men det er ikke testet å restore.
 7. **Skikkelig rollebasert tilgang i CI** + secrets via OIDC, ikke long-lived tokens.
 
-For klubben på 17 medlemmer er dette overkill. For en kommersiell SaaS er det baseline.
+For en privat klubb på 15–20 medlemmer er dette overkill. For en kommersiell SaaS er det baseline.
 
 ---
 
 ## Lisens
 
-Privat kode. Ikke distribuert under åpen lisens.
+[MIT](LICENSE) — se LICENSE-filen.

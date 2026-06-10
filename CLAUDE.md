@@ -13,7 +13,7 @@ Detaljert brukerbehovsspesifikasjon (use cases, roller, scope, avklarte beslutni
 ## Roller
 
 - **Admin** (2): oppretter medlemmer, styrer kåringer, redigerer klubbinfo, kan redigere/slette alle arrangementer.
-- **Generalsekretær** (1, André Heede): har admin-rettigheter, men mottar ikke issue-varsler og markeres med gul glød på profilbildet.
+- **Generalsekretær** (1): har admin-rettigheter, men mottar ikke issue-varsler og markeres med gul glød på profilbildet.
 - **Medlem** (~15): oppretter egne arrangementer, melder seg på (Ja/Nei/Kanskje), leser alt innhold.
 
 Admins og generalsekretær er også medlemmer. Tilgang håndheves i RLS — ikke bare i UI. Se **Policy: Roller** nedenfor for hvordan sjekker skal gjøres i kode.
