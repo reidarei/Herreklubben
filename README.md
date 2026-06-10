@@ -63,7 +63,7 @@ Skjermbilder kommer — anonymiserte versjoner under arbeid.
 | Hosting | Vercel (Hobby), region Dublin (referanse-instans) |
 | Domene | Valgfritt — referanse-instans bruker Domeneshop |
 
-286 kildefiler (`.ts`, `.tsx`, `.sql`, `.css`, `.mjs`), 64 SQL-migrasjoner.
+286 kildefiler (`.ts`, `.tsx`, `.sql`, `.css`, `.mjs`), ~100 nummererte SQL-migrasjoner.
 
 ---
 
@@ -161,7 +161,7 @@ Alle tabeller har RLS slått på. Policy-mønsteret er typisk:
 - `insert`: `auth.uid() = profil_id` + aktiv
 - `update`/`delete`: eier eller `er_admin()`
 
-Migrasjonene ligger i `supabase/migrations/` nummerert sekvensielt (000–064). Kjøres med `npx supabase db push`.
+Migrasjonene ligger i `supabase/migrations/` nummerert sekvensielt. Kjøres med `npx supabase db push`.
 
 ---
 
@@ -236,7 +236,7 @@ lib/
   r2.ts            # Cloudflare R2 upload/slett
   bilde-utils.ts   # Klient-side komprimering, kategorisering
 
-supabase/migrations/  # 64 nummererte SQL-filer
+supabase/migrations/  # ~100 nummererte SQL-filer
 
 scripts/         # Engangs-importer (FB-arrangementer, album), versjon-stamping
                  # NB: scripts/-mappen må auditeres individuelt før open source-kopiering

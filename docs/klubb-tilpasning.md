@@ -18,7 +18,7 @@ Alle klubb-spesifikke tekstverdier samles i `lib/klubb-config.ts`. Verdiene lese
 | `NEXT_PUBLIC_KLUBB_DOMENE` | `mortensrudherreklubb.no` | Kun hostname — brukes som base for prod-URL og i ICS-UID/PRODID. Må være ASCII, ingen mellomrom eller skråstrek. | `bygdoyvinterklubb.no` |
 | `NEXT_PUBLIC_KLUBB_STIFTET_AAR` | `2007` | Stiftelsesår — brukes til å beregne jubileum på agendaen | `2015` |
 | `NEXT_PUBLIC_KLUBB_STIFTET_MAANED` | `11` | Stiftelsesmåned (1–12) | `3` |
-| `NEXT_PUBLIC_KLUBB_STIFTET_DAG` | `24` | Stiftelsedag (1–31) | `17` |
+| `NEXT_PUBLIC_KLUBB_STIFTET_DAG` | `24` | Stiftelsesdag (1–31) | `17` |
 | `NEXT_PUBLIC_KLUBB_STED` | `Søndre Nordstrand` | Stiftelsessted, vises på klubbinfo-siden | `Frogner` |
 | `NEXT_PUBLIC_ROLLE_TITTEL_GENERALSEKRETAER` | `Generalsekretær` | Visningsnavn for den særegne rollen med gul glød. Rolle-koden i DB (`generalsekretaer`) endres ikke. | `Æresmedlem` |
 
@@ -34,17 +34,18 @@ Disse filene i `public/` må byttes ut med dine egne bilder:
 
 | Fil | Dimensjoner | Bruk |
 |---|---|---|
-| `public/favicon-16.png` | 16 × 16 px | Browser-fane (liten) |
-| `public/favicon-32.png` | 32 × 32 px | Browser-fane (normal) |
-| `public/icon-192.png` | 192 × 192 px | PWA-ikon, hjemskjerm (standard) |
-| `public/icon-512.png` | 512 × 512 px | PWA-ikon, splash-screen |
+| `public/favicon-16.png` | 16 × 16 px | Browser-fane (liten) — referert fra `app/layout.tsx` og `public/sw.js` |
+| `public/favicon-32.png` | 32 × 32 px | Browser-fane (normal) — referert fra `app/layout.tsx` og `public/sw.js` |
+| `public/icon-192.png` | 192 × 192 px | PWA-ikon, hjemskjerm — referert fra `manifest.ts`, `layout.tsx`, `sw.js` (også som push-badge) |
+| `public/icon-512.png` | 512 × 512 px | PWA-ikon, splash-screen — referert fra `manifest.ts`, `layout.tsx`, `sw.js` og login-siden som logo |
+| `public/icon-180.png` | 180 × 180 px | Apple Touch Icon (iOS hjemskjerm) — referert fra `app/layout.tsx` og `sw.js` |
 | `public/icon-maskable-192.png` | 192 × 192 px | PWA-ikon med «safe zone» for adaptiv maskering (Android) |
 | `public/icon-maskable-512.png` | 512 × 512 px | PWA-ikon med «safe zone» for adaptiv maskering (Android) |
-| `public/icon-1024.png` | 1024 × 1024 px | Høyoppløselig master (brukes bl.a. av iOS ved installasjon) |
-| `public/icon-180.png` | 180 × 180 px | Apple Touch Icon (iOS hjemskjerm) |
 | `public/bakgrunn.jpg` | Fri størrelse | Bakgrunnsbilde brukt på login-siden |
 
-PWA-manifestet (`app/manifest.ts`) er allerede koblet til klubbnavnet via env-vars og peker på de fire PWA-ikonene. Du trenger ikke endre kode — bare bytt bildefilene med samme filnavn.
+Filene `public/icon-1024.png` og `public/icon-2000.png` ligger i repoet som høyoppløselige master-bilder for fremtidig bruk (App Store-ikon, marketing), men refereres ikke i kode i dag. Du kan ignorere dem eller fjerne dem.
+
+PWA-manifestet (`app/manifest.ts`) er allerede koblet til klubbnavnet via env-vars og peker på de to PWA-ikonene (192 og 512). Du trenger ikke endre kode — bare bytt bildefilene med samme filnavn.
 
 For maskable-ikonene: selve motivet bør holdes innenfor en sirkel på ca. 80 % av bildeflaten («safe zone»). Verktøy som [maskable.app](https://maskable.app) lar deg forhåndsvise resultatet.
 
@@ -107,3 +108,20 @@ For å sette opp ditt eget årshjul:
 3. Opprett ansvar for hvert fast arrangement per år — hvem som er ansvarlig og for hva.
 
 Arrangement-navnene du skriver der, vises som valg i nedtrekk-menyen. Det er ingen forhåndsdefinert liste i koden.
+
+---
+
+## 6. Andre miljø-avhengige verdier
+
+Utover klubbidentiteten i seksjon 1 har `lib/config.ts` flere verdier med hardkodede defaults som peker på **referanse-instansen** (Mortensrud Herreklubb). **Disse må overstyres med dine egne verdier i Vercel-env-vars og `.env.local`** før din instans tas i bruk — ellers sender appen kontakt-headere og lenker som peker tilbake til referanse-oppsettet.
+
+| Env-var | Default i koden | Hva den styrer | Når må den settes? |
+|---|---|---|---|
+| `NEXT_PUBLIC_BASE_URL` | Auto: `VERCEL_URL`, ellers `https://mortensrudherreklubb.no` i prod, ellers `http://localhost:3000` | Absolutte URL-er i push-/e-postvarsler, ICS-filer, GitHub-webhook-lenker | Sett til din prod-URL hvis du ikke vil arve referanse-defaulten i prod. På Vercel arves `VERCEL_URL` automatisk for preview-deploys. |
+| `VAPID_CONTACT_EMAIL` | `reidar.haavik@gmail.com` | Kontakt-e-post i VAPID-headere — push-tjenester (Apple/Google) bruker den ved misbruk eller tekniske problemer. Ingen e-post sendes via denne — kun metadata. | **Må settes** for din instans. Bruk en e-post du faktisk leser. |
+| `NEXT_PUBLIC_GITHUB_REPO` | `reidarei/Herreklubben` | Hvilket GitHub-repo «innspill»-funksjonen leser issues fra | Sett til ditt eget repo (`brukernavn/reponavn`) hvis du bruker innspill-funksjonen. |
+| `NEXT_PUBLIC_GITHUB_ONSKE_LABEL` | `ønske` | Hvilken issue-label som regnes som brukerønske | Bytt hvis du vil bruke en annen label-konvensjon. |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` (eller `R2_PUBLIC_URL`) | `''` (tom) | Public CDN-URL hvor bilder hentes fra (`https://<din-pub-id>.r2.dev` eller custom domain) | **Må settes** — bilder vises ikke uten. |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Ingen | R2-credentials og bucket-navn (server-side; ALDRI med `NEXT_PUBLIC_`-prefiks) | **Må settes** for bildelagring. Marker som «Sensitive» i Vercel. |
+
+> Defaults i `lib/config.ts` er bevart med hensikt — å fjerne dem i kodebasen ville krevd koordinert env-var-setting på referanse-instansen samme dag. Etter at din instans har env-varsene satt, kan defaults nøytraliseres i en senere PR uten å bryte produksjonen.

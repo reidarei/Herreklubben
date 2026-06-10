@@ -29,9 +29,14 @@ Sjekkliste over hva som kopieres til det nye, rene open source-repoet og hva som
 - `next.config.ts`, `tailwind.config.ts`, `tsconfig.json`
 - `postcss.config.mjs`, `eslint.config.mjs`
 - `vitest.config.ts`, `playwright.config.ts`
+- `middleware.ts` — Next.js auth-guard, krevd ved kjøring
+- `vercel.json` — Vercel-region/build-konfig
 - `.env.example`
 - `.gitignore`, `.gitattributes`
 - `.github/workflows/paaminne.yml`
+
+### Genererte/build-artifakter — kopieres med?
+- `lib/supabase/database.types.ts` — **kopieres med** som utgangspunkt. Fila er generert per Supabase-instans (`npx supabase gen types`), men `next build` krever at den finnes. Nytt repo bør levere én versjon som matcher migrasjoner i `supabase/migrations/`, og dokumentere at den må regenereres etter første `db push` mot egen instans.
 
 ### Design (deler av)
 - `Design/` — mapper og filer **unntatt** `Design/skjermbilder/` (se nedenfor)
@@ -50,21 +55,31 @@ Nytt repo starter rent uten historikk. Historikken i det private repoet kan inne
 Skjermbildemappen inneholder bilder tatt av appen i produksjon med ekte medlemsnavn og ansikter. Anonymiserte versjoner skal lages separat og legges inn etter publisering.
 
 ### .claude/
-Lokal Claude Code-konfimasjon, minnefiler og feedback-notater. Inneholder prosjektintern kontekst som ikke er relevant for eksterne og potensielt interne referanser som ikke bør publiseres.
+Lokal Claude Code-konfigurasjon, minnefiler og feedback-notater. Inneholder prosjektintern kontekst som ikke er relevant for eksterne og potensielt interne referanser som ikke bør publiseres.
 
 ### scripts/ — AUDIT PÅKREVD
 **Hvert script i `scripts/`-mappen må auditeres individuelt** før det eventuelt kopieres:
 
 - Engangsimport-scripts (`fb-*`, `import-*.mjs`, `import-messenger-klubbchat.mjs`) er kjørt én gang og er ikke relevante for en ny instans. De inneholder logikk tett koblet til Facebook-dataeksport-formatet og data-filpaths som er spesifikke for det opprinnelige oppsettet.
 - Noen scripts i denne mappen har tidligere hatt klartekst database-passord eller klartekst Supabase service-role-nøkler i kommentarer eller hardkodet. En historikk-sjekk viste at disse er fjernet fra nåværende versjon, men scripts i seg selv har ikke verdi for en ny instans.
-- **Scripts som er relevante for en ny instans** og kan kopieres etter review: `init-admin.mjs`, `sjekk-miljo.mjs`, `stamp-versjon.mjs`.
+- **Whitelistede scripts som kopieres til nytt repo** (verifisert relevante for ny instans, ingen historiske persondata):
+  - `init-admin.mjs` — interaktivt verktøy for å opprette første admin etter migrasjoner er kjørt
+  - `sjekk-miljo.mjs` — miljøvariabel-validering brukt av `npm run sjekk-miljo`
+  - `stamp-versjon.mjs` — versjons-stamping brukt av `npm run stamp-versjon`
 - `r2-browser.mjs` og `foreslaa-messenger-mapping.mjs` er nyttige verktøy — vurder individuelt.
+- Alle øvrige `fb-*.mjs`/`fb-*.json`/`fb-*.sql`, `import-album.mjs`, `import-messenger-klubbchat.mjs` og `scripts/data/` utelates.
 
 ### scripts/data/
 Datafiler fra Facebook-import (JSON-eksporter, bildemapping). Inneholder historiske personopplysninger.
 
 ### fb-arrangementer.json, fb-import.sql m.fl.
 Alle filer i `scripts/` med `fb-`-prefiks og tilhørende SQL-dumps er persondata-spesifikk for den opprinnelige instansen.
+
+### Lokale build-/dev-artifakter og hemmeligheter
+- `.env.local` — inneholder hemmeligheter, ALDRI med
+- `.next/` — Next.js build-output, regenereres
+- `node_modules/` — regenereres med `npm install`
+- `.cache/`, `.vercel/`, `test-results/`, `tsconfig.tsbuildinfo` — lokale artifakter, ikke relevante
 
 ---
 
@@ -76,6 +91,10 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
 - `SECURITY.md` — ansvarlig avsløring, kontaktadresse, scope
 - `CLAUDE.md` (sanitert versjon) — uten prosjektintern kontekst (se nedenfor)
 
+### Andre leveranser i fase 6
+
+- **Nøytraliser personlige defaults i `lib/config.ts`** (`VAPID_CONTACT_EMAIL`, `GITHUB_REPO`) — endres til generiske placeholder-verdier eller fjernes til fordel for «kreves satt». **Koordineres** med at env-varsene settes i referanse-instansens Vercel-prosjekt først, slik at produksjons-instansen ikke mister VAPID-kontakt eller innspill-funksjonen i overgangen. Defaults beholdes derfor i denne PR-en.
+
 ---
 
 ## CLAUDE.md-sanitering
@@ -83,7 +102,7 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
 Nåværende `CLAUDE.md` inneholder:
 
 - Referanser til det private repo-URLen og Supabase-prosjekt-IDen i kommando-eksempler — byttes til plassholdere.
-- Sparekonto-referansen i «Prosjekt»-avsnittet er intern og kuttes.
+- Sparekonto-referansen i «Prosjekt»-avsnittet kuttes for å redusere prosjekt-spesifikk støy som ikke er relevant for eksterne lesere.
 - Ellers er CLAUDE.md verdifull for eksterne som vil bruke AI-assistert utvikling — behold policies, arkitektur-oversikt og konvensjoner.
 
 ---

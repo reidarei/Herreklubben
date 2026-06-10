@@ -9,22 +9,22 @@ Denne guiden er for den som administrerer klubb-instansen løpende. Den forutset
 ### Legge til nytt medlem
 
 1. Logg inn som admin.
-2. Gå til **Innstillinger** → **Medlemmer** → «Legg til medlem».
-3. Fyll inn navn og e-postadresse. Appen oppretter brukeren og sender en velkomst-e-post via Resend med en midlertidig lenke der den nye brukeren setter passord.
-4. Etter første innlogging kan brukeren selv redigere profilen (profilbilde, fødselsdato, varsel-innstillinger).
+2. Gå til **Klubbinfo** → **Medlemmer** → «Legg til medlem».
+3. Fyll inn navn og e-postadresse. Appen oppretter brukeren og genererer et **midlertidig passord**, som både vises i admin-UI-et og sendes til medlemmet i velkomst-e-post via Resend.
+4. Etter første innlogging kan brukeren selv endre passord og redigere profilen (profilbilde, fødselsdato, varsel-innstillinger) under «Rediger profil».
 
 ### Deaktivere et medlem
 
-Appen har ikke en «slett»-funksjon — det er bevisst for å bevare historikk i kåringer, påmeldinger og chat. I stedet deaktiveres brukeren:
+Appen har bevisst en svært tilbakeholden slettings-modell for å bevare historikk i kåringer, påmeldinger og chat. Hard delete er ikke eksponert som vanlig drifts-handling — det finnes en «Slett medlem»-knapp i admin-redigering, men i praksis brukes deaktivering:
 
-1. Innstillinger → Medlemmer → velg personen → Rediger.
-2. Kryss av «Inaktiv».
+1. Klubbinfo → Medlemmer → velg personen → Rediger.
+2. Under «Tilgang» → **Status**, velg segmentet **Deaktivert**.
 
-En inaktiv bruker vises ikke i listen over påmeldte og kan ikke logge inn, men historiske data beholdes.
+En deaktivert bruker vises ikke i listen over påmeldte og kan ikke logge inn, men historiske data beholdes. Faktisk sletting (hard delete) av en profil bør gjøres via SQL hvis det noen gang trengs — kontakt utvikler.
 
 ### Sette generalsekretær
 
-Bare én person kan ha generalsekretær-rollen. Den settes via Innstillinger → Medlemmer → velg person → Rediger → «Generalsekretær»-toggle. Databasen avviser forsøk på å sette rollen på to personer samtidig.
+Bare én person kan ha generalsekretær-rollen. Den settes via Klubbinfo → Medlemmer → velg person → Rediger → «Generalsekretær»-toggle. Databasen avviser forsøk på å sette rollen på to personer samtidig.
 
 ---
 
@@ -44,6 +44,8 @@ WHERE noekkel = 'test_modus';
 ```
 
 Erstatt `din@epost.no` med e-postadressen varsler skal sendes til. Nå vil `sendVarsel()` kun sende til den adressen, uansett hvem som faktisk skal varsles.
+
+> **Viktig:** e-postadressen må tilhøre en eksisterende profil i `profiles`-tabellen — ellers finner ikke `sendVarsel()` en mottaker og varselet droppes stille uten feilmelding. Bruk gjerne din egen admin-profils e-post under test.
 
 ### Slå av testmodus
 
