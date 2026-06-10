@@ -9,9 +9,18 @@
 -- mig. 094 (sett_generalsekretaer, fjern_generalsekretaer).
 -- Tracker: issue #301.
 --
--- VIKTIG: ingen semantiske endringer — kun search_path = public tillegget.
+-- VIKTIG: search_path = public-tillegget er den primære endringen. I tillegg
+-- hardes er_admin() til å returnere en total boolean (NULL → false) — se under.
 
 -- 1) er_admin() — opprinnelig fra mig. 041, sist sett uten search_path
+--
+-- NULL-hardning lagt til etter Copilot-funn: tidligere kropp
+-- (`select rolle in (...) from profiles where id = auth.uid()`) returnerer NULL
+-- når SELECT-en ikke gir treff (f.eks. auth.uid() peker på rad som ikke finnes).
+-- I RLS-policies (`using (er_admin())`) tolkes NULL som false og er trygt, men
+-- i plpgsql-RPC-er som `sett_generalsekretaer` (mig. 094) brukes mønsteret
+-- `if not er_admin() then raise` — og `not NULL` er NULL, så raise-grenen
+-- hoppes over og admin-guarden omgås. `exists (...)` gir alltid true/false.
 create or replace function er_admin()
 returns boolean
 language sql
@@ -19,7 +28,11 @@ security definer
 stable
 set search_path = public
 as $$
-  select rolle in ('admin', 'generalsekretaer') from profiles where id = auth.uid()
+  select exists (
+    select 1 from profiles
+    where id = auth.uid()
+      and rolle in ('admin', 'generalsekretaer')
+  )
 $$;
 
 -- 2) handle_ny_bruker() — opprinnelig fra mig. 001, sist redigert i mig. 071 (btrim-forsvar mot whitespace i e-post)

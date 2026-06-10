@@ -86,7 +86,7 @@ Tre pakker er lisensiert under Mozilla Public License 2.0: `web-push`, `lightnin
 
 ### Merknad: CC-BY-4.0
 
-`caniuse-lite` — data-pakke med nettleserkompabilitetsinformasjon, ikke kode. CC-BY-4.0 for data er standardpraksis for dette prosjektet. Krever bare navngivelse, ingen copyleft. Godkjent.
+`caniuse-lite` — data-pakke med nettleserkompatibilitetsinformasjon, ikke kode. CC-BY-4.0 for data er standardpraksis for dette prosjektet. Krever bare navngivelse, ingen copyleft. Godkjent.
 
 ### Merknad: UNLICENSED
 
