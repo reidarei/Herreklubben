@@ -8,6 +8,10 @@ import { kanAdministrere, loeserTiebreak } from '@/lib/roller'
 // Returnerer den samme supabase-klienten som ble brukt til auth-sjekken,
 // slik at videre spørringer går mot brukerens RLS-kontekst og ikke krever
 // en ny createServerClient()-runde.
+//
+// NB: Feilmeldingen 'Ikke innlogget' er en kontrakt — route handlers
+// (f.eks. /api/admin/opprett-medlem) streng-matcher den for å velge
+// 401 vs 403. Endres teksten, må de oppdateres samtidig.
 export async function ensureAdmin() {
   const supabase = await createServerClient()
   const {

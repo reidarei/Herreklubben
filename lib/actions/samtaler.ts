@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { ensureInnlogget } from '@/lib/auth'
 
 /**
  * Finn eller opprett samtalen mellom innlogget bruker og motpart.
@@ -10,9 +11,7 @@ import { revalidatePath } from 'next/cache'
  * a < b. Returnerer samtaleId eller redirecter til samtalesiden.
  */
 export async function aapneSamtale(motpartId: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
   if (motpartId === user.id) throw new Error('Kan ikke åpne samtale med deg selv')
 
   // Sorter ID-ene så constraint-en (profil_a < profil_b) holder uavhengig
@@ -51,6 +50,8 @@ export async function aapneSamtale(motpartId: string) {
  * andres meldinger (mottatte) — ikke egne.
  */
 export async function markerSamtaleLest(samtaleId: string) {
+  // se #305 — bevisst silent no-op, ikke ensureInnlogget: kalles som background-
+  // effekt ved sidelast, og en utløpt sesjon skal ikke kaste feil til klienten
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return

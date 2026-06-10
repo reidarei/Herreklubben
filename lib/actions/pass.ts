@@ -1,11 +1,11 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendVarsel } from '@/lib/varsler'
 import { BASE_URL } from '@/lib/config'
 import { naa } from '@/lib/dato'
 import { PASS_TILGANG_TIMER } from '@/lib/konstanter'
+import { ensureInnlogget } from '@/lib/auth'
 
 /**
  * Lagre eller oppdatere passinfo for innlogget bruker. Validerer ikke
@@ -17,9 +17,7 @@ export async function lagrePassInfo(input: { nummer: string; utloper: string }) 
   const utloper = input.utloper // YYYY-MM-DD fra date input
   if (!nummer || !utloper) throw new Error('Både nummer og utløpsdato må fylles ut')
 
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { error } = await supabase
     .from('pass_info')
@@ -34,9 +32,7 @@ export async function lagrePassInfo(input: { nummer: string; utloper: string }) 
  * Generalsekretæren får varsel og må godkjenne.
  */
 export async function bePassTilgang(input: { eier_id: string; arrangement_id: string }) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { data: ny, error } = await supabase
     .from('pass_tilgang_forespørsel')
@@ -102,9 +98,7 @@ export async function bePassTilgang(input: { eier_id: string; arrangement_id: st
  * gyldig_til til nå + 24 timer. Sender varsel til søkeren.
  */
 export async function godkjennPassTilgang(forespørselId: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const naDate = new Date()
   const utloper = new Date(naDate.getTime() + PASS_TILGANG_TIMER * 60 * 60 * 1000)
@@ -146,9 +140,7 @@ export async function godkjennPassTilgang(forespørselId: string) {
 }
 
 export async function avslaaPassTilgang(forespørselId: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { data: oppdatert, error } = await supabase
     .from('pass_tilgang_forespørsel')

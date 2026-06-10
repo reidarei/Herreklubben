@@ -58,9 +58,7 @@ async function losne(
 }
 
 export async function opprettArrangement(data: ArrangementInput) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const { data: arrangement, error } = await supabase
     .from('arrangementer')
@@ -175,9 +173,7 @@ export async function oppdaterArrangement(id: string, data: Partial<ArrangementI
 // hilsen er valgfri fri tekst fra avsender — valideres server-side mot
 // VARSLE_MAKS_LENGDE slik at klient-maxLength aldri er eneste sperre. Se #282.
 export async function varslOmArrangement(arrangementId: string, hilsen?: string) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const trimmetHilsen = hilsen?.trim()
 

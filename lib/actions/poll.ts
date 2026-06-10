@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { sendNyPollVarsler } from '@/lib/varsler'
+import { ensureInnlogget } from '@/lib/auth'
 
 export type PollInput = {
   spoersmaal: string
@@ -22,9 +23,7 @@ export type PollInput = {
  * også for å gi ordentlige feilmeldinger til brukeren.
  */
 export async function opprettPoll(data: PollInput) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   const spoersmaal = data.spoersmaal.trim()
   if (spoersmaal.length < 1 || spoersmaal.length > 200) {
@@ -89,9 +88,7 @@ export async function opprettPoll(data: PollInput) {
  * — hvis den er det, vil insert feile og brukeren får beskjed.
  */
 export async function stemPaaPoll(pollId: string, valgIds: string[]) {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Ikke innlogget')
+  const { supabase, user } = await ensureInnlogget()
 
   if (valgIds.length === 0) throw new Error('Velg minst ett alternativ')
 

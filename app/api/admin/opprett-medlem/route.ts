@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@/lib/supabase/server'
 import { sendEpost, velkommenEpostHtml } from '@/lib/epost'
 import { NextResponse } from 'next/server'
-import { kanAdministrere } from '@/lib/roller'
+import { ensureAdmin } from '@/lib/auth'
 import { BASE_URL } from '@/lib/config'
 import { KLUBB_NAVN } from '@/lib/klubb-config'
 
@@ -12,13 +11,15 @@ function genererPassord() {
 }
 
 export async function POST(request: Request) {
-  // Verifiser at kaller er admin
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ feil: 'Ikke innlogget' }, { status: 401 })
-
-  const { data: profil } = await supabase.from('profiles').select('rolle').eq('id', user.id).single()
-  if (!kanAdministrere(profil?.rolle)) return NextResponse.json({ feil: 'Ikke admin' }, { status: 403 })
+  // Verifiser at kaller er admin — ensureAdmin kaster ved manglende auth/rolle,
+  // vi fanger og returnerer riktig HTTP-status
+  try {
+    await ensureAdmin()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Feil'
+    if (msg === 'Ikke innlogget') return NextResponse.json({ feil: msg }, { status: 401 })
+    return NextResponse.json({ feil: msg }, { status: 403 })
+  }
 
   const { navn: rawNavn, epost: rawEpost } = await request.json()
   const navn = (rawNavn ?? '').trim()
