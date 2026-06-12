@@ -40,9 +40,6 @@ Sjekkliste over hva som kopieres til det nye, rene open source-repoet og hva som
 ### Genererte/build-artifakter — kopieres med?
 - `lib/supabase/database.types.ts` — **kopieres med** som utgangspunkt. Fila er generert per Supabase-instans (`npx supabase gen types`), men `next build` krever at den finnes. Nytt repo bør levere én versjon som matcher migrasjoner i `supabase/migrations/`, og dokumentere at den må regenereres etter første `db push` mot egen instans.
 
-### Design (deler av)
-- `Design/` — mapper og filer **unntatt** `Design/skjermbilder/` (se nedenfor)
-
 ### Public-assets
 - `public/` — alle filer (ikoner, bakgrunn, sw.js)
 
@@ -53,8 +50,8 @@ Sjekkliste over hva som kopieres til det nye, rene open source-repoet og hva som
 ### Git-historikk
 Nytt repo starter rent uten historikk. Historikken i det private repoet kan inneholde midlertidige debug-commits med sensitiv info, og ekte profilbilder/skjermbilder sjekket inn som binærfiler.
 
-### Design/skjermbilder/
-Skjermbildemappen inneholder bilder tatt av appen i produksjon med ekte medlemsnavn og ansikter. Anonymiserte versjoner skal lages separat og legges inn etter publisering.
+### Design/ (hele mappa)
+Ble først kopiert med (unntatt `skjermbilder/`), men fjernet 2026-06-12: mockup-filene inneholder fornavn som ligner ekte medlemmer, og mappa trengs ikke for å ta appen i bruk. `Design/skjermbilder/` var aldri med — bilder fra produksjon med ekte medlemsnavn og ansikter. Anonymiserte skjermbilder lages separat til README. `e2e/visuell.spec.ts` ble fjernet samtidig (krever designreferansene for å kjøre).
 
 ### .claude/
 Lokal Claude Code-konfigurasjon, minnefiler og feedback-notater. Inneholder prosjektintern kontekst som ikke er relevant for eksterne og potensielt interne referanser som ikke bør publiseres.
@@ -114,7 +111,7 @@ Nåværende `CLAUDE.md` inneholder:
 - [ ] Grep-sjekk for ekte navn (se navneliste i CLAUDE.md-policies)
 - [ ] Grep-sjekk for hardkodede e-postadresser
 - [ ] Grep-sjekk for `mortensrudherreklubb.no` — disse skal være via `lib/klubb-config.ts` eller `lib/config.ts`, ikke hardkodet
-- [ ] Bekreft at `Design/skjermbilder/` IKKE er med
+- [ ] Bekreft at `Design/` IKKE er med (hele mappa, fjernet 2026-06-12)
 - [ ] Bekreft at `.claude/` IKKE er med
 - [ ] Bekreft at scripts-audit er gjort
 - [ ] LICENSE opprettet
