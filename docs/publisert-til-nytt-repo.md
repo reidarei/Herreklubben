@@ -92,7 +92,7 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
 
 ### Andre leveranser i fase 6
 
-- **Nøytraliser personlige defaults i `lib/config.ts`** (`VAPID_CONTACT_EMAIL`, `GITHUB_REPO`) — endres til generiske placeholder-verdier eller fjernes til fordel for «kreves satt». **Koordineres** med at env-varsene settes i referanse-instansens Vercel-prosjekt først, slik at produksjons-instansen ikke mister VAPID-kontakt eller innspill-funksjonen i overgangen. Defaults beholdes derfor i denne PR-en.
+- **Nøytraliser personlige defaults i `lib/config.ts`** — `VAPID_CONTACT_EMAIL` nøytralisert 2026-06-12 (ingen default; push feiler tydelig uten) etter at env-varen ble satt i referanse-instansens Vercel. `GITHUB_REPO`-defaulten (`reidarei/Herreklubben`) beholdes bevisst: repo-navnet er ikke persondata (handle ligger allerede i LICENSE), og uten default mister referanse-instansen innspill-funksjonen om env-varen glemmes.
 
 ---
 
