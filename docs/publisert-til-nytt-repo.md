@@ -100,6 +100,8 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
   - `lib/r2.ts`: bucket-default → `klubb-bilder`; `next.config.ts`: hostname-eksempel → `bilder.klubb.example.com`
   - `public/sw.js`: cache-navn → `klubb-static` / `klubb-pages-*`
   - `supabase/migrations/096_vedtekter_seed_avhardkoding.sql`: omskrevet til no-op (`select 1;`) for å beholde migrasjonsnummereringen — seed-teksten var Mortensrud-spesifikk
+  - `supabase/migrations/027_fix_oyvind_tittel.sql`: omdøpt til `027_data_fiks_no_op.sql` og omskrevet til no-op — engangs data-fiks med medlemsnavn i både filnavn og innhold
+  - Medlemsnavn skrubbet fra kodekommentarer (lib/konstanter.ts, TopHeader, VarslerListe), om-appen-UI og mention-test-fixtures. Grep-sjekk ved fremtidig synk: både klubbnavn («mortensrud», «herreklubb») OG medlemsnavn (se scripts/fb-bilder-navn-mapping.json for listen).
   - `.gitignore`: Messenger-eksport-blokken fjernet
   - Alle md-dokumenter (README, CLAUDE.md, docs/, kravspek, løsningsdesign) skrubbet for «Mortensrud»/«Herreklubb»
   - Synk-regel fremover: endringer i disse filene fra kilde-repoet må re-skrubbe identitet før kopiering.
