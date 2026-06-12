@@ -92,7 +92,17 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
 
 ### Andre leveranser i fase 6
 
-- **Nøytraliser personlige defaults i `lib/config.ts`** — `VAPID_CONTACT_EMAIL` nøytralisert 2026-06-12 (ingen default; push feiler tydelig uten) etter at env-varen ble satt i referanse-instansens Vercel. `GITHUB_REPO`-defaulten (`reidarei/Herreklubben`) beholdes bevisst: repo-navnet er ikke persondata (handle ligger allerede i LICENSE), og uten default mister referanse-instansen innspill-funksjonen om env-varen glemmes.
+- **Nøytraliser personlige defaults i `lib/config.ts`** — `VAPID_CONTACT_EMAIL` nøytralisert 2026-06-12 (ingen default; push feiler tydelig uten) etter at env-varen ble satt i referanse-instansens Vercel.
+- **Full identitets-skrubbing 2026-06-12** (bevisst divergens fra kilde-repoet — kilde beholder Mortensrud-identiteten, klubb-app er 100 % generisk):
+  - `lib/klubb-config.ts`: defaults → `Min Klubb` / `Klubben` / `klubb.example.com` / stiftet 2024-01-01 / `Oslo`
+  - `lib/config.ts`: `GITHUB_REPO`-default → `reidarei/klubb-app` (slik at innspill-funksjonen virker out-of-the-box i det åpne repoet)
+  - `lib/epost.ts`: `RESEND_FROM`-default → `Klubben <onboarding@resend.dev>`
+  - `lib/r2.ts`: bucket-default → `klubb-bilder`; `next.config.ts`: hostname-eksempel → `bilder.klubb.example.com`
+  - `public/sw.js`: cache-navn → `klubb-static` / `klubb-pages-*`
+  - `supabase/migrations/096_vedtekter_seed_avhardkoding.sql`: omskrevet til no-op (`select 1;`) for å beholde migrasjonsnummereringen — seed-teksten var Mortensrud-spesifikk
+  - `.gitignore`: Messenger-eksport-blokken fjernet
+  - Alle md-dokumenter (README, CLAUDE.md, docs/, kravspek, løsningsdesign) skrubbet for «Mortensrud»/«Herreklubb»
+  - Synk-regel fremover: endringer i disse filene fra kilde-repoet må re-skrubbe identitet før kopiering.
 
 ---
 
