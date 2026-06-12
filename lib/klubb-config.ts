@@ -37,6 +37,16 @@ export const KLUBB_STIFTET = {
 // Stiftelsessted — vises ved siden av stiftelsesdatoen på klubbinfo-siden.
 export const KLUBB_STED = process.env.NEXT_PUBLIC_KLUBB_STED ?? 'Søndre Nordstrand'
 
+// «Om klubben»-avsnittene på klubbinfo-siden. Env-varen bruker `|` som
+// avsnitt-skille (én env-var kan ikke holde et array direkte).
+export const KLUBB_OM_AVSNITT: readonly string[] = process.env.NEXT_PUBLIC_KLUBB_OM
+  ? process.env.NEXT_PUBLIC_KLUBB_OM.split('|').map(s => s.trim()).filter(Boolean)
+  : [
+      'Vi blir gamle og grå, så en syklubb må vi få.',
+      'Her skal verdensproblemer løses og diskuteres av de største besserwisserne fra Mortensrud.',
+      'Så vel møtt finansakrobater og rikssynsere til månedlige sammenkomster.',
+    ]
+
 // Tittel-streng for generalsekretær-rollen i UI. Rolle-koden i DB
 // («generalsekretaer») endres ikke — kun visningsnavnet kan overstyres.
 export const ROLLE_TITTEL_GENERALSEKRETAER =

@@ -94,7 +94,7 @@ Disse eksisterer ikke ennå og opprettes i det nye repoet:
 
 - **Nøytraliser personlige defaults i `lib/config.ts`** — `VAPID_CONTACT_EMAIL` nøytralisert 2026-06-12 (ingen default; push feiler tydelig uten) etter at env-varen ble satt i referanse-instansens Vercel.
 - **Full identitets-skrubbing 2026-06-12** (bevisst divergens fra kilde-repoet — kilde beholder Mortensrud-identiteten, klubb-app er 100 % generisk):
-  - `lib/klubb-config.ts`: defaults → `Min Klubb` / `Klubben` / `klubb.example.com` / stiftet 2024-01-01 / `Oslo`
+  - `lib/klubb-config.ts`: defaults → `Min Klubb` / `Klubben` / `klubb.example.com` / stiftet 2024-01-01 / `Oslo`. `KLUBB_OM_AVSNITT` (2026-06-12): «Om klubben»-teksten på klubbinfo-siden er nå env-konfigurerbar (`NEXT_PUBLIC_KLUBB_OM`, `|`-separerte avsnitt) — kilde-defaulten er Mortensrud-teksten, klubb-app-defaulten er generisk plassholder
   - `lib/config.ts`: `GITHUB_REPO`-default → `reidarei/klubb-app` (slik at innspill-funksjonen virker out-of-the-box i det åpne repoet)
   - `lib/epost.ts`: `RESEND_FROM`-default → `Klubben <onboarding@resend.dev>`
   - `lib/r2.ts`: bucket-default → `klubb-bilder`; `next.config.ts`: hostname-eksempel → `bilder.klubb.example.com`
