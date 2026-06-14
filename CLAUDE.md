@@ -260,7 +260,7 @@ Alle profil-avatarer (medlemsansikter) skal rendres via `components/ui/Avatar.ts
 
 ## Policy: Navigasjon
 
-App-navigasjon består av sticky TopHeader (hamburger venstre → tre ikon-knapper for Agenda/Chat/Klubb i horisontal ekspansjon; profil-sirkel høyre som snarvei til /profil) og kontekstuelle FAB-er (NyFAB på agenda for å opprette innhold). **Ingen bottom-nav.** Dette eliminerer hele bug-klassen vi traff i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Hvis du finner deg selv i å legge til en `position: fixed; bottom: 0` UI-flate som ikke er en modal eller toast — løft det til diskusjon først.
+App-navigasjon består av sticky TopHeader med tre alltid-synlige tekst-tabs (Agenda/Chat/Klubb) og en animert pill-bakgrunn som glir til aktiv tab; profil-avatar høyre som snarvei til /profil. I tillegg kontekstuelle FAB-er (NyFAB på agenda for å opprette innhold). **Ingen bottom-nav.** Dette eliminerer hele bug-klassen vi traff i #99, #104, #147, #151, #153 hvor iOS-tastatur kolliderte med fixed bottom-elementer. Hvis du finner deg selv i å legge til en `position: fixed; bottom: 0` UI-flate som ikke er en modal eller toast — løft det til diskusjon først.
 
 ## Policy: Migrasjoner
 
