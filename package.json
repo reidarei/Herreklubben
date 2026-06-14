@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "stamp-versjon": "node scripts/stamp-versjon.mjs",
+    "sync-klubb-app": "node scripts/sync-klubb-app.mjs",
     "import:messenger": "node --env-file=.env.local scripts/import-messenger-klubbchat.mjs",
     "sjekk-miljo": "node --env-file=.env.local scripts/sjekk-miljo.mjs"
   },

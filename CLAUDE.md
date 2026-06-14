@@ -296,4 +296,25 @@ For UI-endringer på vanlig flyt: kjør Playwright lokalt før push (`npx playwr
 
 For iOS-PWA-quirks (visualViewport, safe-area, focus/blur på iOS): Playwright reproduserer ikke. Test manuelt på iPhone og dokumenter i PR-en at automatisk verifikasjon ikke er mulig.
 
-Supabase: Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.
+## Policy: Synk til klubb-app (open source)
+
+Dette repoet (`reidarei/Herreklubben`, privat) er kilden og prod. Det offentlige template-repoet `reidarei/klubb-app` er en **sanitert downstream-speiling** — andre vennegjenger setter opp egen instans derfra (single-tenant). Vi konsoliderte bevisst **ikke** til ett repo (se lukket #310); i stedet beholder vi to repos og forhindrer drift med verktøy. Lokal klubb-app-klone: `C:\Users\reida\prosjekter\klubb-app`.
+
+**Kjør `npm run sync-klubb-app` etter hver merge til main.** Skriptet (`scripts/sync-klubb-app.mjs`) er en drift-detektor som klassifiserer hver delt fil:
+
+- **MÅ MATCHE** — alt delt som ikke er listet i skriptet. Byte-identisk forventes; enhver diff = drift-alarm. Dette fanger en kodeendring (f.eks. bugfix) som lander her men glemmes i klubb-app.
+- **SKRUBBES** — filer med ren identitets-forskjell (klubbnavn, bucket, domene, GitHub-repo, mention-fixtures). Skriptets `SKRUB_MAP` reconciler dem; residual = manglende regel eller ny logikk.
+- **DIVERGERER** — bevisst ulikt av ikke-mekaniske grunner (generiske defaults i `lib/klubb-config.ts`, nøytraliserte migrasjons-seeds, versjons-stempel, redaksjonelt omskrevne kommentarer). Vises som «forventet ulik».
+
+**Regler:**
+- Skriptet overskriver **aldri** klubb-app uten `--apply` (dry-run by default). Exit 1 = handling kreves.
+- `--apply` speiler skrubbet kilde til klubb-app for drift/residual/manglende filer, og bevarer klubb-apps eget versjons-stempel. Review alltid `git diff` i klubb-app før du committer der.
+- **Lekkasje-sjekken er ufravikelig:** skriptet greper klubb-app-treet for klubbnavn (`mortensrud`/`herreklubb`) og fulle medlemsnavn (fra `scripts/fb-bilder-navn-mapping.json`). Et treff = exit 1 uansett, fordi klubb-app er offentlig. Hvis identitet har sneket seg inn i en MÅ-MATCHE-fil: legg til en `SKRUB_MAP`-regel eller flytt verdien til env-config (`lib/klubb-config.ts`/`lib/config.ts`) — ikke byte-kopier den ut.
+- **Ny Mortensrud-spesifikk verdi?** Hardkod den aldri i delt kode. Legg den i `lib/klubb-config.ts`/`lib/config.ts` med env-override og generisk default, slik klubb-app forblir nøytral.
+- `scripts/sync-klubb-app.mjs` er herreklubben-privat og kopieres **ikke** til klubb-app.
+
+**Agentic:** synk-steget kjøres automatisk av `synker`-agenten etter merge (se `.claude/commands/agentic.md` steg 10.7).
+
+## Supabase
+
+Herreklubbens org, Herreklubbens webapp. Database-passordet ligger i `.env.local` som `SUPABASE_DB_PASSWORD`. Hent fra Supabase Dashboard → Project Settings → Database. Skript som trenger direkte Postgres-tilgang kjøres med `node --env-file=.env.local scripts/<navn>.mjs`.
