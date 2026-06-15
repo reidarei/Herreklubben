@@ -12,6 +12,7 @@ import type { ChatProfil } from '@/lib/mention'
 import type { AlbumSpotlight } from '@/lib/melding-spotlight'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
+import { arkiverMelding } from '@/lib/actions/meldinger'
 
 export type MeldingKortData = {
   id: string
@@ -51,18 +52,22 @@ type Props = {
   kommentarer?: KommentarKortData[]
   /** Aktive profiler for @mention-forslag i inline kommentar-felt. */
   profiler?: ChatProfil[]
+  /** Brukes til å vise arkiver-knappen. Admin kan arkivere alle, ellers
+   * vises knappen kun for forfatter — og aldri på FB-importerte innlegg. */
+  erAdmin?: boolean
 }
 
 /**
  * Fjerde type element på agendaen — innlegg à la Facebook-status.
- * Plasseres øverst på agenda i 5 dager fra siste kommentar (reaksjoner
- * teller ikke). Etter det faller den ned i Tidligere-seksjonen sortert
- * på sist_aktivitet. Se lib/agenda-sortering.ts for regelverket.
+ * Plasseres øverst på agenda i MELDING_LEVENDE_DAGER (3.5) dager fra
+ * siste kommentar (reaksjoner teller ikke), eller inntil forfatter/admin
+ * arkiverer innlegget manuelt. Etter det faller den ned i
+ * Tidligere-seksjonen. Se lib/agenda-sortering.ts for regelverket.
  *
  * Long-press på selve innlegget åpner reaksjons-picker — samme mønster
  * som chat-bobler bruker. Vanlig click navigerer til detaljsiden.
  */
-export default function MeldingKort({ melding, brukerId, kommentarer = [], profiler }: Props) {
+export default function MeldingKort({ melding, brukerId, kommentarer = [], profiler, erAdmin = false }: Props) {
   const [pickerApen, setPickerApen] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
@@ -204,6 +209,34 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
                 </span>
               )}
             </div>
+
+            {/* Arkiver-knapp — kun på levende innlegg, ikke FB-importert,
+                kun for forfatter eller admin. Bruker chevronDown som signal
+                for «send ned til Tidligere». e.stopPropagation() hindrer at
+                klikket trigger Link-navigasjon til meldingssiden. (#312) */}
+            {!melding.tidligere && !melding.fraFacebook && (brukerId === melding.forfatter.id || erAdmin) && (
+              <button
+                type="button"
+                title="Flytt til Tidligere"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (!confirm('Flytte innlegget til Tidligere?')) return
+                  arkiverMelding(melding.id)
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 4,
+                  color: 'var(--text-tertiary)',
+                  flexShrink: 0,
+                  lineHeight: 0,
+                }}
+              >
+                <Icon name="chevronDown" size={16} />
+              </button>
+            )}
           </div>
 
           {/* Innhold */}
