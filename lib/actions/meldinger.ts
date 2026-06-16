@@ -174,8 +174,9 @@ export async function fjernMeldingReaksjon(meldingId: string, emoji: string) {
 }
 
 // Arkiver et innlegg — flytt det umiddelbart til Tidligere-seksjonen uten
-// å vente på tidsvinduet. RLS-policyen på meldinger («profil_id = auth.uid()
-// or er_admin()») håndhever hvem som får lov. Mig. 099.
+// å vente på tidsvinduet. RLS-policyen på meldinger (mig. 067) håndhever hvem
+// som får lov: «(fra_facebook is null or false) and (profil_id = auth.uid()
+// or er_admin())» — FB-importerte innlegg kan derfor ikke arkiveres. Mig. 099.
 export async function arkiverMelding(meldingId: string) {
   const { supabase } = await ensureInnlogget()
 

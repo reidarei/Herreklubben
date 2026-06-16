@@ -76,7 +76,7 @@ describe('byggAgenda — arkivering', () => {
       aar: 2026,
     })
 
-    // Levende-seksjonen skal være tom — arkivert_tidspunkt overstyrerer levetid
+    // Levende-seksjonen skal være tom — arkivert_tidspunkt overstyrer levetid
     expect(agenda.meldinger).toHaveLength(0)
     // Tidligere-seksjonen skal inneholde meldingen
     expect(agenda.tidligere.filter(t => t.kind === 'melding')).toHaveLength(1)
