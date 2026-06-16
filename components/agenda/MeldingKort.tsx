@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRef, useState } from 'react'
+import { useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Avatar from '@/components/ui/Avatar'
 import Card from '@/components/ui/Card'
 import Icon from '@/components/ui/Icon'
@@ -12,7 +13,7 @@ import type { ChatProfil } from '@/lib/mention'
 import type { AlbumSpotlight } from '@/lib/melding-spotlight'
 import { formatDistanceToNowStrict } from 'date-fns'
 import { nb } from 'date-fns/locale'
-import { arkiverMelding } from '@/lib/actions/meldinger'
+import { arkiverMelding, avarkiverMelding } from '@/lib/actions/meldinger'
 
 export type MeldingKortData = {
   id: string
@@ -52,8 +53,9 @@ type Props = {
   kommentarer?: KommentarKortData[]
   /** Aktive profiler for @mention-forslag i inline kommentar-felt. */
   profiler?: ChatProfil[]
-  /** Brukes til å vise arkiver-knappen. Admin kan arkivere alle, ellers
-   * vises knappen kun for forfatter — og aldri på FB-importerte innlegg. */
+  /** Brukes til å vise arkiver/av-arkiver-knappen. Admin kan flytte alle,
+   * ellers vises knappen kun for forfatter — og aldri på FB-importerte
+   * innlegg. */
   erAdmin?: boolean
 }
 
@@ -71,6 +73,39 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
   const [pickerApen, setPickerApen] = useState(false)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressFired = useRef(false)
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+
+  // Forfatter eller admin kan flytte innlegget mellom levende og Tidligere.
+  // FB-importerte innlegg har ingen ekte forfatter i klubben og kan ikke flyttes.
+  const kanFlytte = !melding.fraFacebook && (brukerId === melding.forfatter.id || erAdmin)
+
+  function arkiver() {
+    if (!confirm('Flytte innlegget til Tidligere?')) return
+    // Optimistisk feilhåndtering via transition + refresh — samme mønster som
+    // MeldingReaksjoner/KommentarerPaaKort. router.refresh() henter ny
+    // server-render slik at kortet faktisk flytter seg etter klikk. (#312)
+    startTransition(async () => {
+      try {
+        await arkiverMelding(melding.id)
+        router.refresh()
+      } catch {
+        alert('Klarte ikke å flytte innlegget. Prøv igjen.')
+      }
+    })
+  }
+
+  function avarkiver() {
+    if (!confirm('Hente innlegget tilbake fra Tidligere?')) return
+    startTransition(async () => {
+      try {
+        await avarkiverMelding(melding.id)
+        router.refresh()
+      } catch {
+        alert('Klarte ikke å hente innlegget tilbake. Prøv igjen.')
+      }
+    })
+  }
 
   function startLongPress() {
     if (melding.tidligere) return
@@ -210,19 +245,21 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
               )}
             </div>
 
-            {/* Arkiver-knapp — kun på levende innlegg, ikke FB-importert,
-                kun for forfatter eller admin. Bruker chevronDown som signal
-                for «send ned til Tidligere». e.stopPropagation() hindrer at
-                klikket trigger Link-navigasjon til meldingssiden. (#312) */}
-            {!melding.tidligere && !melding.fraFacebook && (brukerId === melding.forfatter.id || erAdmin) && (
+            {/* Arkiver / av-arkiver — symmetrisk par. Begge kun for forfatter
+                eller admin, aldri på FB-importerte innlegg.
+                  - Levende kort  → chevronDown «send ned til Tidligere»
+                  - Tidligere kort → chevronUp «hent tilbake»
+                e.stopPropagation() hindrer at klikket trigger Link-navigasjon
+                til meldingssiden. (#312) */}
+            {kanFlytte && !melding.tidligere && (
               <button
                 type="button"
                 title="Flytt til Tidligere"
+                aria-label="Flytt innlegget til Tidligere"
                 onClick={e => {
                   e.preventDefault()
                   e.stopPropagation()
-                  if (!confirm('Flytte innlegget til Tidligere?')) return
-                  arkiverMelding(melding.id)
+                  arkiver()
                 }}
                 style={{
                   background: 'none',
@@ -235,6 +272,29 @@ export default function MeldingKort({ melding, brukerId, kommentarer = [], profi
                 }}
               >
                 <Icon name="chevronDown" size={16} />
+              </button>
+            )}
+            {kanFlytte && melding.tidligere && (
+              <button
+                type="button"
+                title="Hent tilbake fra Tidligere"
+                aria-label="Hent innlegget tilbake fra Tidligere"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  avarkiver()
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 4,
+                  color: 'var(--text-tertiary)',
+                  flexShrink: 0,
+                  lineHeight: 0,
+                }}
+              >
+                <Icon name="chevronUp" size={16} />
               </button>
             )}
           </div>

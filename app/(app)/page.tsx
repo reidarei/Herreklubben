@@ -634,7 +634,7 @@ export default async function Forside() {
               if (t.kind === 'arrangement')
                 return <ArrangementKort key={t.data.id} arr={t.data} tidligere />
               if (t.kind === 'poll') return <PollKort key={t.data.id} poll={t.data} tidligere />
-              return <MeldingKort key={t.data.id} melding={t.data} brukerId={user!.id} />
+              return <MeldingKort key={t.data.id} melding={t.data} brukerId={user!.id} erAdmin={erAdmin} />
             })}
           </div>
           <Link
