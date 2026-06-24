@@ -124,5 +124,11 @@ export function revalideringsPaths(scope: ChatScope): string[] {
     case 'privat':
       // Privatsamtaler vises ikke på forsiden
       return [`/samtaler/${scope.samtaleId}`]
+    default: {
+      // Tvinger kompileringsfeil hvis en ny ChatScope-variant glemmes her,
+      // og kaster tydelig ved runtime i stedet for å returnere undefined. se #316
+      const ukjent: never = scope
+      throw new Error(`Ukjent chat-scope: ${JSON.stringify(ukjent)}`)
+    }
   }
 }
