@@ -69,6 +69,9 @@ export default function KommentarerPaaKort({
   totaltAntall,
   profiler = [],
   brukerId,
+  brukerNavn,
+  brukerBildeUrl,
+  brukerRolle,
 }: {
   kommentarer: KommentarKortData[]
   scope: KommentarScope
@@ -79,11 +82,19 @@ export default function KommentarerPaaKort({
   profiler?: ChatProfil[]
   /** Innlogget brukers id — ekskluderes fra mention-forslag (han nevner ikke seg selv). */
   brukerId?: string
+  /** Innlogget brukers navn — trengs for å rendre optimistisk kommentar-rad. se #316 */
+  brukerNavn?: string
+  /** Innlogget brukers bilde_url — trengs for optimistisk rad-avatar. se #316 */
+  brukerBildeUrl?: string | null
+  /** Innlogget brukers rolle — trengs for gul glød på optimistisk rad. se #316 */
+  brukerRolle?: string | null
 }) {
   const visTall = totaltAntall ?? kommentarer.length
   const [apen, setApen] = useState(!startKollapset)
   const [tekst, setTekst] = useState('')
   const [mentionSøk, setMentionSøk] = useState<string | null>(null)
+  // Optimistiske rader som vises umiddelbart etter send, fjernes når server-refresh lander
+  const [optimistiske, setOptimistiske] = useState<KommentarKortData[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const [sender, startTransition] = useTransition()
   const router = useRouter()
@@ -126,12 +137,40 @@ export default function KommentarerPaaKort({
           ? { type: 'poll', pollId: scope.id }
           : { type: 'melding', meldingId: scope.id }
 
+    // Temp-nøkkel — samme «temp-»-prefiks som Chat.tsx bruker for å signalisere
+    // at raden ikke er bekreftet fra server ennå. se #316
+    const tempId = `temp-${crypto.randomUUID()}`
+
+    // Vis kommentaren umiddelbart hvis vi har nok brukerdata til å rendre raden.
+    // Uten brukerdata (f.eks. «Tidligere»-seksjon der props ikke sendes) hopper
+    // vi over den optimistiske fasen og venter på server-refresh. se #316
+    if (brukerNavn) {
+      setOptimistiske(o => [
+        ...o,
+        {
+          id: tempId,
+          innhold: melding,
+          bilde_url: null,
+          opprettet: new Date().toISOString(),
+          avsender: {
+            navn: brukerNavn,
+            bilde_url: brukerBildeUrl ?? null,
+            rolle: brukerRolle ?? null,
+          },
+        },
+      ])
+    }
+
     startTransition(async () => {
       try {
         await sendChatMelding(chatScope, melding, null)
-        router.refresh()
+        await router.refresh()
+        // Fjern optimistisk rad inline etter refresh — React batcher fjerningen
+        // og den nye server-raden i samme commit, så ingen dobbel-rad synes.
+        setOptimistiske(o => o.filter(r => r.id !== tempId))
       } catch {
-        // Gjenopprett tekst ved feil så brukeren ikke mister det de skrev
+        // Rollback: fjern optimistisk rad og gjenopprett input
+        setOptimistiske(o => o.filter(r => r.id !== tempId))
         setTekst(melding)
       }
     })
@@ -194,8 +233,10 @@ export default function KommentarerPaaKort({
         </span>
       )}
 
-      {/* Kommentar-liste — kun synlig når ekspandert */}
-      {apen && kommentarer.length > 0 && (
+      {/* Kommentar-liste — kun synlig når ekspandert.
+          Optimistiske rader flettes inn på slutten; de fjernes atomisk med
+          server-refresh i handleSend slik at ingen dobbel-rad synes. se #316 */}
+      {apen && (kommentarer.length > 0 || optimistiske.length > 0) && (
         <div
           style={{
             marginTop: 8,
@@ -204,7 +245,7 @@ export default function KommentarerPaaKort({
             gap: 8,
           }}
         >
-          {kommentarer.map(k => (
+          {[...kommentarer, ...optimistiske].map(k => (
             <div key={k.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
               <Avatar
                 name={k.avsender.navn}
