@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.2.46'
+const CACHE_VERSION = 'V3.2.47'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -123,33 +123,38 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Stale-while-revalidate: HTML-sider — returner cachet versjon umiddelbart
-  // hvis vi har den, og oppdater i bakgrunnen. Cold-load føles momentan
-  // selv om Vercel-funksjonen cold-starter (~1-3s). Sosial data tåler å være
-  // sekunder gammel. Se #180.
+  // Network-first: HTML-sider hentes alltid fra nett først. HTML inneholder
+  // datorelativt innhold («i dag», «om 2 dager», påmeldingsfrister) som blir
+  // feil hvis en cachet versjon vises. Network-first koster én tur-retur ved
+  // cold load, men garanterer korrekt innhold. Se #319.
   //
-  // Fallback hvis ikke cached: vanlig network-fetch (med cache-write).
-  // Fallback ved offline: returner cache (samme som network-first før).
+  // Vi reverserer trade-offen fra #180 (stale-while-revalidate) for navigate-
+  // requests: cold-start-forsinkelsen var akseptabel for statisk innhold, men
+  // ikke for side-HTML med relativt tidsinnhold.
+  //
+  // Fallback til cache hvis fetch feiler (offline) eller returnerer !ok.
+  // Hvis heller ikke cache finnes, la fetch-feilen propagere naturlig.
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchOgCache = fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone()
-              event.waitUntil(
-                caches.open(PAGE_CACHE).then(async (cache) => {
-                  await cache.put(request, clone)
-                  await trimCache(PAGE_CACHE, MAX_PAGE_CACHE_ENTRIES)
-                })
-              )
-            }
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone()
+            event.waitUntil(
+              caches.open(PAGE_CACHE).then(async (cache) => {
+                await cache.put(request, clone)
+                await trimCache(PAGE_CACHE, MAX_PAGE_CACHE_ENTRIES)
+              })
+            )
             return response
-          })
-          .catch(() => cached) // offline-fallback
-        // Stale: vis cache nå, oppdater i bakgrunnen
-        return cached || fetchOgCache
-      })
+          }
+          // Serverfeil (5xx osv.) — prøv cache som fallback
+          return caches.match(request).then((cached) => cached || response)
+        })
+        .catch(() =>
+          // Offline eller nettverksfeil — prøv cache
+          caches.match(request)
+        )
     )
     return
   }
