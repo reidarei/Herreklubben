@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.2.47'
+const CACHE_VERSION = 'V3.2.48'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -148,12 +148,15 @@ self.addEventListener('fetch', (event) => {
             )
             return response
           }
-          // Serverfeil (5xx osv.) — prøv cache som fallback
+          // Serverfeil (5xx osv.) — prøv cache som fallback.
+          // Hvis cache mangler returnerer vi originalresponsen heller enn å
+          // skjule serverfeilen bak en generisk Response.error().
           return caches.match(request).then((cached) => cached || response)
         })
-        .catch(() =>
-          // Offline eller nettverksfeil — prøv cache
-          caches.match(request)
+        .catch(async () =>
+          // Offline eller nettverksfeil — prøv cache, ellers en
+          // network-error-response så respondWith aldri får undefined.
+          (await caches.match(request)) ?? Response.error()
         )
     )
     return
