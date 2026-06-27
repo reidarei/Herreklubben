@@ -10,7 +10,7 @@
 //
 // PAGE_CACHE er versjonert fordi HTML ikke er innholdshashet — nye builds
 // kan ha samme URL men forskjellig output.
-const CACHE_VERSION = 'V3.2.48'
+const CACHE_VERSION = 'V3.2.49'
 const STATIC_CACHE = 'herreklubben-static'
 const PAGE_CACHE = `herreklubben-pages-${CACHE_VERSION}`
 
@@ -133,7 +133,8 @@ self.addEventListener('fetch', (event) => {
   // ikke for side-HTML med relativt tidsinnhold.
   //
   // Fallback til cache hvis fetch feiler (offline) eller returnerer !ok.
-  // Hvis heller ikke cache finnes, la fetch-feilen propagere naturlig.
+  // Hvis heller ikke cache finnes ved nettverksfeil, returnerer vi
+  // Response.error() (tydeligere nettverksfeil-semantikk enn undefined).
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -148,9 +149,11 @@ self.addEventListener('fetch', (event) => {
             )
             return response
           }
-          // Serverfeil (5xx osv.) — prøv cache som fallback.
-          // Hvis cache mangler returnerer vi originalresponsen heller enn å
-          // skjule serverfeilen bak en generisk Response.error().
+          // Ikke-ok respons (4xx/5xx) — prøv cache som fallback. Cache er
+          // offline-fallback generelt, ikke 5xx-spesifikk: om brukeren har en
+          // gyldig cachet side er den bedre enn en feilmelding. Hvis cache
+          // mangler returnerer vi originalresponsen heller enn å skjule
+          // feilen bak en generisk Response.error().
           return caches.match(request).then((cached) => cached || response)
         })
         .catch(async () =>
