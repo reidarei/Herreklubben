@@ -53,7 +53,7 @@ For maskable-ikonene: selve motivet bør holdes innenfor en sirkel på ca. 80 % 
 
 ## 3. Farger og tema
 
-Farger styres via CSS custom properties i `app/globals.css` bundet til Tailwind v4 via `@theme inline`. Det finnes ingen `tailwind.config.ts` — Tailwind v4 trenger ikke det.
+Farger styres via CSS custom properties i `app/globals.css`. Det finnes ingen `tailwind.config.ts` — Tailwind v4 trenger ikke det. Etter PR-A bindes tokenene til Tailwind-utilities via `@theme inline` slik at f.eks. `bg-accent` plukker `--accent` automatisk; i dag brukes tokenene primært via `var(--token)`.
 
 Se **[docs/tema-arkitektur.md](tema-arkitektur.md)** for fullstendig arkitekturbeskrivelse, tokenliste og migreringsplan.
 

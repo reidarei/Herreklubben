@@ -1,10 +1,12 @@
 # Tema-arkitektur
 
-Dette dokumentet beskriver hvordan farger og tema håndteres i appen, og hvilken migreringskø som gjennomfører overgangen fra scattered hex-verdier til et konsolidert token-system.
+Dette dokumentet beskriver hvordan farger og tema håndteres i appen, og hvilken migreringskø som gjennomfører overgangen fra spredte hex-verdier til et konsolidert token-system.
 
 ---
 
 ## 1. Sammendrag
+
+> **Merk:** Beskrivelsen under er målbildet etter PR-A. Dagens kode bruker fortsatt spredte hex-verdier; arkitekturen rulles ut gjennom PR-køen i seksjon 5.
 
 **CSS er sannheten.** Alle fargetokens defineres i `app/globals.css` under `:root` (og `:root[data-theme="dark"]`). `@theme inline` i Tailwind v4 knytter tokenene til Tailwind-utilities automatisk — ingen `tailwind.config.ts`-fil er nødvendig.
 
@@ -18,7 +20,7 @@ Dette dokumentet beskriver hvordan farger og tema håndteres i appen, og hvilken
 
 ## 2. Tokens i `globals.css`
 
-Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwind v4 via `@theme inline`. Tokens speiles på `:root[data-theme="dark"]` med identiske verdier — dette forbereder en eventuell light-overlay i v2 uten at vi trenger å restructurere CSS-en.
+Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwind v4 via `@theme inline`. Tokens speiles på `:root[data-theme="dark"]` med identiske verdier — dette forbereder en eventuell light-overlay i v2 uten at vi trenger å restrukturere CSS-en.
 
 ### Bakgrunn
 
