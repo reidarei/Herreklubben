@@ -62,9 +62,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Overstyrer CSS-defaults fra globals.css kun når env-var er eksplisitt satt.
-  // Default-verdiene fra lib/klubb-config utløser IKKE injeksjon — det ville
-  // overskrive eventuelle fremtidige runtime-overrides i :root[data-theme=dark].
+  // Default-verdiene fra lib/klubb-config matcher allerede globals.css,
+  // så vi sløyfer injeksjon når env-var ikke er satt — sparer bytes og holder DOM-en ren.
   const klubbOverrides = [
     process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER && `--accent: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER};`,
     process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT && `--accent-soft: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT};`,

@@ -27,7 +27,7 @@ export async function sendEpost({ til, emne, html }: { til: string; emne: string
 // E-postmaler bruker EPOST_FARGER fra lib/tema.ts (sand-aksent #e8d9b5).
 // CSS-variabler er ikke tilgjengelig i e-postklienter, så farger må hardkodes
 // som inline styles — derfor går vi via tema.ts i stedet for globals.css.
-// Knapp-tekstfargen (#0a0a0a) har ikke eget token i EPOST_FARGER, behold hardkodet.
+// Knapptekst (#0a0a0a) er bevisst nesten-svart for kontrast mot aksent — ikke en del av tema-paletten, derfor ikke i EPOST_FARGER.
 
 // Escaper brukerinput før den interpoleres i HTML. Sentral i e-postmalene
 // så vi ikke risikerer at en hilsen som «<a href=…>klikk</a>» rendres som
