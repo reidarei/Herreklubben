@@ -53,21 +53,20 @@ For maskable-ikonene: selve motivet bør holdes innenfor en sirkel på ca. 80 % 
 
 ## 3. Farger og tema
 
-Det finnes ikke ett sentralt sted som styrer alle farger. Det er verdt å si usminket: appen bruker overveiende inline-styles (objekt-literaler) fremfor CSS-variabler eller et Tailwind-tema.
+Farger styres via CSS custom properties i `app/globals.css` bundet til Tailwind v4 via `@theme inline`. Det finnes ingen `tailwind.config.ts` — Tailwind v4 trenger ikke det.
 
-Grep-søk for å finne farge-verdier:
+Se **[docs/tema-arkitektur.md](tema-arkitektur.md)** for fullstendig arkitekturbeskrivelse, tokenliste og migreringsplan.
 
-```bash
-grep -r "#060608\|#18181b\|#a855f7" --include="*.tsx" --include="*.ts" .
-```
+**Brand-farger overstyres via env-vars** — fire variabler lar din klubb tilpasse aksent og bakgrunn uten å endre kode:
 
-Noen ankerpunkter:
+| Env-var | Default (Herreklubbens verdier) | Beskrivelse |
+|---|---|---|
+| `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER` | `#e8d9b5` | Aksent-farge (kremgul) |
+| `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT` | `rgba(232, 217, 181, 0.16)` | Myk aksent (bakgrunnsflater) |
+| `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_HOT` | `#f5e8c8` | Hover/aktiv aksent |
+| `NEXT_PUBLIC_KLUBB_FARGE_BAKGRUNN` | `#0e0f13` | Primær bakgrunn |
 
-- **`app/globals.css`** — liten CSS-fil med noen CSS custom properties og base-stiler. Inneholder ikke hele temaet.
-- **`app/manifest.ts`** — `background_color` og `theme_color` er hardkodet til `#060608` (mørk bakgrunn). Endre disse om du vil et annet PWA-splash-tema.
-- **Tailwind-konfig (`tailwind.config.ts`)** — installert, men brukes lite. Fargepalett er ikke utvidet der.
-
-Skal du endre fargetema gjennomgående, er det en manuell jobb. Det finnes ingen enkel «bytt primærfarge»-knapp i denne kodebasen.
+Sett disse i `.env.local` lokalt og som Vercel Environment Variables i produksjon. Uten env-overrides arver du Herreklubbens fargeopplevelse.
 
 ---
 

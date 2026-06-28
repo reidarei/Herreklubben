@@ -197,6 +197,10 @@ Domene-konstanter (tegnegrenser, dag-vinduer, levetider) ligger i `lib/konstante
 
 **Når du legger til ny konstant:** Hvis verdien speiler en DB check-constraint (f.eks. tegnegrenser), nevn det i kommentaren og oppdater migrasjonsfilen ved endring.
 
+## Policy: Tema og farger
+
+Farger og tema-tokens defineres i `app/globals.css` (`:root` + `@theme inline`). `lib/tema.ts` er tynt JS-speil for manifest, epost og ICS. **Aldri** hardkod hex eller rgba-farger i komponenter — bruk CSS-token (`var(--accent)`) eller Tailwind v4-utility (`bg-accent`). v1 kjører statisk `<html data-theme="dark">`. Klubb-spesifikke brand-farger settes via `NEXT_PUBLIC_KLUBB_FARGE_*`-env i `lib/klubb-config.ts` med Herreklubben-defaults. Detaljer + migreringsrekkefølge: [docs/tema-arkitektur.md](docs/tema-arkitektur.md).
+
 ## Policy: Bildelagring
 
 Bilder lagres i Cloudflare R2 (S3-kompatibel objektlagring). Profilbilder ligger fortsatt i Supabase Storage av historiske grunner — nye bildelagrings-stier skal bruke R2.
