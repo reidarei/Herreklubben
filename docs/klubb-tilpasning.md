@@ -61,7 +61,7 @@ Se **[docs/tema-arkitektur.md](tema-arkitektur.md)** for fullstendig arkitekturb
 
 | Env-var | Default (Herreklubbens verdier) | Beskrivelse |
 |---|---|---|
-| `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER` | `#e8d9b5` | Aksent-farge (kremgul) |
+| `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER` | `#e8d9b5` | Aksent-farge |
 | `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT` | `rgba(232, 217, 181, 0.16)` | Myk aksent (bakgrunnsflater) |
 | `NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_HOT` | `#f5e8c8` | Hover/aktiv aksent |
 | `NEXT_PUBLIC_KLUBB_FARGE_BAKGRUNN` | `#0e0f13` | Primær bakgrunn |

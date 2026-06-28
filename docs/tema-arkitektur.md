@@ -49,7 +49,7 @@ Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwi
 
 | Token | Verdi | Merknad |
 |---|---|---|
-| `--accent` | `#e8d9b5` | Kremgul, ikke gull |
+| `--accent` | `#e8d9b5` | Sand/beige aksent |
 | `--accent-soft` | `rgba(232, 217, 181, 0.16)` | Subtil bakgrunn |
 | `--accent-hot` | `#f5e8c8` | Hover/aktiv-tilstand |
 | `--accent-foreground` | `#1a1a10` | **Ny i PR-A** — mørk tekst på aksent-bakgrunn |
@@ -150,7 +150,7 @@ Etter dette kan komponenter bruke f.eks. `bg-accent`, `text-text-secondary`, `bo
 ```typescript
 export const MANIFEST_FARGER = {
   bakgrunn: '#0e0f13',
-  tema: '#e8d9b5',
+  tema: '#0e0f13',
 };
 
 export const EPOST_FARGER = {
@@ -282,7 +282,7 @@ alter table profiles
 
 ## 8. Synk-skript og klubb-app
 
-`lib/klubb-config.ts` er listet som **DIVERGERER** i `scripts/sync-klubb-app.mjs` — de fire nye farge-konstantene legges der med generiske defaults i klubb-app (f.eks. `#7c6f5a` i stedet for Herreklubbens kremgul).
+`lib/klubb-config.ts` er listet som **DIVERGERER** i `scripts/sync-klubb-app.mjs` — de fire nye farge-konstantene har samme Herreklubben-defaults i begge repos i dag. DIVERGERER-statusen er reservert for å tillate fremtidig override uten å trigge drift-alarm; klubb-app arver Herreklubbens fargeopplevelse til andre vennegjenger setter egne env-vars i Vercel.
 
 `app/globals.css` forblir **MÅ MATCHE** (byte-identisk mellom herreklubben og klubb-app). Brand-farger lever som CSS-variabler som overstyres via env-injeksjon — ingen SKRUB_MAP-hex-mapping er nødvendig. Denne arkitekturen er bevisst: CSS-fil er identisk, identitet injiseres ved deploy.
 
