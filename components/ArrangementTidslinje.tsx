@@ -173,8 +173,8 @@ export default function ArrangementTidslinje({
         style={{
           background: 'var(--bg-elevated)',
           border: idag ? '2px solid var(--accent)' : '1px solid var(--border)',
-          // Pre-existing bug: ytre halo brukte rgba(212,168,83,…) — hardkodet gullfarve som driftet
-          // fra aksent-tokenet. Konsolidert til --accent-soft begge plasser. (#330)
+          // Pre-existing bug: ytre halo brukte en hardkodet gullfarve-verdi som hadde driftet
+          // fra aksent-tokenet. Konsolidert til --accent-soft begge plasser. Se issue 330.
           boxShadow: idag ? '0 0 0 4px var(--accent-soft), 0 12px 32px var(--accent-soft)' : undefined,
           opacity: fortid ? 0.5 : 1,
           textDecoration: 'none',
