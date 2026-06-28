@@ -62,13 +62,25 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Overstyrer CSS-defaults fra globals.css kun når env-var er eksplisitt satt.
+  // Default-verdiene fra lib/klubb-config utløser IKKE injeksjon — det ville
+  // overskrive eventuelle fremtidige runtime-overrides i :root[data-theme=dark].
+  const klubbOverrides = [
+    process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER && `--accent: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER};`,
+    process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT && `--accent-soft: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_SOFT};`,
+    process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_HOT && `--accent-hot: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_HOT};`,
+    process.env.NEXT_PUBLIC_KLUBB_FARGE_BAKGRUNN && `--bg: ${process.env.NEXT_PUBLIC_KLUBB_FARGE_BAKGRUNN};`,
+  ].filter(Boolean).join(' ')
+
   return (
     <html
       lang="nb"
+      data-theme="dark"
       className={`${inter.variable} ${instrument.variable} ${jetbrains.variable}`}
     >
       <head>
         <meta name="theme-color" content="#060608" />
+        {klubbOverrides && <style>{`:root { ${klubbOverrides} }`}</style>}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-180.png" />
       </head>
