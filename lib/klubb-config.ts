@@ -67,3 +67,8 @@ export const KLUBB_FARGE_PRIMAER_HOT =
   process.env.NEXT_PUBLIC_KLUBB_FARGE_PRIMAER_HOT ?? '#f5e8c8'
 export const KLUBB_FARGE_BAKGRUNN =
   process.env.NEXT_PUBLIC_KLUBB_FARGE_BAKGRUNN ?? '#0e0f13'
+
+// profil_id for avsenderen av automatiske bursdagsposter. Null = velg
+// første aktive admin alfabetisk etter etternavn ved kjøretid.
+export const KLUBB_BURSDAGS_AVSENDER_PROFIL_ID =
+  process.env.NEXT_PUBLIC_KLUBB_BURSDAGS_AVSENDER_PROFIL_ID ?? null

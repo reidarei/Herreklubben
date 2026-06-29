@@ -1,19 +1,27 @@
-# Daglig påminnelsesjobb — kaller /api/cron/paaminne kl. 06:00 UTC.
+# Daglig påminnelsesjobb og bursdagsgratulasjonar.
+# Kjøres 4 ganger i vinduet 07–10 norsk (kl. 05–08 UTC sommar, 06–09 vinter).
+# Slot 1 (kl. 08 norsk) kjører i tillegg påminnelsar — se route.ts for detaljer.
 # Secret-oppsett (CRON_SECRET og APP_URL): se docs/oppsett.md, seksjon 9.
 
-name: Daglig påminnelse
+name: Daglig påminnelse og bursdagsgratulasjon
 
 on:
   schedule:
-    # Kjører kl. 08:00 norsk sommertid (UTC+2 = 06:00 UTC, vinter: 07:00 norsk)
+    # Slot 0: kl. 07 norsk sommartid (05 UTC) / kl. 06 vinter (06 UTC)
+    - cron: '0 5 * * *'
+    # Slot 1: kl. 08 norsk sommartid (06 UTC) / kl. 07 vinter — påminnelsar kjørar her
     - cron: '0 6 * * *'
+    # Slot 2: kl. 09 norsk sommartid (07 UTC) / kl. 08 vinter
+    - cron: '0 7 * * *'
+    # Slot 3: kl. 10 norsk sommartid (08 UTC) / kl. 09 vinter — siste sjanse for bursdag
+    - cron: '0 8 * * *'
   workflow_dispatch: # Kan kjøres manuelt fra GitHub
 
 jobs:
   paaminne:
     runs-on: ubuntu-latest
     steps:
-      - name: Send påminnelser
+      - name: Send påminnelser og bursdagsgratulasjonar
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L \
             -X POST "${{ secrets.APP_URL }}/api/cron/paaminne" \

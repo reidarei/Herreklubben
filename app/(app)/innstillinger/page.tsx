@@ -35,6 +35,8 @@ const innstillingLabels: Record<string, string> = {
   // Innspill
   ønske_ny: 'Nytt innspill (til admin)',
   ønske_lukket: 'Ditt innspill er håndtert',
+  // Automatisering
+  bursdagsgratulasjon: 'Automatisk bursdagsgratulasjon i klubb-chat',
   // Drift
   test_modus: 'Testmodus — varsler kun til test-eposten',
 }
@@ -51,6 +53,7 @@ const VARSEL_REKKEFOLGE = [
   'purring_ansvar',
   'ny_poll',
   'melding-ny',
+  'bursdagsgratulasjon',
   'mention',
   'privat-melding',
   'pass-forespørsel',
