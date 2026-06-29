@@ -28,13 +28,20 @@ async function handle(req: NextRequest) {
   // Manuell override via ?slotIndex=N for testing / manuell triggering.
   // Uten override gjør manuelle kjøringer utenfor cron-slotene ingenting,
   // som gjør det vanskelig å verifisere bursdagsflyten ad-hoc.
+  // slotIndex = BURSDAG_VINDU_SLOTS - 1 (siste slot) er garantert-sending-slot:
+  // alle bursdagsbarn som ikke alt er postet i dag, postes da uansett.
   const slotOverride = req.nextUrl.searchParams.get('slotIndex')
   if (slotOverride !== null) {
     const n = Number(slotOverride)
-    if (Number.isInteger(n) && n >= 0 && n < BURSDAG_VINDU_SLOTS) {
-      slotIndex = n
+    if (!Number.isInteger(n) || n < 0 || n >= BURSDAG_VINDU_SLOTS) {
+      return NextResponse.json(
+        {
+          feil: `Ugyldig slotIndex: må være heltall i området 0..${BURSDAG_VINDU_SLOTS - 1}`,
+        },
+        { status: 400 },
+      )
     }
-    // Ugyldig verdi → ignorer og bruk UTC-utregnet slot (samme som ingen param).
+    slotIndex = n
   }
 
   // Påminnelser kjøres kun ved slot 1 (06 UTC = 08 norsk sommer / 07 vinter)
