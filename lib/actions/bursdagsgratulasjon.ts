@@ -11,6 +11,8 @@ import { TIDSSONE } from '@/lib/dato'
 import {
   BURSDAG_EMOJI_POOL,
   BURSDAG_EMOJI_ANTALL,
+  BURSDAG_HILSNER,
+  BURSDAG_UTROPSTEGN,
 } from '@/lib/konstanter'
 import { KLUBB_BURSDAGS_AVSENDER_PROFIL_ID } from '@/lib/klubb-config'
 import { sendChatMentionVarsler } from '@/lib/varsler'
@@ -167,7 +169,10 @@ export async function kjorBursdagsgratulasjon(
       (barn.visningsnavn ?? barn.navn).trim().split(/\s+/)[0]
 
     const emojis = trekkEmoji(BURSDAG_EMOJI_ANTALL)
-    const tekst = `Gratulerer med dagen @${fornavn} ${emojis.join(' ')}`
+    // Plukker tilfeldig hilsen-ord og utropstegn — gir 4 mulige mønstre per post.
+    const hilsen = BURSDAG_HILSNER[Math.floor(Math.random() * BURSDAG_HILSNER.length)]
+    const utropstegn = BURSDAG_UTROPSTEGN[Math.floor(Math.random() * BURSDAG_UTROPSTEGN.length)]
+    const tekst = `${hilsen} med dagen @${fornavn}${utropstegn} ${emojis.join(' ')}`
 
     try {
       const { error: insertErr } = await admin.from('klubb_chat').insert({

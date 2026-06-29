@@ -70,3 +70,8 @@ export const BURSDAG_VINDU_SLOTS = 4
 
 // Antall unike emoji som trekkes frå BURSDAG_EMOJI_POOL per gratulasjon.
 export const BURSDAG_EMOJI_ANTALL = 5
+
+// Variasjoner i hilsen-ord og utropstegn for bursdagsgratulasjonar.
+// Kombinert gir fire mulige meldingsmønstre per post. Se #328.
+export const BURSDAG_HILSNER = ['Gratulerer', 'Grattis'] as const
+export const BURSDAG_UTROPSTEGN = ['!', '!!'] as const
