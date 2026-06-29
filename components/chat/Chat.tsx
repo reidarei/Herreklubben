@@ -1333,7 +1333,7 @@ export default function Chat({
               width: 22,
               height: 22,
               borderRadius: '50%',
-              // litt mørkere original — konsolidert til felles overlay-control-bg-token
+              // original var litt mørkere — konsolidert til felles overlay-control-bg-token
               background: 'var(--overlay-control-bg)',
               color: 'var(--text-primary)',
               border: 'none',

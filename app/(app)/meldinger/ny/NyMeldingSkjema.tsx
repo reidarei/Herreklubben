@@ -555,6 +555,7 @@ export default function NyMeldingSkjema({ albumer }: Props) {
           style={{
             position: 'fixed',
             inset: 0,
+            // original var litt tyngre backdrop — konsolidert til felles overlay-soft-token
             background: 'var(--overlay-soft)',
             zIndex: 200,
             display: 'flex',
