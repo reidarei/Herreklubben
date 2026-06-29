@@ -48,6 +48,13 @@ export const GITHUB_REPO =
 export const GITHUB_ONSKE_LABEL =
   process.env.NEXT_PUBLIC_GITHUB_ONSKE_LABEL ?? 'ønske'
 
+// profil_id for avsenderen av automatiske bursdagsposter. Null = velg
+// første aktive admin alfabetisk etter etternavn ved kjøretid.
+// Server-side config — IKKE NEXT_PUBLIC_, profil-IDen skal ikke ende
+// i klient-bundle (selv om den ikke er en hemmelighet).
+export const BURSDAGS_AVSENDER_PROFIL_ID =
+  process.env.KLUBB_BURSDAGS_AVSENDER_PROFIL_ID ?? null
+
 // Bygg GitHub Issues-list URL med ønske-label og gitt state.
 export function githubIssuesUrl(params: {
   state: 'open' | 'closed' | 'all'

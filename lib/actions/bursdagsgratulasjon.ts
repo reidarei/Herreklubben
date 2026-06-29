@@ -14,7 +14,7 @@ import {
   BURSDAG_HILSNER,
   BURSDAG_UTROPSTEGN,
 } from '@/lib/konstanter'
-import { KLUBB_BURSDAGS_AVSENDER_PROFIL_ID } from '@/lib/klubb-config'
+import { BURSDAGS_AVSENDER_PROFIL_ID } from '@/lib/config'
 import { sendVarsel } from '@/lib/varsler'
 import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -41,12 +41,19 @@ export async function kjorBursdagsgratulasjon(
   let hoppet = 0
   let feil = 0
 
-  // 1. Sjekk om innstillingen er aktiv
-  const { data: innstilling } = await admin
+  // 1. Sjekk om innstillingen er aktiv. maybeSingle() returnerer null
+  // ved 0 rader uten å produsere feil — første gang før noen har lagret
+  // toggle finnes raden ikke, og det skal behandles som «av», ikke som feil.
+  const { data: innstilling, error: innstillingErr } = await admin
     .from('varsel_innstillinger')
     .select('aktiv')
     .eq('noekkel', 'bursdagsgratulasjon')
-    .single()
+    .maybeSingle()
+
+  if (innstillingErr) {
+    console.error('[bursdagsgratulasjon] Klarte ikke lese innstilling:', innstillingErr.message)
+    return { sendt, hoppet, feil: feil + 1 }
+  }
 
   if (!innstilling?.aktiv) {
     return { sendt, hoppet, feil }
@@ -99,7 +106,7 @@ export async function kjorBursdagsgratulasjon(
   }
 
   // 4. Hent avsender-profil
-  let avsenderId: string | null = KLUBB_BURSDAGS_AVSENDER_PROFIL_ID
+  let avsenderId: string | null = BURSDAGS_AVSENDER_PROFIL_ID
 
   // Sett til null hvis konfigurert avsender tilfeldigvis er bursdagsbarn —
   // da faller vi tilbake til admin-utvelgelse for å unngå at noen gratulerer seg selv.
