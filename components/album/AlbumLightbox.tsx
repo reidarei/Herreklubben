@@ -171,7 +171,7 @@ export default function AlbumLightbox({
           borderRadius: '50%',
           border: 'none',
           background: 'var(--overlay-control-bg)',
-          color: '#fff',
+          color: 'var(--text-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -190,7 +190,8 @@ export default function AlbumLightbox({
             top: 'max(24px, calc(env(safe-area-inset-top) + 8px))',
             left: '50%',
             transform: 'translateX(-50%)',
-            color: 'rgba(255,255,255,0.85)',
+            color: 'var(--text-primary)',
+            opacity: 0.85,
             fontFamily: 'var(--font-mono)',
             fontSize: 12,
             letterSpacing: '1.4px',
@@ -219,7 +220,7 @@ export default function AlbumLightbox({
               border: 'none',
               // glass-effekt på fotografisk bakgrunn — ingen passende token
               background: 'rgba(255,255,255,0.12)',
-              color: '#fff',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -246,7 +247,7 @@ export default function AlbumLightbox({
               border: 'none',
               // glass-effekt på fotografisk bakgrunn — ingen passende token
               background: 'rgba(255,255,255,0.12)',
-              color: '#fff',
+              color: 'var(--text-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -272,8 +273,7 @@ export default function AlbumLightbox({
             padding: '8px 10px',
             borderRadius: 999,
             background: 'var(--overlay-control-bg)',
-            // svakere variant av overlay-control-ring — ett bruksted
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.18)',
+            boxShadow: '0 0 0 1px var(--overlay-control-ring)',
           }}
         >
           <button
