@@ -106,16 +106,14 @@ export async function kjorBursdagsgratulasjon(
 
   // 4. Behandle hvert bursdagsbarn × hvert avsender-admin
   for (const barn of bursdagsbarn) {
-    const bursdagsbarnErAdmin = avsendere.some(a => a.id === barn.id)
     // varselSendt holder styr på om varselet er sendt for dette barnet allerede
     // — første avsender som lykkes å poste sender varselet, resten poster uten varsel.
     let varselSendt = false
 
     for (const avsender of avsendere) {
-      // En admin gratulerer ikke seg selv
+      // En admin gratulerer ikke seg selv (dekker også tilfellet der
+      // bursdagsbarnet selv er admin)
       if (avsender.id === barn.id) continue
-      // Bursdagsbarnet er admin og er i avsender-lista: hopp over
-      if (bursdagsbarnErAdmin && avsender.id === barn.id) continue
 
       const kilde = `bursdag:${barn.id}:${aarStr}:${avsender.id}`
 
@@ -175,6 +173,8 @@ export async function kjorBursdagsgratulasjon(
 
         // Send varsel kun fra første avsender som lykkes — bursdagsbarnet
         // skal ikke få N varsler bare fordi N admins har toggle på.
+        // Hilsen-teksten i varselet er bevisst fra første vellykkede avsender;
+        // ev. senere avsenderes hilsner vises kun i chat, ikke i varselet.
         if (!varselSendt) {
           await sendVarsel({
             mottakere: [barn.id],
