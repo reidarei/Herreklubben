@@ -1,19 +1,22 @@
 # Daglig påminnelsesjobb og bursdagsgratulasjonar.
-# Kjøres 4 ganger i vinduet 07–10 norsk (kl. 05–08 UTC sommar, 06–09 vinter).
-# Slot 1 (kl. 08 norsk) kjører i tillegg påminnelsar — se route.ts for detaljer.
+# Cron-tidene er i UTC — slot-indeksen i route.ts utregnes fra UTC-time
+# for å være DST-uavhengig. På sommer er vinduet 07–10 norsk, på vinter
+# 06–09 norsk. Slot 1 (06 UTC) sender i tillegg arrangement-påminnelsar.
 # Secret-oppsett (CRON_SECRET og APP_URL): se docs/oppsett.md, seksjon 9.
 
 name: Daglig påminnelse og bursdagsgratulasjon
 
 on:
   schedule:
-    # Slot 0: kl. 07 norsk sommartid (05 UTC) / kl. 06 vinter (06 UTC)
+    # Slot 0: 05 UTC = 07 norsk sommer / 06 norsk vinter
     - cron: '0 5 * * *'
-    # Slot 1: kl. 08 norsk sommartid (06 UTC) / kl. 07 vinter — påminnelsar kjørar her
+    # Slot 1: 06 UTC = 08 norsk sommer / 07 norsk vinter — påminnelsar kjørar her
     - cron: '0 6 * * *'
-    # Slot 2: kl. 09 norsk sommartid (07 UTC) / kl. 08 vinter
+    # Slot 2: 07 UTC = 09 norsk sommer / 08 norsk vinter
     - cron: '0 7 * * *'
-    # Slot 3: kl. 10 norsk sommartid (08 UTC) / kl. 09 vinter — siste sjanse for bursdag
+    # Slot 3: 08 UTC = 10 norsk sommer / 09 norsk vinter — siste sjanse for bursdag.
+    # NB: på vinterstid faller slot 0 (06 norsk) utenfor det ideelle 07–10-vinduet,
+    # men siste slot (09 norsk) garanterer fortsatt sending samme dag.
     - cron: '0 8 * * *'
   workflow_dispatch: # Kan kjøres manuelt fra GitHub
 

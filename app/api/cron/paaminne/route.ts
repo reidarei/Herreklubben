@@ -1,8 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { kjorPaaminnelser } from '@/lib/actions/paaminnelser'
 import { kjorBursdagsgratulasjon } from '@/lib/actions/bursdagsgratulasjon'
-import { formatInTimeZone } from 'date-fns-tz'
-import { TIDSSONE } from '@/lib/dato'
 import { BURSDAG_VINDU_SLOTS } from '@/lib/konstanter'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -14,12 +12,20 @@ async function handle(req: NextRequest) {
 
   const admin = createAdminClient()
 
-  // Beregn slot-indeks basert på norsk klokketime.
-  // Vinduet er 07–10 (4 slots). slotIndex 0 = kl. 07, 3 = kl. 10.
-  const norskTime = parseInt(formatInTimeZone(new Date(), TIDSSONE, 'H'))
-  const slotIndex = norskTime - 7 // 0-basert; utenfor vinduet kan gi negativ/for høy verdi
+  // Beregn slot-indeks fra UTC-time. Cron-tidene er i UTC (5,6,7,8) — å regne
+  // fra norsk lokaltid ble feil ved DST-overgang fordi vinter-cron (06 UTC)
+  // blir 07 norsk og slotIndex ble 0 i stedet for 1 (se #328-review).
+  //   Slot 0: 05 UTC = 07 norsk sommer / 06 norsk vinter
+  //   Slot 1: 06 UTC = 08 norsk sommer / 07 norsk vinter ← påminnelses-gating
+  //   Slot 2: 07 UTC = 09 norsk sommer / 08 norsk vinter
+  //   Slot 3: 08 UTC = 10 norsk sommer / 09 norsk vinter (siste sjanse)
+  // Påminnelser sendes derfor alltid kl. 07/08 norsk uansett DST. På vinter
+  // faller bursdagsvinduet 06–09 norsk litt utenfor det ideelle 07–10, men
+  // siste slot (09 norsk) garanterer fortsatt sending.
+  const utcTime = new Date().getUTCHours()
+  const slotIndex = utcTime - 5 // 0-basert; utenfor vinduet kan gi negativ/for høy verdi
 
-  // Påminnelser kjøres kun ved slot 1 (kl. 08 norsk) for å bevare eksisterende sendetidspunkt
+  // Påminnelser kjøres kun ved slot 1 (06 UTC = 08 norsk sommer / 07 vinter)
   let paaminneResult: Awaited<ReturnType<typeof kjorPaaminnelser>> | null = null
   if (slotIndex === 1) {
     paaminneResult = await kjorPaaminnelser(admin)
