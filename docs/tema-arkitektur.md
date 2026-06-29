@@ -61,17 +61,17 @@ Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwi
 | Token | Verdi | Merknad |
 |---|---|---|
 | `--success` | `#7cc99a` | |
-| `--success-soft` | `rgba(110, 170, 120, 0.14)` | |
-| `--success-border` | `rgba(110, 170, 120, 0.34)` | |
+| `--success-soft` | `rgba(124, 201, 154, 0.14)` | Samme hue som `--success` |
+| `--success-border` | `rgba(124, 201, 154, 0.34)` | Samme hue som `--success` |
 | `--success-hot` | `#a8dbb8` | **Ny i PR-A** — sterkere success for hover/badge |
 | `--danger` | `#d97a6c` | |
 | `--danger-alt` | `#e87060` | |
-| `--danger-soft` | `rgba(200, 90, 80, 0.14)` | |
-| `--danger-border` | `rgba(200, 90, 80, 0.34)` | |
+| `--danger-soft` | `rgba(217, 122, 108, 0.14)` | Samme hue som `--danger` |
+| `--danger-border` | `rgba(217, 122, 108, 0.34)` | Samme hue som `--danger` |
 | `--danger-hot` | `#e89080` | **Ny i PR-A** — hover/aktiv danger |
 | `--warning` | `#e8a96b` | |
-| `--warning-soft` | `rgba(230, 160, 100, 0.14)` | |
-| `--warning-border` | `rgba(230, 160, 100, 0.34)` | |
+| `--warning-soft` | `rgba(232, 169, 107, 0.14)` | Samme hue som `--warning` |
+| `--warning-border` | `rgba(232, 169, 107, 0.34)` | Samme hue som `--warning` |
 | `--warning-hot` | `#f0bc80` | **Ny i PR-A** — hover/aktiv warning |
 
 ### Fonter
