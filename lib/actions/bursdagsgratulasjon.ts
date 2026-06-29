@@ -15,7 +15,8 @@ import {
   BURSDAG_UTROPSTEGN,
 } from '@/lib/konstanter'
 import { KLUBB_BURSDAGS_AVSENDER_PROFIL_ID } from '@/lib/klubb-config'
-import { sendChatMentionVarsler } from '@/lib/varsler'
+import { sendVarsel } from '@/lib/varsler'
+import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -100,33 +101,35 @@ export async function kjorBursdagsgratulasjon(
   // 4. Hent avsender-profil
   let avsenderId: string | null = KLUBB_BURSDAGS_AVSENDER_PROFIL_ID
 
+  // Sett til null hvis konfigurert avsender tilfeldigvis er bursdagsbarn —
+  // da faller vi tilbake til admin-utvelgelse for å unngå at noen gratulerer seg selv.
+  if (avsenderId && bursdagsbarn.some(b => b.id === avsenderId)) {
+    avsenderId = null
+  }
+
   if (!avsenderId) {
-    // Velg første aktive admin alfabetisk etter etternavn (siste ord i navn)
+    // Velg første aktive admin/generalsekretær alfabetisk etter etternavn.
+    // rollerMed('kanAdministrere') gir både 'admin' og 'generalsekretaer'
+    // slik at vi ikke trenger separat fallback-spørring.
     const { data: adminProfiler } = await admin
       .from('profiles')
       .select('id, navn')
       .eq('aktiv', true)
-      .eq('rolle', 'admin')
+      .in('rolle', rollerMed('kanAdministrere'))
       .order('navn', { ascending: true })
 
-    if (!adminProfiler || adminProfiler.length === 0) {
-      // Fallback: prøv generalsekretær
-      const { data: gsProfiler } = await admin
-        .from('profiles')
-        .select('id, navn')
-        .eq('aktiv', true)
-        .eq('rolle', 'generalsekretaer')
-        .order('navn', { ascending: true })
-
-      avsenderId = gsProfiler?.[0]?.id ?? null
-    } else {
-      // Sorter etter etternavn (siste ord), ta første
-      const sortert = [...adminProfiler].sort((a, b) => {
-        const etternavnA = a.navn.trim().split(/\s+/).pop() ?? a.navn
-        const etternavnB = b.navn.trim().split(/\s+/).pop() ?? b.navn
-        return etternavnA.localeCompare(etternavnB, 'nb')
-      })
-      avsenderId = sortert[0].id
+    if (adminProfiler && adminProfiler.length > 0) {
+      // Ekskluder bursdagsbarn slik at ingen gratulerer seg selv,
+      // og sorter etter etternavn (siste ord). Ta første.
+      const bursdagIder = new Set(bursdagsbarn.map(b => b.id))
+      const sortert = [...adminProfiler]
+        .filter(p => !bursdagIder.has(p.id))
+        .sort((a, b) => {
+          const etternavnA = a.navn.trim().split(/\s+/).pop() ?? a.navn
+          const etternavnB = b.navn.trim().split(/\s+/).pop() ?? b.navn
+          return etternavnA.localeCompare(etternavnB, 'nb')
+        })
+      avsenderId = sortert[0]?.id ?? null
     }
   }
 
@@ -139,12 +142,13 @@ export async function kjorBursdagsgratulasjon(
   for (const barn of bursdagsbarn) {
     const kilde = `bursdag:${barn.id}:${aarStr}`
 
-    // Idempotens-sjekk: allerede postet i år?
+    // Idempotens-sjekk: allerede postet i år? maybeSingle() returnerer null
+    // ved 0 rader uten å produsere feil — det vanlige tilfellet.
     const { data: eksisterende } = await admin
       .from('klubb_chat')
       .select('id')
       .eq('kilde_ekstern_id', kilde)
-      .single()
+      .maybeSingle()
 
     if (eksisterende) {
       hoppet++
@@ -163,21 +167,22 @@ export async function kjorBursdagsgratulasjon(
       continue
     }
 
-    // Bygg melding. Bruker visningsnavn som fornavn-kilde, ellers splitter
-    // vi på første token fra navn-feltet.
-    const fornavn =
-      (barn.visningsnavn ?? barn.navn).trim().split(/\s+/)[0]
+    // Bygg melding. visningsnavn er ikke nullable i schema — fornavn er
+    // første token. @-taggen beholdes i innholdet så andre lesere ser den,
+    // men varselet til bursdagsbarnet sendes direkte via sendVarsel under
+    // (ikke via mention-skanner, som har substring-match-risiko).
+    const fornavn = barn.visningsnavn.trim().split(/\s+/)[0]
 
     const emojis = trekkEmoji(BURSDAG_EMOJI_ANTALL)
     // Plukker tilfeldig hilsen-ord og utropstegn — gir 4 mulige mønstre per post.
     const hilsen = BURSDAG_HILSNER[Math.floor(Math.random() * BURSDAG_HILSNER.length)]
     const utropstegn = BURSDAG_UTROPSTEGN[Math.floor(Math.random() * BURSDAG_UTROPSTEGN.length)]
-    const tekst = `${hilsen} med dagen @${fornavn}${utropstegn} ${emojis.join(' ')}`
+    const innhold = `${hilsen} med dagen @${fornavn}${utropstegn} ${emojis.join(' ')}`
 
     try {
       const { error: insertErr } = await admin.from('klubb_chat').insert({
         profil_id: avsenderId,
-        tekst,
+        innhold,
         kilde_ekstern_id: kilde,
       })
 
@@ -193,8 +198,16 @@ export async function kjorBursdagsgratulasjon(
         continue
       }
 
-      // Send mention-varsel til bursdagsbarnet via eksisterende mention-handler
-      await sendChatMentionVarsler({ type: 'klubb' }, tekst, avsenderId)
+      // Send varsel direkte til bursdagsbarnet via sentral sendVarsel — gir
+      // varsel_logg-spor og dedup-mulighet. Mention-skanneren brukes ikke
+      // siden den substring-matcher på @-tag og kan treffe feil profil.
+      await sendVarsel({
+        mottakere: [barn.id],
+        tittel: 'Gratulerer med dagen!',
+        melding: `${hilsen} med dagen ${fornavn}`,
+        type: 'bursdagsgratulasjon',
+        url: '/chat',
+      })
 
       sendt++
     } catch (e) {
