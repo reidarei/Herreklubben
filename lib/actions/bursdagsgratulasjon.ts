@@ -1,10 +1,12 @@
 // Automatisk bursdagsgratulasjon i klubb-chat. Se #328.
 //
-// Logikken sender én post per bursdagsbarn per år. Idempotens-sikringen
-// bruker kilde_ekstern_id-kolonnens partial unique-indeks i klubb_chat
-// (migrasjon 066) — format «bursdag:{profilId}:{år}». Om cron-jobben
-// kjøres 4 ganger mellom kl. 07 og 10, garanterer slot-logikken at
-// posten sendes seinest ved siste slot uten å doble meldinga.
+// Per-admin logikk: alle aktive admins med bursdagsgratulasjon_aktiv = true
+// sender én post per bursdagsbarn per år. To admins med toggle på → to poster.
+// Idempotens sikres via kilde_ekstern_id = «bursdag:{barnId}:{år}:{adminId}»
+// — unik per avsender, slik at begge kan poste uten å slette hverandres.
+//
+// Varsel til bursdagsbarnet sendes kun én gang selv om flere admins poster —
+// varselSendt-flagget per barn sikrer dette.
 
 import { formatInTimeZone } from 'date-fns-tz'
 import { TIDSSONE } from '@/lib/dato'
@@ -14,7 +16,6 @@ import {
   BURSDAG_HILSNER,
   BURSDAG_UTROPSTEGN,
 } from '@/lib/konstanter'
-import { BURSDAGS_AVSENDER_PROFIL_ID } from '@/lib/config'
 import { sendVarsel } from '@/lib/varsler'
 import { rollerMed } from '@/lib/roller'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -22,7 +23,7 @@ import type { Database } from '@/lib/supabase/database.types'
 
 type Admin = SupabaseClient<Database>
 
-// Trekker 5 unike emoji frå poolen via Fisher-Yates-shuffle (subset-variant).
+// Trekker N unike emoji frå poolen via Fisher-Yates-shuffle (subset-variant).
 // Bruker Math.random() — kryptografisk tilfeldighet er ikke et krav her.
 function trekkEmoji(antall: number): string[] {
   const pool = [...BURSDAG_EMOJI_POOL]
@@ -41,30 +42,12 @@ export async function kjorBursdagsgratulasjon(
   let hoppet = 0
   let feil = 0
 
-  // 1. Sjekk om innstillingen er aktiv. maybeSingle() returnerer null
-  // ved 0 rader uten å produsere feil — første gang før noen har lagret
-  // toggle finnes raden ikke, og det skal behandles som «av», ikke som feil.
-  const { data: innstilling, error: innstillingErr } = await admin
-    .from('varsel_innstillinger')
-    .select('aktiv')
-    .eq('noekkel', 'bursdagsgratulasjon')
-    .maybeSingle()
-
-  if (innstillingErr) {
-    console.error('[bursdagsgratulasjon] Klarte ikke lese innstilling:', innstillingErr.message)
-    return { sendt, hoppet, feil: feil + 1 }
-  }
-
-  if (!innstilling?.aktiv) {
-    return { sendt, hoppet, feil }
-  }
-
-  // 2. Finn dagens dato som MM-DD i norsk tid
+  // 1. Finn dagens dato som MM-DD i norsk tid
   const idag = new Date()
   const dagStr = formatInTimeZone(idag, TIDSSONE, 'MM-dd')
   const aarStr = formatInTimeZone(idag, TIDSSONE, 'yyyy')
 
-  // 3. Hent aktive profiler med fødselsdato
+  // 2. Hent aktive profiler med fødselsdato
   const { data: profiler } = await admin
     .from('profiles')
     .select('id, navn, visningsnavn, fodselsdato')
@@ -105,121 +88,109 @@ export async function kjorBursdagsgratulasjon(
     return { sendt, hoppet, feil }
   }
 
-  // 4. Hent avsender-profil
-  let avsenderId: string | null = BURSDAGS_AVSENDER_PROFIL_ID
+  // 3. Hent alle aktive admins med bursdagsgratulasjon_aktiv = true.
+  // rollerMed('kanAdministrere') gir både 'admin' og 'generalsekretaer'.
+  // Kolonnen bursdagsgratulasjon_aktiv finnes etter migrasjon 100, men
+  // TypeScript kjenner den ikke før typer regenereres — cast via any.
+  const { data: avsendere } = await admin
+    .from('profiles')
+    .select('id, navn')
+    .eq('aktiv', true)
+    .eq('bursdagsgratulasjon_aktiv' as string, true)
+    .in('rolle', rollerMed('kanAdministrere'))
 
-  // Sett til null hvis konfigurert avsender tilfeldigvis er bursdagsbarn —
-  // da faller vi tilbake til admin-utvelgelse for å unngå at noen gratulerer seg selv.
-  if (avsenderId && bursdagsbarn.some(b => b.id === avsenderId)) {
-    avsenderId = null
+  if (!avsendere || avsendere.length === 0) {
+    // Ingen admin har skrudd på toggle — ingenting å gjøre
+    return { sendt, hoppet, feil }
   }
 
-  if (!avsenderId) {
-    // Velg første aktive admin/generalsekretær alfabetisk etter etternavn.
-    // rollerMed('kanAdministrere') gir både 'admin' og 'generalsekretaer'
-    // slik at vi ikke trenger separat fallback-spørring.
-    const { data: adminProfiler } = await admin
-      .from('profiles')
-      .select('id, navn')
-      .eq('aktiv', true)
-      .in('rolle', rollerMed('kanAdministrere'))
-      .order('navn', { ascending: true })
-
-    if (adminProfiler && adminProfiler.length > 0) {
-      // Ekskluder bursdagsbarn slik at ingen gratulerer seg selv,
-      // og sorter etter etternavn (siste ord). Ta første.
-      const bursdagIder = new Set(bursdagsbarn.map(b => b.id))
-      const sortert = [...adminProfiler]
-        .filter(p => !bursdagIder.has(p.id))
-        .sort((a, b) => {
-          const etternavnA = a.navn.trim().split(/\s+/).pop() ?? a.navn
-          const etternavnB = b.navn.trim().split(/\s+/).pop() ?? b.navn
-          return etternavnA.localeCompare(etternavnB, 'nb')
-        })
-      avsenderId = sortert[0]?.id ?? null
-    }
-  }
-
-  if (!avsenderId) {
-    console.error('[bursdagsgratulasjon] Fant ingen avsender-profil')
-    return { sendt, hoppet, feil: feil + 1 }
-  }
-
-  // 5. Behandle hvert bursdagsbarn
+  // 4. Behandle hvert bursdagsbarn × hvert avsender-admin
   for (const barn of bursdagsbarn) {
-    const kilde = `bursdag:${barn.id}:${aarStr}`
+    const bursdagsbarnErAdmin = avsendere.some(a => a.id === barn.id)
+    // varselSendt holder styr på om varselet er sendt for dette barnet allerede
+    // — første avsender som lykkes å poste sender varselet, resten poster uten varsel.
+    let varselSendt = false
 
-    // Idempotens-sjekk: allerede postet i år? maybeSingle() returnerer null
-    // ved 0 rader uten å produsere feil — det vanlige tilfellet.
-    const { data: eksisterende } = await admin
-      .from('klubb_chat')
-      .select('id')
-      .eq('kilde_ekstern_id', kilde)
-      .maybeSingle()
+    for (const avsender of avsendere) {
+      // En admin gratulerer ikke seg selv
+      if (avsender.id === barn.id) continue
+      // Bursdagsbarnet er admin og er i avsender-lista: hopp over
+      if (bursdagsbarnErAdmin && avsender.id === barn.id) continue
 
-    if (eksisterende) {
-      hoppet++
-      continue
-    }
+      const kilde = `bursdag:${barn.id}:${aarStr}:${avsender.id}`
 
-    // Slot-sannsynlighet: garanterer sending seinest ved siste slot.
-    // Formel: P = 1 / (totalSlots - slotIndex). Siste slot → alltid send.
-    // Eks. ved 4 slots: slot 0 → 25 %, slot 1 → 33 %, slot 2 → 50 %, slot 3 → 100 %.
-    const skalSende =
-      slotIndex === totalSlots - 1 ||
-      Math.random() < 1 / (totalSlots - slotIndex)
+      // Idempotens-sjekk: allerede postet fra denne avsenderen i år?
+      // maybeSingle() returnerer null ved 0 rader uten feil — det vanlige tilfellet.
+      const { data: eksisterende } = await admin
+        .from('klubb_chat')
+        .select('id')
+        .eq('kilde_ekstern_id', kilde)
+        .maybeSingle()
 
-    if (!skalSende) {
-      // Utsett til neste slot — men logg ikke som hoppet (ingen feil)
-      continue
-    }
-
-    // Bygg melding. visningsnavn er ikke nullable i schema — fornavn er
-    // første token. @-taggen beholdes i innholdet så andre lesere ser den,
-    // men varselet til bursdagsbarnet sendes direkte via sendVarsel under
-    // (ikke via mention-skanner, som har substring-match-risiko).
-    const fornavn = barn.visningsnavn.trim().split(/\s+/)[0]
-
-    const emojis = trekkEmoji(BURSDAG_EMOJI_ANTALL)
-    // Plukker tilfeldig hilsen-ord og utropstegn — gir 4 mulige mønstre per post.
-    const hilsen = BURSDAG_HILSNER[Math.floor(Math.random() * BURSDAG_HILSNER.length)]
-    const utropstegn = BURSDAG_UTROPSTEGN[Math.floor(Math.random() * BURSDAG_UTROPSTEGN.length)]
-    const innhold = `${hilsen} med dagen @${fornavn}${utropstegn} ${emojis.join(' ')}`
-
-    try {
-      const { error: insertErr } = await admin.from('klubb_chat').insert({
-        profil_id: avsenderId,
-        innhold,
-        kilde_ekstern_id: kilde,
-      })
-
-      if (insertErr) {
-        // Unique-constraint-brudd = allerede postet (race condition mellom
-        // sjekk og insert). Behandles som hoppet, ikke feil.
-        if (insertErr.code === '23505') {
-          hoppet++
-          continue
-        }
-        console.error('[bursdagsgratulasjon] Insert-feil:', insertErr.message)
-        feil++
+      if (eksisterende) {
+        hoppet++
         continue
       }
 
-      // Send varsel direkte til bursdagsbarnet via sentral sendVarsel — gir
-      // varsel_logg-spor og dedup-mulighet. Mention-skanneren brukes ikke
-      // siden den substring-matcher på @-tag og kan treffe feil profil.
-      await sendVarsel({
-        mottakere: [barn.id],
-        tittel: 'Gratulerer med dagen!',
-        melding: `${hilsen} med dagen ${fornavn}`,
-        type: 'bursdagsgratulasjon',
-        url: '/chat',
-      })
+      // Slot-sannsynlighet: garanterer sending seinest ved siste slot.
+      // Formel: P = 1 / (totalSlots - slotIndex). Siste slot → alltid send.
+      // Eks. ved 4 slots: slot 0 → 25 %, slot 1 → 33 %, slot 2 → 50 %, slot 3 → 100 %.
+      const skalSende =
+        slotIndex === totalSlots - 1 ||
+        Math.random() < 1 / (totalSlots - slotIndex)
 
-      sendt++
-    } catch (e) {
-      console.error('[bursdagsgratulasjon] Uventet feil:', e)
-      feil++
+      if (!skalSende) {
+        // Utsett til neste slot — telles ikke som hoppet
+        continue
+      }
+
+      // Bygg melding. visningsnavn er ikke nullable i schema — fornavn er
+      // første token. Tekst-variasjon genereres per avsender slik at to
+      // posters fra ulike admins ikke er identiske.
+      const fornavn = barn.visningsnavn.trim().split(/\s+/)[0]
+
+      const emojis = trekkEmoji(BURSDAG_EMOJI_ANTALL)
+      const hilsen = BURSDAG_HILSNER[Math.floor(Math.random() * BURSDAG_HILSNER.length)]
+      const utropstegn = BURSDAG_UTROPSTEGN[Math.floor(Math.random() * BURSDAG_UTROPSTEGN.length)]
+      const innhold = `${hilsen} med dagen @${fornavn}${utropstegn} ${emojis.join(' ')}`
+
+      try {
+        const { error: insertErr } = await admin.from('klubb_chat').insert({
+          profil_id: avsender.id,
+          innhold,
+          kilde_ekstern_id: kilde,
+        })
+
+        if (insertErr) {
+          // Unique-constraint-brudd = allerede postet (race condition mellom
+          // sjekk og insert). Behandles som hoppet, ikke feil.
+          if (insertErr.code === '23505') {
+            hoppet++
+            continue
+          }
+          console.error('[bursdagsgratulasjon] Insert-feil:', insertErr.message)
+          feil++
+          continue
+        }
+
+        // Send varsel kun fra første avsender som lykkes — bursdagsbarnet
+        // skal ikke få N varsler bare fordi N admins har toggle på.
+        if (!varselSendt) {
+          await sendVarsel({
+            mottakere: [barn.id],
+            tittel: 'Gratulerer med dagen!',
+            melding: `${hilsen} med dagen ${fornavn}`,
+            type: 'bursdagsgratulasjon',
+            url: '/chat',
+          })
+          varselSendt = true
+        }
+
+        sendt++
+      } catch (e) {
+        console.error('[bursdagsgratulasjon] Uventet feil:', e)
+        feil++
+      }
     }
   }
 

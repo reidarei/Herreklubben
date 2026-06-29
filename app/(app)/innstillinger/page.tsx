@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getProfil } from '@/lib/auth-cache'
+import { getProfil, getInnloggetBruker } from '@/lib/auth-cache'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import VarselToggle from '@/components/VarselToggle'
@@ -11,6 +11,7 @@ import VarselLogg from './VarselLogg'
 import ArrangementmalerAdmin from '@/components/ArrangementmalerAdmin'
 import KaaringMalAdmin from '@/components/KaaringMalAdmin'
 import InnstillingsKort from '@/components/innstillinger/InnstillingsKort'
+import BursdagsgratulasjonToggle from '@/components/BursdagsgratulasjonToggle'
 import { kanAdministrere, rollerMed } from '@/lib/roller'
 
 const innstillingLabels: Record<string, string> = {
@@ -35,8 +36,6 @@ const innstillingLabels: Record<string, string> = {
   // Innspill
   ønske_ny: 'Nytt innspill (til admin)',
   ønske_lukket: 'Ditt innspill er håndtert',
-  // Automatisering
-  bursdagsgratulasjon: 'Automatisk bursdagsgratulasjon i klubb-chat',
   // Drift
   test_modus: 'Testmodus — varsler kun til test-eposten',
 }
@@ -53,7 +52,6 @@ const VARSEL_REKKEFOLGE = [
   'purring_ansvar',
   'ny_poll',
   'melding-ny',
-  'bursdagsgratulasjon',
   'mention',
   'privat-melding',
   'pass-forespørsel',
@@ -65,7 +63,11 @@ const VARSEL_REKKEFOLGE = [
 ]
 
 export default async function Innstillinger() {
-  const [supabase, profil] = await Promise.all([createServerClient(), getProfil()])
+  const [supabase, profil, bruker] = await Promise.all([
+    createServerClient(),
+    getProfil(),
+    getInnloggetBruker(),
+  ])
 
   if (!kanAdministrere(profil?.rolle)) notFound()
 
@@ -80,6 +82,7 @@ export default async function Innstillinger() {
     { count: varselSisteDogn },
     { data: vitalsRader },
     { data: adminProfiler },
+    { data: egenProfil },
   ] = await Promise.all([
     admin
       .from('varsel_logg')
@@ -111,6 +114,12 @@ export default async function Innstillinger() {
       .eq('aktiv', true)
       .in('rolle', rollerMed('kanAdministrere'))
       .order('navn'),
+    // bursdagsgratulasjon_aktiv finnes etter migrasjon 100; cast via any
+    // til TypeScript er regenerert mot ny databasestruktur.
+    (admin.from('profiles') as any)
+      .select('bursdagsgratulasjon_aktiv')
+      .eq('id', bruker!.id)
+      .maybeSingle(),
   ])
 
   // Aggreger vitals — p75 per metric for mobil siste 7 dager
@@ -320,6 +329,17 @@ export default async function Innstillinger() {
           </InnstillingsKort>
         )
       })()}
+
+      {/* Automatisering — per-admin toggles */}
+      <InnstillingsKort
+        tittel="Automatisering"
+        oppsummering="Mine automatiske handlinger"
+        beskrivelse="Disse togglene gjelder kun for deg — andre admins har sine egne."
+      >
+        <BursdagsgratulasjonToggle
+          aktiv={(egenProfil as any)?.bursdagsgratulasjon_aktiv ?? false}
+        />
+      </InnstillingsKort>
 
       {/* Faste arrangementer */}
       <InnstillingsKort

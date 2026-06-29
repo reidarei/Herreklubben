@@ -1,7 +1,8 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getProfil } from '@/lib/auth-cache'
+import { createServerClient } from '@/lib/supabase/server'
+import { getProfil, getInnloggetBruker } from '@/lib/auth-cache'
 import { revalidatePath } from 'next/cache'
 import { kanAdministrere, rollerMed } from '@/lib/roller'
 import { naa } from '@/lib/dato'
@@ -39,6 +40,23 @@ export async function oppdaterTestEpost(epost: string) {
     .from('varsel_innstillinger')
     .update({ beskrivelse: epost, oppdatert: naa() })
     .eq('noekkel', 'test_modus')
+
+  revalidatePath('/innstillinger')
+}
+
+// Oppdaterer per-admin toggle for automatisk bursdagsgratulasjon.
+// Skrives til profiles-tabellen med innlogget brukers RLS-kontekst —
+// ingen kan skru på/av for andre.
+export async function oppdaterBursdagsgratulasjon(aktiv: boolean) {
+  const [profil, bruker] = await Promise.all([getProfil(), getInnloggetBruker()])
+  if (!kanAdministrere(profil?.rolle) || !bruker) return
+
+  const supabase = await createServerClient()
+  // bursdagsgratulasjon_aktiv finnes etter migrasjon 100; cast via any
+  // til TypeScript er regenerert mot ny databasestruktur.
+  await (supabase.from('profiles') as any)
+    .update({ bursdagsgratulasjon_aktiv: aktiv })
+    .eq('id', bruker.id)
 
   revalidatePath('/innstillinger')
 }
