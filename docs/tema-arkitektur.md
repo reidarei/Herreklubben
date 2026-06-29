@@ -1,12 +1,10 @@
 # Tema-arkitektur
 
-Dette dokumentet beskriver hvordan farger og tema håndteres i appen, og hvilken migreringskø som gjennomfører overgangen fra spredte hex-verdier til et konsolidert token-system.
+Dette dokumentet beskriver hvordan farger og tema håndteres i appen.
 
 ---
 
 ## 1. Sammendrag
-
-> **Merk:** Beskrivelsen under er målbildet etter PR-A. Dagens kode bruker fortsatt spredte hex-verdier; arkitekturen rulles ut gjennom PR-køen i seksjon 5.
 
 **CSS er sannheten.** Alle fargetokens defineres i `app/globals.css` under `:root` (og `:root[data-theme="dark"]`). `@theme inline` i Tailwind v4 knytter tokenene til Tailwind-utilities automatisk — ingen `tailwind.config.ts`-fil er nødvendig.
 
@@ -20,7 +18,7 @@ Dette dokumentet beskriver hvordan farger og tema håndteres i appen, og hvilken
 
 ## 2. Tokens i `globals.css`
 
-Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwind v4 via `@theme inline`. Tokens speiles på `:root[data-theme="dark"]` med identiske verdier — dette forbereder en eventuell light-overlay i v2 uten at vi trenger å restrukturere CSS-en.
+Alle tokens ligger i `:root` i `globals.css` og bindes til Tailwind v4 via `@theme inline`. Tokens speiles på `:root[data-theme="dark"]` med identiske verdier — slik kan en light-overlay legges til i v2 uten å restrukturere CSS-en.
 
 ### Bakgrunn
 
@@ -54,7 +52,7 @@ Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwi
 | `--accent` | `#e8d9b5` | Sand/beige aksent |
 | `--accent-soft` | `rgba(232, 217, 181, 0.16)` | Subtil bakgrunn |
 | `--accent-hot` | `#f5e8c8` | Hover/aktiv-tilstand |
-| `--accent-foreground` | `#1a1a10` | **Ny i PR-A** — mørk tekst på aksent-bakgrunn |
+| `--accent-foreground` | `#1a1a10` | Mørk tekst på aksent-bakgrunn |
 
 ### Semantisk
 
@@ -63,16 +61,16 @@ Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwi
 | `--success` | `#7cc99a` | |
 | `--success-soft` | `rgba(124, 201, 154, 0.14)` | Samme hue som `--success` |
 | `--success-border` | `rgba(124, 201, 154, 0.34)` | Samme hue som `--success` |
-| `--success-hot` | `#a8dbb8` | **Ny i PR-A** — sterkere success for hover/badge |
+| `--success-hot` | `#a8dbb8` | Sterkere success for hover/badge |
 | `--danger` | `#d97a6c` | |
 | `--danger-alt` | `#e87060` | |
 | `--danger-soft` | `rgba(217, 122, 108, 0.14)` | Samme hue som `--danger` |
 | `--danger-border` | `rgba(217, 122, 108, 0.34)` | Samme hue som `--danger` |
-| `--danger-hot` | `#e89080` | **Ny i PR-A** — hover/aktiv danger |
+| `--danger-hot` | `#e89080` | Hover/aktiv danger |
 | `--warning` | `#e8a96b` | |
 | `--warning-soft` | `rgba(232, 169, 107, 0.14)` | Samme hue som `--warning` |
 | `--warning-border` | `rgba(232, 169, 107, 0.34)` | Samme hue som `--warning` |
-| `--warning-hot` | `#f0bc80` | **Ny i PR-A** — hover/aktiv warning |
+| `--warning-hot` | `#f0bc80` | Hover/aktiv warning |
 
 ### Fonter
 
@@ -100,19 +98,9 @@ Etter PR-A skal alle tokens ligge i `:root` i `globals.css` og bindes til Tailwi
 | `--blur-nav` | `blur(40px) saturate(200%) brightness(1.1)` |
 | `--blur-glass` | `blur(16px)` |
 
-### Bakoverkompatible aliaser (fjernes i PR-B6)
-
-| Token | Peker til |
-|---|---|
-| `--bg-tertiary` | `--bg-elevated-2` |
-| `--accent-subtle` | `--accent-soft` |
-| `--success-subtle` | `--success-soft` |
-| `--destructive` | `--danger` |
-| `--destructive-subtle` | `--danger-soft` |
-
 ### `@theme inline`-blokken
 
-PR-A legger til en `@theme inline`-blokk i `globals.css` som eksponerer tokens som Tailwind v4-utilities:
+`globals.css` har en `@theme inline`-blokk som eksponerer tokens som Tailwind v4-utilities:
 
 ```css
 @theme inline {
@@ -206,57 +194,43 @@ Fordi verdiene leses ved build-time (miljø-variabler med `NEXT_PUBLIC_`-prefiks
 
 ---
 
-## 5. Migreringsrekkefølge — PR-kø
+## 5. Historikk — hvordan systemet ble bygget
 
-Hver PR er et eget GitHub-issue som kjøres gjennom agentic. Rekkefølgen er valgt slik at scaffolding lander før komponenter migreres.
+Token-systemet ble rullet ut i en serie puljer for å holde hver PR liten og verifiserbar:
 
-### PR-A — Scaffolding
+| Pulje | Issue | Hva |
+|---|---|---|
+| PR-A | #325 | Scaffolding: tokens i `globals.css`, `lib/tema.ts`, klubb-config env-vars, `data-theme="dark"` på `<html>` |
+| PR-B1 | #327 | `components/ui/*` — pluss bonus-fix på Button primary-kontrast |
+| PR-B2 | #330 | Agenda + global app-shell — pluss bonus-fix på halo-fargedrift |
+| PR-B3 | #332 | Chat + samtaler + meldinger |
+| PR-B4 | #334 | Klubb-gruppen (klubbinfo, kåringer, arrangementer, arrangoransvar) |
+| PR-B5 | #337 | Profil + innstillinger + album + diverse — pluss bonus-fix på 2 admin-kontraster |
+| PR-B6 | #339 | `(auth)` + fjerning av deprecated aliaser |
+| PR-B7 | #346 | Siste opprydning av 7 forekomster som ble glipp |
 
-**Filer:**
-- `app/globals.css` — legg til `@theme inline`-blokk, legg til nye tokens (`--accent-foreground`, `--success-hot`, `--danger-hot`, `--warning-hot`), legg til `:root[data-theme="dark"]`-speiling
-- `lib/tema.ts` — opprett filen med `MANIFEST_FARGER`, `EPOST_FARGER`, `ICS_FARGE`
-- `lib/klubb-config.ts` — legg til de fire `NEXT_PUBLIC_KLUBB_FARGE_*`-konstantene med Herreklubben-defaults
-- `app/layout.tsx` — legg til `data-theme="dark"` på `<html>`, legg til inline-`<style>`-injeksjon for klubb-farger, erstatt hardkodede farger i manifest/meta med `MANIFEST_FARGER` fra `lib/tema.ts`
+Tilstøtende rydde-PR-er kjørt parallelt: #323 (manifest-drift), #335 (danger-hue-drift), #340 (`variant: 'destructive'` → `'danger'`).
 
-### PR-B1 — `components/ui`
-
-Migrer alle fargereferanser i `components/ui/` fra inline hex til CSS-tokens/Tailwind-utilities.
-
-### PR-B2 — `(app)/agenda`
-
-Migrer fargereferanser i alle ruter og komponenter under `app/(app)/agenda/` og tilhørende arrangement-komponenter.
-
-### PR-B3 — `(app)/chat` + samtaler + meldinger
-
-Migrer fargereferanser i `app/(app)/chat/`, samtale- og meldingskomponenter.
-
-### PR-B4 — `(app)/klubb`
-
-Migrer fargereferanser i `app/(app)/klubb/` — klubbinfo, kåringer, arrangementer, arrangoransvar.
-
-### PR-B5 — `(app)/profil` + innstillinger + album + diverse
-
-Migrer fargereferanser i profilsider, innstillinger, album og øvrige sider under `(app)/`.
-
-### PR-B6 — `(auth)` + opprydding av deprecated aliaser
-
-Migrer fargereferanser i `app/(auth)/`. Fjern de bakoverkompatible aliasene (`--bg-tertiary`, `--accent-subtle`, `--success-subtle`, `--destructive`, `--destructive-subtle`) fra `globals.css` når alle konsumenter er migrert.
+**Bevisste unntak (med kommentar i koden):**
+- Avatar-hue (`oklch()` per navn — identitet, ikke tema)
+- Ordsky `#2c2c2e` (kunstnerisk SVG-fyll)
+- SkyBakgrunn `white` (skyer er hvite — grafisk identitet)
+- SladdetFelt `#000` (ren svart sladd)
+- AlbumLightbox glass-pilknapper (`rgba(255,255,255,0.12)`)
+- RsvpBlokk indre badge-skygge (`rgba(0, 0, 0, 0.12)`)
+- `lib/epost.ts` knapptekst (`#0a0a0a` — e-postklienter støtter ikke CSS-vars)
 
 ---
 
-## 6. Akseptkriterier per PR-type
+## 6. Akseptkriterier for fremtidige tema-PR-er
 
-### PR-A
+Når noen senere skal endre eller utvide tema-systemet:
 
-- Bygger uten feil (`npm run build`)
-- Lighthouse-score uendret (sjekk Performance og Accessibility)
-- Manuell visuell sjekk av agenda, chat og klubbinfo viser ingen synlig endring
-
-### PR-Bn (B1–B6)
-
-- Visuelt no-op verifisert lokalt mot main — se app i browser, gå gjennom berørte sider
-- Ingen Playwright-baselines committes — lokal sanity-sjekk per PR, dokumentert i PR-beskrivelsen med "visuelt no-op bekreftet lokalt"
-- Bygger uten feil
+- Bygger uten feil (`npm run build`) og `npm run lint` grønt
+- Lighthouse-score uendret
+- Visuelt no-op verifisert lokalt mot main (med mindre det er en bevisst designendring som flagges i PR-beskrivelsen)
+- Ingen nye hardkodede `#hex`/`rgba()` i style-prop-verdier (untatt dokumenterte unntak med kommentar)
+- Klubb-app-synk grønn etter merge (`npm run sync-klubb-app`)
 
 ---
 
@@ -303,4 +277,5 @@ alter table profiles
 
 ## 10. Relatert
 
-- **Issue #323** — manifest-drift-bug: `background_color` og `theme_color` i `app/manifest.ts` er hardkodet til foreldet hex og skal hente fra `lib/tema.ts`. Behandles i eget løp, ikke del av PR-A.
+- **CLAUDE.md** — Policy: Tema og farger (kort referanse for bidragsytere)
+- **docs/klubb-tilpasning.md** — hvordan andre klubber overstyrer brand-farger via env-vars

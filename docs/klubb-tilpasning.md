@@ -53,9 +53,11 @@ For maskable-ikonene: selve motivet bør holdes innenfor en sirkel på ca. 80 % 
 
 ## 3. Farger og tema
 
-Farger styres via CSS custom properties i `app/globals.css`. Det finnes ingen `tailwind.config.ts` — Tailwind v4 trenger ikke det. Etter PR-A bindes tokenene til Tailwind-utilities via `@theme inline` slik at f.eks. `bg-accent` plukker `--accent` automatisk; i dag brukes tokenene primært via `var(--token)`.
+Farger styres via CSS custom properties i `app/globals.css`. Det finnes ingen `tailwind.config.ts` — Tailwind v4 trenger ikke det. Tokenene er bundet til Tailwind-utilities via `@theme inline` slik at f.eks. `bg-accent` plukker `--accent` automatisk. Komponenter bruker tokenene via `var(--token)` eller Tailwind-klasser.
 
-Se **[docs/tema-arkitektur.md](tema-arkitektur.md)** for fullstendig arkitekturbeskrivelse, tokenliste og migreringsplan.
+For JS-kontekster som ikke kan lese CSS-variabler (manifest, e-postmaler, ICS-filer) finnes et tynt speil i `lib/tema.ts`.
+
+Se **[docs/tema-arkitektur.md](tema-arkitektur.md)** for fullstendig arkitekturbeskrivelse og tokenliste.
 
 **Brand-farger overstyres via env-vars** — fire variabler lar din klubb tilpasse aksent og bakgrunn uten å endre kode:
 
