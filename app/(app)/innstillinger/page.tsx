@@ -70,6 +70,10 @@ export default async function Innstillinger() {
   ])
 
   if (!kanAdministrere(profil?.rolle)) notFound()
+  // Etter at admin-sjekken er passert vet vi at det finnes en innlogget
+  // bruker — getProfil() returnerer kun en rolle hvis bruker-id finnes.
+  // Eksplisitt narrow her gjør at vi slipper `!`-cast nedenfor.
+  if (!bruker) notFound()
 
   const admin = createAdminClient()
   const sisteDognIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -118,7 +122,7 @@ export default async function Innstillinger() {
     // til TypeScript er regenerert mot ny databasestruktur.
     (admin.from('profiles') as any)
       .select('bursdagsgratulasjon_aktiv')
-      .eq('id', bruker!.id)
+      .eq('id', bruker.id)
       .maybeSingle(),
   ])
 
