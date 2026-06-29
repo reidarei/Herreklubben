@@ -23,7 +23,19 @@ async function handle(req: NextRequest) {
   // faller bursdagsvinduet 06–09 norsk litt utenfor det ideelle 07–10, men
   // siste slot (09 norsk) garanterer fortsatt sending.
   const utcTime = new Date().getUTCHours()
-  const slotIndex = utcTime - 5 // 0-basert; utenfor vinduet kan gi negativ/for høy verdi
+  let slotIndex = utcTime - 5 // 0-basert; utenfor vinduet kan gi negativ/for høy verdi
+
+  // Manuell override via ?slotIndex=N for testing / manuell triggering.
+  // Uten override gjør manuelle kjøringer utenfor cron-slotene ingenting,
+  // som gjør det vanskelig å verifisere bursdagsflyten ad-hoc.
+  const slotOverride = req.nextUrl.searchParams.get('slotIndex')
+  if (slotOverride !== null) {
+    const n = Number(slotOverride)
+    if (Number.isInteger(n) && n >= 0 && n < BURSDAG_VINDU_SLOTS) {
+      slotIndex = n
+    }
+    // Ugyldig verdi → ignorer og bruk UTC-utregnet slot (samme som ingen param).
+  }
 
   // Påminnelser kjøres kun ved slot 1 (06 UTC = 08 norsk sommer / 07 vinter)
   let paaminneResult: Awaited<ReturnType<typeof kjorPaaminnelser>> | null = null
