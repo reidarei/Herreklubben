@@ -55,7 +55,7 @@ export default function TurFelt({
           className="flex-1 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
           style={{
             background: hemmelig ? 'var(--bg-elevated-2)' : 'var(--bg-elevated)',
-            border: `1px solid ${hemmelig ? 'var(--border)' : 'var(--border)'}`,
+            border: '1px solid var(--border)',
             color: hemmelig ? 'var(--text-secondary)' : 'var(--text-tertiary)',
             fontFamily: 'inherit',
             cursor: 'pointer',
