@@ -22,11 +22,14 @@ import {
   beregnMentionSøk,
   velgMentionTekst,
   lagMentionForslag,
+  mentionSplitRegex,
   type ChatProfil,
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
 import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
-import { splittPaaUrler } from '@/lib/linkify'
+// Importer fra linkify-core (pure helper) i stedet for linkify.tsx — vi
+// trenger bare splitteren, ikke React-komponenten. Holder bundle slank.
+import { splittPaaUrler } from '@/lib/linkify-core'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -55,13 +58,9 @@ const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as co
 
 type Reaksjon = { melding_id: string; profil_id: string; emoji: string }
 
-// Mention-regex må holdes i synk med MENTION_REGEX i lib/mention.ts.
-// Lokal kopi for å unngå ekstra import-kobling i hot-path render.
-const MENTION_SPLIT_REGEX = /(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g
-
 /**
  * Rendrer melding-innhold med både klikkbare URLer OG mention-styling.
- * Wrapper rundt splittPaaUrler — kjernen i lib/linkify.tsx holdes enkel,
+ * Wrapper rundt splittPaaUrler — kjernen i lib/linkify-core.ts holdes enkel,
  * mention-styling er chat-spesifikk og hører hjemme her (jf. avatar-policy:
  * lokal wrapper framfor å utvide felleskomponent med props). se #350
  */
@@ -91,7 +90,7 @@ function LinkifiedMedMentions({ text }: { text: string }) {
           )
         }
         // Tekst-del: splitt videre på mentions og styliser dem
-        const subDeler = del.verdi.split(MENTION_SPLIT_REGEX)
+        const subDeler = del.verdi.split(mentionSplitRegex())
         return (
           <Fragment key={i}>
             {subDeler.map((sub, j) =>
