@@ -84,22 +84,125 @@ Light mode er ikke bare «inverter alt». Konkrete spørsmål:
 
 ---
 
-### 5. Sammensatt eller delt opp?
+### 5. PR-deling med Claude Design-handoff
 
-Tema-rekken viste at puljer fungerer bra. To naturlige måter å dele opp:
+**✅ Beslutning (2026-06-30):** To PR-er. Claude Design leverer light-paletten separat; vi koder mot en spec.
 
-**A. Ett issue, én PR:** Design + bryter-mekanikk + iOS-statuslinje + persistens i én leveranse. Mer review-tung, men sammenhengende.
+**PR1 — bryter-mekanikk** (kjøres nå):
+- Cookie + localStorage-persistens
+- Server-rendret `data-theme`-attributt + pre-hydration-script for «System»-modus
+- iOS-statuslinje-oppdatering ved tema-bytte
+- «Utseende»-seksjon i `/innstillinger` med to valg synlig: **System** og **Dark**. «Light» legges til i PR2.
+- Default: Dark (eksplisitt — alle nye og eksisterende brukere)
 
-**B. Tre puljer:**
-- **B1** — design-pulje (mock + diskuter palett, ingen kode)
-- **B2** — bryter + persistens + light-palett-implementasjon (hoved-PR)
-- **B3** — iOS-statuslinje + e-post-vurdering (oppfølger)
+**PR2 — light-palett-aktivering** (kjøres når Claude Design har levert):
+- `:root[data-theme="light"]`-blokk i `globals.css` med Claude Designs token-verdier
+- Avatar-hue-justering for light bg
+- SkyBakgrunn-tilpasning for light bg
+- «Light» legges til som tredje valg i innstillinger-seksjonen
+- Verifisering: visuell sjekk av alle hovedflater på light
 
-Cross-device-sync (DB-kolonne) blir uansett egen pulje hvis den lander.
+Hvorfor «Light» ikke vises i PR1: vi unngår å lande en knapp som ikke gjør noe synlig. PR1 leverer ren ny funksjonalitet (system-følging blir reelt verdt selv uten light, fordi den følger OS-dark når OS-en er dark — som har vært tilfelle hele tiden). Brukere får ingen forvirrende halv-feature.
 
-**Min anbefaling:** B. Design-pulje først så vi ser hva vi bygger mot.
+---
 
-**Beslutning:** _avventer_
+## Handoff-spec til Claude Design
+
+Reidar kjører light-palettarbeidet i Claude Design separat. For at PR2 skal være triviell trenger vi leveransen i et bestemt format. Spec under fungerer som «kontrakt» mellom designarbeidet og kode-implementasjonen.
+
+### Hva Claude Design må produsere
+
+**1. Token-verditabell** — én rad per CSS-variabel i `app/globals.css` (~35 totalt), med ny verdi for light-modus.
+
+Mal:
+
+| Token | Dark-verdi (referanse) | Light-verdi (Claude Design fyller inn) |
+|---|---|---|
+| `--bg` | `#0e0f13` | `?` |
+| `--bg-elevated` | `rgba(40, 42, 50, 0.95)` | `?` |
+| `--bg-elevated-2` | `rgba(54, 56, 64, 0.97)` | `?` |
+| `--bg-header` | `rgba(14, 15, 19, 0.85)` | `?` |
+| `--bg-elevated-solid` | `#282a32` | `?` |
+| `--border` | `rgba(255, 255, 255, 0.16)` | `?` |
+| `--border-strong` | `rgba(255, 255, 255, 0.26)` | `?` |
+| `--border-subtle` | `rgba(255, 255, 255, 0.06)` | `?` |
+| `--text-primary` | `#f5f5f7` | `?` |
+| `--text-secondary` | `#dadce2` | `?` |
+| `--text-tertiary` | `#c0c4cc` | `?` |
+| `--accent` | `#e8d9b5` | `?` |
+| `--accent-soft` | `rgba(232, 217, 181, 0.16)` | `?` |
+| `--accent-hot` | `#f5e8c8` | `?` |
+| `--accent-foreground` | `#1a1a10` | `?` |
+| `--success` | `#7cc99a` | `?` |
+| `--success-soft` | `rgba(124, 201, 154, 0.14)` | `?` |
+| `--success-border` | `rgba(124, 201, 154, 0.34)` | `?` |
+| `--success-hot` | `#a8dbb8` | `?` |
+| `--danger` | `#d97a6c` | `?` |
+| `--danger-alt` | `#e87060` | `?` |
+| `--danger-soft` | `rgba(217, 122, 108, 0.14)` | `?` |
+| `--danger-border` | `rgba(217, 122, 108, 0.34)` | `?` |
+| `--danger-hot` | `#e89080` | `?` |
+| `--warning` | `#e8a96b` | `?` |
+| `--warning-soft` | `rgba(232, 169, 107, 0.14)` | `?` |
+| `--warning-border` | `rgba(232, 169, 107, 0.34)` | `?` |
+| `--warning-hot` | `#f0bc80` | `?` |
+| `--overlay-backdrop` | `rgba(0, 0, 0, 0.9)` | `?` |
+| `--overlay-soft` | `rgba(0, 0, 0, 0.5)` | `?` |
+| `--overlay-control-bg` | `rgba(0, 0, 0, 0.65)` | `?` |
+| `--overlay-control-ring` | `rgba(255, 255, 255, 0.25)` | `?` |
+| `--shadow-floating` | `0 4px 16px rgba(0, 0, 0, 0.18)` | `?` |
+| `--shadow-popover` | `0 6px 18px rgba(0, 0, 0, 0.35)` | `?` |
+| `--shadow-modal` | `0 12px 40px rgba(0, 0, 0, 0.5)` | `?` |
+
+**2. Avatar-hue-formel for light-bg**
+
+Dagens formel for dark: `oklch(0.28 0.04 ${hue})` — gir mørke, lett-mettede bobler mot mørk bg.
+
+Claude Design må spesifisere ny formel for light, f.eks. `oklch(0.85 0.06 ${hue})` eller `oklch(0.75 0.08 ${hue})`. Vi vil ha:
+- Lyse bobler synlige mot lys bg
+- Beholde identitets-variasjon (samme hue per navn, bare lysere baseline)
+- Tekst-fargen oppi bobla må fortsatt være leselig (sannsynligvis bytte fra hvit til mørk i light-modus)
+
+**3. SkyBakgrunn-håndtering**
+
+Dagens `components/SkyBakgrunn.tsx` har hvite SVG-skyer mot mørk bg. På lys bg blir hvite skyer usynlige. Tre alternativer Claude Design må velge mellom:
+
+- **A:** Skjul skyene helt i light-modus (`opacity: 0` når `data-theme="light"`)
+- **B:** Bytt skyene til lett grå/blå i light-modus (men da må SVG-en ta `currentColor` eller en CSS-variabel)
+- **C:** Behold hvite skyer med subtil drop-shadow så de blir synlige
+
+Claude Designs valg + evt. CSS-snippet trengs.
+
+**4. iOS theme-color for light**
+
+Manifest og PWA-splash forblir mørk uansett (kan ikke endres etter install). Men `<meta name="theme-color">` (iOS-statuslinje under app-bruk) bør være `--bg`-verdien for valgt tema. Når brukeren bytter til light skal statuslinjen følge med.
+
+Claude Design trenger bare bekrefte at light `--bg`-verdien fra punkt 1 er det vi vil ha på statuslinjen.
+
+**5. Visuell verifikasjon — skjermbilder**
+
+Mock-up eller skjermbilder av minst tre nøkkelflater i light-modus:
+- Agenda (forsiden — viktigst, mest brukt)
+- En arrangement-detalj med påmeldte
+- Chat-tråd med flere meldinger
+
+Brukes som referanse når vi implementerer + verifiserer at light-modus ser ut som tenkt.
+
+### Hva Claude Design IKKE trenger å levere
+
+- E-postmaler — `lib/epost.ts` forblir mørk uavhengig av brukerens tema-valg
+- PWA-splash — låst til mørk fra manifest, kan ikke endres dynamisk
+- Token-arkitektur eller -navngivning — beholdes som i dark-modus, kun verdiene endres
+- Komponent-endringer — alle komponenter bruker allerede tokens, så de følger med automatisk
+
+### Format på leveranse
+
+Når Claude Design er ferdig, kan resultatet leveres som:
+- **Markdown-tabell** (samme format som over, med utfylte verdier) — enkleste form
+- **CSS-snippet** med ferdig `:root[data-theme="light"]`-blokk
+- **Begge**, hvis ønsket
+
+PR2 blir da en mekanisk «lim inn verdier»-PR — ingen designarbeid igjen.
 
 ---
 
