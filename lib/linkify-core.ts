@@ -2,7 +2,9 @@
 // fra tester uten å dra inn JSX. se #350
 
 // Trailing tegnsetting som skal kuttes fra slutten av et URL-treff.
-const TRAILING_TEGNSETTING = /[.,)!\]?;:]+$/
+// Inkluderer norske «»-anførselstegn og typografiske “”‘’ slik at
+// f.eks. «https://vg.no» ikke får »-tegnet med i URLen. se #350
+const TRAILING_TEGNSETTING = /[.,)!\]?;:»"'“”‘’]+$/
 
 // Regex som treffer http(s)-URLer og www.-prefiks URLer.
 const URL_REGEX = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g

@@ -26,7 +26,7 @@ import {
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
 import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
-import { Linkified } from '@/lib/linkify'
+import { splittPaaUrler } from '@/lib/linkify'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -55,17 +55,58 @@ const REAKSJON_EMOJIS = ['👍', '❤️', '😂', '🎉', '🔥', '🙌'] as co
 
 type Reaksjon = { melding_id: string; profil_id: string; emoji: string }
 
-function renderMedMentions(tekst: string | null) {
-  if (!tekst) return null
-  const deler = tekst.split(/(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g)
-  return deler.map((del, i) =>
-    del.startsWith('@') ? (
-      <span key={i} style={{ fontWeight: 600, color: 'var(--accent)' }}>
-        {del}
-      </span>
-    ) : (
-      del
-    ),
+// Mention-regex må holdes i synk med MENTION_REGEX i lib/mention.ts.
+// Lokal kopi for å unngå ekstra import-kobling i hot-path render.
+const MENTION_SPLIT_REGEX = /(@[\wæøåÆØÅ][\w æøåÆØÅ-]*)/g
+
+/**
+ * Rendrer melding-innhold med både klikkbare URLer OG mention-styling.
+ * Wrapper rundt splittPaaUrler — kjernen i lib/linkify.tsx holdes enkel,
+ * mention-styling er chat-spesifikk og hører hjemme her (jf. avatar-policy:
+ * lokal wrapper framfor å utvide felleskomponent med props). se #350
+ */
+function LinkifiedMedMentions({ text }: { text: string }) {
+  const deler = splittPaaUrler(text)
+  if (deler.length === 0) return null
+
+  return (
+    <>
+      {deler.map((del, i) => {
+        if (del.type === 'url') {
+          return (
+            <a
+              key={i}
+              href={del.href}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                color: 'var(--accent)',
+                textDecoration: 'underline',
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {del.verdi}
+            </a>
+          )
+        }
+        // Tekst-del: splitt videre på mentions og styliser dem
+        const subDeler = del.verdi.split(MENTION_SPLIT_REGEX)
+        return (
+          <Fragment key={i}>
+            {subDeler.map((sub, j) =>
+              sub.startsWith('@') ? (
+                <span key={j} style={{ fontWeight: 600, color: 'var(--accent)' }}>
+                  {sub}
+                </span>
+              ) : (
+                <Fragment key={j}>{sub}</Fragment>
+              ),
+            )}
+          </Fragment>
+        )
+      })}
+    </>
   )
 }
 
@@ -1049,10 +1090,10 @@ export default function Chat({
                         }}
                       />
                     )}
-                    {/* Linkified håndterer URLer; mention-styling bevares via
-                        renderMedMentions — vi erstatter begge med Linkified
-                        for enhetlig URL-støtte. se #350 */}
-                    {m.innhold && <Linkified text={m.innhold} />}
+                    {/* LinkifiedMedMentions wrapper splittPaaUrler og legger
+                        på mention-styling. Bevarer fet/accent-farge på @navn
+                        samtidig som URLer blir klikkbare. se #350 */}
+                    {m.innhold && <LinkifiedMedMentions text={m.innhold} />}
                   </div>
                   )}
                   {m.fra_facebook && <MessengerBadge erEgen={erEgen} />}

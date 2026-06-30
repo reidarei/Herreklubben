@@ -36,7 +36,11 @@ export function Linkified({ text }: { text: string }) {
               style={{
                 color: 'var(--accent)',
                 textDecoration: 'underline',
-                wordBreak: 'break-all',
+                // overflowWrap: 'anywhere' brytes pent på vilkårlig sted ved
+                // overflow, men foretrekker fortsatt naturlige break-punkter
+                // (slashes, bindestreker). break-all var for aggressivt og
+                // brøt URLer midt i ord uten grunn. se #350
+                overflowWrap: 'anywhere',
               }}
             >
               {del.verdi}

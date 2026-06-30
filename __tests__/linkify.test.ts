@@ -59,4 +59,35 @@ describe('splittPaaUrler', () => {
     expect(result[1]).toMatchObject({ type: 'url', verdi: 'https://vg.no' })
     expect(result[2]).toMatchObject({ type: 'tekst', verdi: '.' })
   })
+
+  it('beholder query og fragment i URL', () => {
+    const result = splittPaaUrler('https://example.com/sti?a=1#foo')
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      type: 'url',
+      verdi: 'https://example.com/sti?a=1#foo',
+      href: 'https://example.com/sti?a=1#foo',
+    })
+  })
+
+  it('trimmer trailing parentes uten å spise åpningsparentes', () => {
+    const result = splittPaaUrler('(https://vg.no)')
+    // result: tekst '(', url 'https://vg.no', tekst ')'
+    const url = result.find(d => d.type === 'url')
+    expect(url).toMatchObject({ type: 'url', verdi: 'https://vg.no' })
+    // siste tekst-del skal inneholde ) (kan være sammen med annet)
+    const sisteTekst = result[result.length - 1]
+    expect(sisteTekst.type).toBe('tekst')
+    expect((sisteTekst as { verdi: string }).verdi).toContain(')')
+  })
+
+  it('trimmer norske anførselstegn fra slutten av URL', () => {
+    const result = splittPaaUrler('«https://vg.no»')
+    const url = result.find(d => d.type === 'url')
+    expect(url).toMatchObject({ type: 'url', verdi: 'https://vg.no' })
+    // » skal ligge som tekst, ikke være med i URL
+    const sisteTekst = result[result.length - 1]
+    expect(sisteTekst.type).toBe('tekst')
+    expect((sisteTekst as { verdi: string }).verdi).toContain('»')
+  })
 })
