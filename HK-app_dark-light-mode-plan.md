@@ -21,27 +21,22 @@ Light mode kan legges til ved å definere `:root[data-theme="light"]` med nye ve
 
 ## Beslutninger som må tas
 
-### 1. Cross-device-sync — skal valget følge brukeren mellom enheter?
+### 1. Persistens-strategi
 
-Tre persistens-strategier:
+**✅ Beslutning (2026-06-30):** Cookie + localStorage-speiling.
 
-**A. Kun `localStorage`** — per enhet. Velger du dark på PC, må du velge igjen på iPhone.
-- ✅ Ingen DB-migrasjon, ingen nettverksrundtur
-- ✅ Inkognito gir nøytral default
-- ❌ Krever pre-hydration inline-script for å unngå FOUC
+**Hvorfor det er det åpenbare valget for vår arkitektur:**
+- Server (Next.js SSR) kjenner valget på første request via cookie → null FOUC uten inline-script
+- iOS Safari PWA: cookies med `Expires` overlever ITP-rydding bedre enn localStorage (som kan tømmes etter 7 dagers inaktivitet)
+- localStorage-speiling gjør klient-side bytter umiddelbare uten round-trip
 
-**B. Cookie + speile til `localStorage`** — fortsatt per-enhet, men server kjenner valget på første request.
-- ✅ Null FOUC uten inline-script (server-rendret `data-theme`)
-- ❌ Cookie i hver request (marginal overhead)
+**DB-kolonne ble forkastet:** Appen er kun for mobil-PWA. Hver bruker har én telefon — cross-device-sync har minimal verdi for ~17 medlemmer mot kompleksitets-kostnad (migrasjon, RLS, stale-cookie-edge-case ved kryss-enhet-bytte).
 
-**C. DB-kolonne på `profiles` + cookie-speiling** — synket på tvers av enheter.
-- ✅ Velger du dark på PC, blir det dark på iPhone også
-- ❌ Migrasjon + regenererte typer + RLS-sjekk
-- ❌ Førstegangs-login på ny enhet venter på client-fetch (eller server slår opp profil først)
-
-**Min anbefaling:** B er enklest å starte med. C kan legges til senere uten å rive opp B.
-
-**Beslutning:** _avventer_
+**Hvordan det fungerer i praksis:**
+- Cookie `tema=system|dark|light` settes når brukeren velger i innstillinger
+- `app/layout.tsx` leser cookien server-side og setter `data-theme` på `<html>` umiddelbart
+- For «system»-valg: layout setter `data-theme="dark"` som server-default, og en kort inline-script i `<head>` resolverer til `light` eller `dark` basert på `prefers-color-scheme` før paint
+- localStorage skygger cookie for raskere klient-bytter (uten å trenge round-trip til server ved tema-bytte)
 
 ---
 
