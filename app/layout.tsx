@@ -93,7 +93,10 @@ export default async function RootLayout({
           __html: `(function(){try{
 var lagret = localStorage.getItem('${TEMA_STORAGE_KEY}');
 var cookie = ${JSON.stringify(valgtTema)};
-var valg = lagret || cookie;
+// Valider lagret-verdien — korrupt/ukjent verdi (f.eks. 'blue') skal ikke
+// overstyre cookie. Speiler TEMA_VALG i lib/konstanter.ts.
+var valid = lagret === 'system' || lagret === 'dark' || lagret === 'light';
+var valg = valid ? lagret : cookie;
 var resolved = valg === 'system'
   ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
   : valg;
@@ -118,7 +121,7 @@ if (resolved === 'light' || resolved === 'dark') {
       </head>
       <body>
         {/* TemaSync kobler localStorage og system-mq til data-theme etter hydration */}
-        <TemaSync />
+        <TemaSync initial={valgtTema} />
         {children}
         <div className="orientering-overlay" role="alert" aria-live="polite">
           <div style={{ fontSize: 40, lineHeight: 1 }}>↻</div>
