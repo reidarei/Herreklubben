@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { lesTemaFraStorage, resolveTema, settDataTheme, lyttPaaSystemEndring } from '@/lib/tema-klient'
+import { TEMA_EVENT } from '@/lib/konstanter'
 
 // Montert av layout.tsx — binder localStorage og system-mq til data-theme
 // etter hydration. Pre-hydration-scriptet i <head> gjør den første sync synkront;
@@ -27,8 +28,8 @@ export default function TemaSync() {
         settDataTheme(v as 'dark' | 'light')
       }
     }
-    window.addEventListener('temaEndret', handler)
-    return () => { unsub?.(); window.removeEventListener('temaEndret', handler) }
+    window.addEventListener(TEMA_EVENT, handler)
+    return () => { unsub?.(); window.removeEventListener(TEMA_EVENT, handler) }
   }, [])
   return null
 }

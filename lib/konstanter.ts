@@ -82,3 +82,6 @@ export const TEMA_COOKIE = 'tema' as const
 export const TEMA_STORAGE_KEY = 'hk-tema' as const
 export const TEMA_VALG = ['system', 'dark', 'light'] as const
 export type TemaValg = typeof TEMA_VALG[number]
+// CustomEvent-navn for klient-side tema-bytte. Dispatches av UtseendeValg,
+// lyttes av TemaSync — bruk konstanten for å unngå magiske strenger.
+export const TEMA_EVENT = 'temaEndret' as const
