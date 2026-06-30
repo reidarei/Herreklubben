@@ -26,6 +26,7 @@ import {
 } from '@/lib/mention'
 import MentionVelger from '@/components/agenda/MentionVelger'
 import { CHAT_NAER_BUNN_TERSKEL_PX } from '@/lib/konstanter'
+import { Linkified } from '@/lib/linkify'
 
 // ChatScope er sentralt definert i lib/chat-konfig.ts og re-eksportert her
 // for kall-ergonomi (eksisterende callsites importerer fra Chat.tsx).
@@ -1048,7 +1049,10 @@ export default function Chat({
                         }}
                       />
                     )}
-                    {m.innhold && renderMedMentions(m.innhold)}
+                    {/* Linkified håndterer URLer; mention-styling bevares via
+                        renderMedMentions — vi erstatter begge med Linkified
+                        for enhetlig URL-støtte. se #350 */}
+                    {m.innhold && <Linkified text={m.innhold} />}
                   </div>
                   )}
                   {m.fra_facebook && <MessengerBadge erEgen={erEgen} />}
