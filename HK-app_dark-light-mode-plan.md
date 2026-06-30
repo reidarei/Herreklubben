@@ -53,9 +53,7 @@ Tre persistens-strategier:
 
 **C. Begge** — TopHeader-toggle som snarvei (kun light/dark), full kontroll under innstillinger.
 
-**Min anbefaling:** Start med A. Hvis bytting blir hyppig, kan B legges til senere.
-
-**Beslutning:** _avventer_
+**✅ Beslutning (2026-06-30):** A — på innstillinger-siden, egen «Utseende»-seksjon. Ikke TopHeader-snarvei.
 
 ---
 
@@ -67,9 +65,9 @@ Tre persistens-strategier:
 
 System-modus er standard i moderne apper og krever bare en `matchMedia`-lytter. Liten kompleksitet, mye verdi for brukere med automatisk OS-tema.
 
-**Min anbefaling:** Tre-modus med «System» som default for nye brukere.
+**✅ Beslutning (2026-06-30):** Tre-modus: System, Dark, Light.
 
-**Beslutning:** _avventer_
+**Default ved lansering:** Dark er valgt for alle eksisterende brukere — ingen synlig endring før de selv går inn i innstillinger og velger noe annet. Nye brukere som registreres senere får samme default (Dark), ikke «System» — for å holde defaulten forutsigbar og unngå at nye opplever en plutselig OS-styrt switch.
 
 ---
 
@@ -87,7 +85,7 @@ Light mode er ikke bare «inverter alt». Konkrete spørsmål:
 
 **Min anbefaling:** Jeg lager et start-utkast med konkrete hex-verdier som du kan justere visuelt. Det krever en visuell runde der vi ser hvordan agendaen ser ut på lys bg før vi låser paletten.
 
-**Beslutning:** _avventer_
+**✅ Beslutning (2026-06-30):** Reidar bruker Claude Design (Anthropic) til å lage light-paletten. Når den er klar, kommer den som ferdig artefakt (sannsynligvis token-tabell + skjermbilder) som vi bruker som spec i implementasjonen.
 
 ---
 
