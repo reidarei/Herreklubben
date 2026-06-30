@@ -75,6 +75,7 @@ export default function Avatar({ name, size = 32, src, rolle }: Props) {
         fontSize: size * 0.36,
         fontWeight: 600,
         fontFamily: 'var(--font-body)',
+      // Cast nødvendig — TypeScript støtter ikke CSS custom properties i CSSProperties-typen
       } as React.CSSProperties}
       aria-label={name}
     >

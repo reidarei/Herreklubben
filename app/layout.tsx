@@ -99,16 +99,20 @@ var resolved = valg === 'system'
   : valg;
 if (resolved === 'light' || resolved === 'dark') {
   document.documentElement.setAttribute('data-theme', resolved);
-  var bg = window.getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  if (bg) { var m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', bg); }
+  // Pre-hydration kjører før CSS er parset — getComputedStyle på --bg
+  // kan returnere tom streng her. Hardkod verdiene som speiler globals.css
+  // (post-hydration tar settDataTheme i lib/tema-klient over og leser CSS).
+  var bg = resolved === 'light' ? '#f4f2ec' : '#0e0f13';
+  var m = document.querySelector('meta[name=theme-color]');
+  if (m) m.setAttribute('content', bg);
 }
 }catch(e){}})();`
         }} />
         <meta name="theme-color" content={MANIFEST_FARGER.tema} />
-        {/* Dark-overrides for miljøspesifikke klubbfarger */}
+        {/* Klubb-overrides treffer kun dark — kremgul aksent har dårlig
+            kontrast på lyst papir. Klubb-spesifikke light-overrides kan
+            introduseres som eget issue ved behov. */}
         {klubbOverrides && <style>{`:root[data-theme="dark"] { ${klubbOverrides} }`}</style>}
-        {/* Light-overrides — speiler dark slik at env-farger treffer begge tema */}
-        {klubbOverrides && <style>{`:root[data-theme="light"] { ${klubbOverrides} }`}</style>}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-180.png" />
       </head>
