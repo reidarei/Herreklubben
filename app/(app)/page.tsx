@@ -87,6 +87,7 @@ export default async function Forside() {
     { data: meldingKommentarer },
     { data: albumMedArrangement },
     { data: aktiveProfiler },
+    { data: chatReaksjoner },
   ] = await Promise.all([
     // arrangement_chat(count) gir totalt kommentarantall per arr via PostgREST
     // embed — erstatter den separate id-only-spørringen vi hadde før (#180).
@@ -189,6 +190,13 @@ export default async function Forside() {
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
+    // Reaksjoner på inline kommentarer (arrangement_chat, poll_chat, melding_chat).
+    // Bruker samme cutoff-vindu som kommentarene (cutoffIso) — tilstrekkelig
+    // siden kommentarene selv er begrenset til dette vinduet. se #359.
+    supabase
+      .from('chat_reaksjoner')
+      .select('melding_id, profil_id, emoji')
+      .gte('opprettet', cutoffIso),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -374,6 +382,34 @@ export default async function Forside() {
     profilIder.push(r.profil_id)
     perEmoji.set(r.emoji, profilIder)
     reaksjonerPerMelding.set(r.melding_id, perEmoji)
+  }
+
+  // Aggreger reaksjoner per kommentar-id (arrangement_chat/poll_chat/melding_chat).
+  // Samme logikk som reaksjonerPerMelding over, men for chat_reaksjoner-tabellen. se #359.
+  type RawChatReaksjon = { melding_id: string; profil_id: string; emoji: string }
+  const reaksjonerPerKommentar = new Map<string, Map<string, string[]>>()
+  for (const r of (chatReaksjoner ?? []) as RawChatReaksjon[]) {
+    const perEmoji = reaksjonerPerKommentar.get(r.melding_id) ?? new Map<string, string[]>()
+    const profilIder = perEmoji.get(r.emoji) ?? []
+    profilIder.push(r.profil_id)
+    perEmoji.set(r.emoji, profilIder)
+    reaksjonerPerKommentar.set(r.melding_id, perEmoji)
+  }
+
+  /** Konverter reaksjon-map til ReaksjonGruppe[]-format for én kommentar-id. */
+  function reaksjonGrupperFor(meldingId: string) {
+    const perEmoji = reaksjonerPerKommentar.get(meldingId)
+    if (!perEmoji) return []
+    return [...perEmoji.entries()].map(([emoji, profilIder]) => ({ emoji, profilIder }))
+  }
+
+  // Berik alle kommentar-maps med reaksjoner fra chat_reaksjoner-tabellen.
+  // Gjøres etter at reaksjonerPerKommentar er bygd og reaksjonGrupperFor er definert.
+  // Muterer KommentarKortData-objektene in-place (trygt — de er lokalt opprettet). se #359.
+  for (const kommentarer of [...kommentarerPerArr.values(), ...kommentarerPerPoll.values(), ...kommentarerPerMelding.values()]) {
+    for (const k of kommentarer) {
+      k.reaksjoner = reaksjonGrupperFor(k.id)
+    }
   }
 
   const meldingerForAgenda: MeldingRaad[] = (meldingerRaad ?? []).map((m: RawMelding) => {
