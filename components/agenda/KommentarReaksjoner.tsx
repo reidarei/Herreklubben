@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useTransition, type MouseEvent } from 'react'
+import { useState, useTransition, useEffect, type MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { leggTilReaksjon, fjernReaksjon } from '@/lib/actions/chat'
 import { REAKSJON_EMOJIS } from '@/lib/konstanter'
-import type { ReaksjonGruppe } from '@/components/agenda/MeldingReaksjoner'
+import type { ReaksjonGruppe } from '@/lib/reaksjoner'
 
 type Props = {
   meldingId: string
@@ -33,8 +33,15 @@ export default function KommentarReaksjoner({
   lukkPicker,
 }: Props) {
   const [reaksjoner, setReaksjoner] = useState<ReaksjonGruppe[]>(initial)
-  const [, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
   const router = useRouter()
+
+  // Sync inn ferske server-props etter router.refresh(). Uten dette blir en
+  // rollback fanget på den *første* initial-verdien, og senere server-
+  // oppdateringer ignoreres når komponent-instansen ikke remountes. se #359.
+  useEffect(() => {
+    setReaksjoner(initial)
+  }, [initial])
 
   function stopp(e: MouseEvent) {
     e.preventDefault()
@@ -100,6 +107,7 @@ export default function KommentarReaksjoner({
           <button
             key={r.emoji}
             type="button"
+            disabled={isPending}
             onClick={e => {
               stopp(e)
               toggle(r.emoji)
@@ -115,7 +123,8 @@ export default function KommentarReaksjoner({
               color: 'var(--text-primary)',
               fontFamily: 'var(--font-body)',
               fontSize: 11,
-              cursor: 'pointer',
+              cursor: isPending ? 'default' : 'pointer',
+              opacity: isPending ? 0.6 : 1,
             }}
           >
             <span>{r.emoji}</span>
@@ -146,6 +155,7 @@ export default function KommentarReaksjoner({
             <button
               key={emoji}
               type="button"
+              disabled={isPending}
               onClick={e => {
                 stopp(e)
                 lukkPicker()
@@ -158,8 +168,9 @@ export default function KommentarReaksjoner({
                 background: 'transparent',
                 border: 'none',
                 fontSize: 16,
-                cursor: 'pointer',
+                cursor: isPending ? 'default' : 'pointer',
                 padding: 0,
+                opacity: isPending ? 0.6 : 1,
               }}
             >
               {emoji}
