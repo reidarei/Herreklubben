@@ -383,10 +383,12 @@ export default async function Forside() {
   // Reaksjoner på inline kommentarer (arrangement_chat/poll_chat/melding_chat).
   // Slår opp på melding_id-listen fra kommentarene vi allerede har hentet — treffer
   // chat_reaksjoner_melding_idx direkte i stedet for å scanne på opprettet. se #359.
-  const kommentarIder: string[] = []
-  for (const liste of kommentarerPerArr.values()) for (const k of liste) kommentarIder.push(k.id)
-  for (const liste of kommentarerPerPoll.values()) for (const k of liste) kommentarIder.push(k.id)
-  for (const liste of kommentarerPerMelding.values()) for (const k of liste) kommentarIder.push(k.id)
+  const kommentarIderRaw: string[] = []
+  for (const liste of kommentarerPerArr.values()) for (const k of liste) kommentarIderRaw.push(k.id)
+  for (const liste of kommentarerPerPoll.values()) for (const k of liste) kommentarIderRaw.push(k.id)
+  for (const liste of kommentarerPerMelding.values()) for (const k of liste) kommentarIderRaw.push(k.id)
+  // Dedup før .in()-kallet — samme mønster som mottakerlisten i lib/varsler.ts.
+  const kommentarIder = Array.from(new Set(kommentarIderRaw))
 
   const { data: chatReaksjoner } = kommentarIder.length > 0
     ? await supabase

@@ -10,8 +10,8 @@ type Props = {
   meldingId: string
   brukerId: string
   reaksjoner: ReaksjonGruppe[]
-  /** Styres utenfra: true = picker er åpen (foreldren har registrert long-press
-   * eller tap og gir oss beskjed). false = skjul picker og + knapp. */
+  /** Styres av forelder-komponenten (KommentarerPaaKort) som håndterer
+   * hover (desktop) og long-press (mobil). true = vis picker, false = skjul. */
   pickerApen: boolean
   lukkPicker: () => void
 }
@@ -21,9 +21,9 @@ type Props = {
  * chat_reaksjoner-tabellen (leggTilReaksjon / fjernReaksjon fra
  * lib/actions/chat.ts) — ikke melding_reaksjon-tabellen.
  *
- * + knappen er alltid skjult og styres utelukkende via pickerApen-prop:
- * forelderen (KommentarerPaaKort) bestemmer når picker vises basert på
- * hover (desktop) eller long-press (mobil). se #359.
+ * Rendrer eksisterende reaksjons-badges + en controlled emoji-picker som
+ * åpnes/lukkes av forelderen (KommentarerPaaKort) basert på hover (desktop)
+ * eller long-press (mobil). Ingen egen trigger-knapp — helt controlled. se #359.
  */
 export default function KommentarReaksjoner({
   meldingId,
