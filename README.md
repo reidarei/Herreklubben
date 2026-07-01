@@ -242,7 +242,7 @@ scripts/         # Engangs-importer (FB-arrangementer, album), versjon-stamping
                  # NB: scripts/-mappen må auditeres individuelt før open source-kopiering
 
 __tests__/       # Vitest — fokuserte enhets-tester på utvalgte helpers
-                 # (dato, roller, mention-regex, varsler)
+                 # (dato, roller, mention-regex, varsler, linkify, tema-klient)
 ```
 
 ---
@@ -251,7 +251,7 @@ __tests__/       # Vitest — fokuserte enhets-tester på utvalgte helpers
 
 **Deploy:** push til `main` → Vercel bygger og deployer automatisk. Branch-pushes får preview-deploys.
 
-**Versjon:** `lib/versjon.json` stampes manuelt med `npm run stamp-versjon` før hver commit (oppdaterer også `public/sw.js` for å invalidere service-worker-cache).
+**Versjon:** `lib/versjon.json` stampes automatisk av agentic-pipelinen (`npm run stamp-versjon`) før hver commit — oppdaterer også `public/sw.js` for å invalidere service-worker-cache.
 
 **Cron:** GitHub Actions (`.github/workflows/paaminne.yml`) kaller `/api/cron/paaminne` daglig kl 06:00 UTC med `CRON_SECRET`-header. Valgt foran Vercel Cron for bedre logging og synlig feilrapportering.
 
