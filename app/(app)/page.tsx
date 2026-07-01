@@ -29,6 +29,10 @@ import { hentPollStemmerAggregatBatch } from '@/lib/queries/poll'
 import { AGENDA_VINDU_MND } from '@/lib/konstanter'
 import { ALBUM_SPOTLIGHT_SELECT, tilAlbumSpotlight } from '@/lib/melding-spotlight'
 
+// Rådata-type for chat_reaksjoner-oppslaget. Løftet til modulnivå for å matche
+// mønsteret RawMelding og de andre Raw-typene bruker. se #359.
+type RawChatReaksjon = { melding_id: string; profil_id: string; emoji: string }
+
 // Agenda-forsiden: henter rådata og delegerer all sortering/gruppering til
 // lib/agenda-sortering.ts. Denne filen skal holdes tynn — kun fetch + render.
 export default async function Forside() {
@@ -87,7 +91,6 @@ export default async function Forside() {
     { data: meldingKommentarer },
     { data: albumMedArrangement },
     { data: aktiveProfiler },
-    { data: chatReaksjoner },
   ] = await Promise.all([
     // arrangement_chat(count) gir totalt kommentarantall per arr via PostgREST
     // embed — erstatter den separate id-only-spørringen vi hadde før (#180).
@@ -190,13 +193,6 @@ export default async function Forside() {
       .from('profiles')
       .select('id, navn, bilde_url, rolle')
       .eq('aktiv', true),
-    // Reaksjoner på inline kommentarer (arrangement_chat, poll_chat, melding_chat).
-    // Bruker samme cutoff-vindu som kommentarene (cutoffIso) — tilstrekkelig
-    // siden kommentarene selv er begrenset til dette vinduet. se #359.
-    supabase
-      .from('chat_reaksjoner')
-      .select('melding_id, profil_id, emoji')
-      .gte('opprettet', cutoffIso),
   ])
 
   // Aggreger poll-stemmer: antall unike profiler + om innlogget bruker er
@@ -384,9 +380,23 @@ export default async function Forside() {
     reaksjonerPerMelding.set(r.melding_id, perEmoji)
   }
 
+  // Reaksjoner på inline kommentarer (arrangement_chat/poll_chat/melding_chat).
+  // Slår opp på melding_id-listen fra kommentarene vi allerede har hentet — treffer
+  // chat_reaksjoner_melding_idx direkte i stedet for å scanne på opprettet. se #359.
+  const kommentarIder: string[] = []
+  for (const liste of kommentarerPerArr.values()) for (const k of liste) kommentarIder.push(k.id)
+  for (const liste of kommentarerPerPoll.values()) for (const k of liste) kommentarIder.push(k.id)
+  for (const liste of kommentarerPerMelding.values()) for (const k of liste) kommentarIder.push(k.id)
+
+  const { data: chatReaksjoner } = kommentarIder.length > 0
+    ? await supabase
+        .from('chat_reaksjoner')
+        .select('melding_id, profil_id, emoji')
+        .in('melding_id', kommentarIder)
+    : { data: [] as RawChatReaksjon[] }
+
   // Aggreger reaksjoner per kommentar-id (arrangement_chat/poll_chat/melding_chat).
   // Samme logikk som reaksjonerPerMelding over, men for chat_reaksjoner-tabellen. se #359.
-  type RawChatReaksjon = { melding_id: string; profil_id: string; emoji: string }
   const reaksjonerPerKommentar = new Map<string, Map<string, string[]>>()
   for (const r of (chatReaksjoner ?? []) as RawChatReaksjon[]) {
     const perEmoji = reaksjonerPerKommentar.get(r.melding_id) ?? new Map<string, string[]>()

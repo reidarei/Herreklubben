@@ -23,7 +23,7 @@ type Props = {
  *
  * + knappen er alltid skjult og styres utelukkende via pickerApen-prop:
  * forelderen (KommentarerPaaKort) bestemmer når picker vises basert på
- * hover (desktop) eller long-press/tap (mobil). se #359.
+ * hover (desktop) eller long-press (mobil). se #359.
  */
 export default function KommentarReaksjoner({
   meldingId,
