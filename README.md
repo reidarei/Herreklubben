@@ -301,16 +301,13 @@ Denne seksjonen er for teknisk kyndige som vurderer kodebasen. Den er bevisst us
 Disse er bevisste pragmatiske valg for et hobbyprosjekt med én utvikler — men en gjennomgang fra tradisjonell vinkel ville flagget dem.
 
 - **`Chat.tsx` er 1300+ linjer.** Konsolidert mye via CHAT_KONFIG-refactoren, men selve komponenten er fortsatt en katedral. Sub-komponenter og custom hooks står uendret som «fase B» i issue #100.
-- **Mest styling som inline-style** (objekt-literaler), ikke CSS-moduler eller klasser. Tailwind er installert men brukes lite. Det er pragmatisk for AI-assistert utvikling fordi diff-bredden blir mindre, men det er ikke skalerbart for større team.
-- **Test-dekning er overflate-tynn.** Kun helpers (`dato`, `roller`, `mention-regex`, `varsler`) har enhetstester. Komponenter, server actions og integrasjoner er ikke dekket. End-to-end er ikke automatisert.
-- **Migrasjoner kjøres manuelt** uten CI-validering. En glemt `db push` mellom merge og deploy = sjanse for runtime-feil.
+- **Styling via inline `style={{...}}` med CSS-variabler.** Etter tema-rekken (#322 og PR-A til B7) bruker komponenter tokens (`var(--accent)` osv), ikke hardkodede verdier. Men styling er fortsatt skrevet som inline-objekter, ikke CSS-moduler eller className-baserte utility-klasser overalt. Pragmatisk for AI-flow siden diff-bredden er smal, men ikke skalerbart for større team.
+- **Test-dekning er overflate-tynn.** Enhetstester for helpers (`dato`, `roller`, `mention-regex`, `varsler`, `linkify`, `tema-klient`). Komponenter, server actions og integrasjoner er ikke dekket. End-to-end er ikke automatisert.
+- **Ingen CI-validering.** Verifikasjon (lint + build + tester) kjøres kun i agentic-pipelinen og på Vercels build. En manuelt pushet commit uten pipeline kan lande med brutt lint. Se issue #357.
 - **`scripts/`-mappen inneholder engangsimport-scripts** fra Facebook-dataeksport. Noen av disse har hatt klartekst-passord og datafiler med personopplysninger. Mappen skal ikke kopieres til et nytt repo uten individuell audit av hvert script.
 - **`lib/actions/`-filer har lett gjenværende dupliserte mønstre** (varsel-sending etter insert, error-håndtering). Konsolidering er gjort der det betalte seg, ikke pedantisk overalt.
-- **Ingen automatisert kodegjennomgang** i CI utover Vercels build-sjekk. Code review skjer ad-hoc via Copilot/ultrareview ved PR.
 - **Et lite antall `as unknown as`-casts** der Supabase-genererte typer ikke matcher faktiske join-resultater. Type-løgner, men avgrenset.
 - **iOS Safari-quirks håndteres med flere lag samtidig** (visualViewport-poll + focus-tracking + pathname-reset). Hver er logget med begrunnelse, men aggregert kompleksitet er reell.
-- **Versjons-stamping er manuell.** Lett å glemme.
-- **«Vibe-stamping» av enkelte beslutninger.** Noen designvalg er tatt fordi de føltes rett i øyeblikket og holdt seg fordi de ikke skapte problemer — ikke fordi de er resultat av eksplisitt avveiing. Dette er en iboende risiko ved AI-flow: koden blir produsert raskere enn man rekker å tvile på den.
 
 ### Hva en profesjonell modning ville krevd
 
